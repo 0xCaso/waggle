@@ -156,6 +156,33 @@ h1{font-size:clamp(38px,5.6vw,64px);font-weight:500;line-height:1.03;letter-spac
 .sent b{display:block;font-size:17px;font-weight:600;letter-spacing:-0.02em}
 .sent span{font-size:13.5px;color:var(--mute)}
 
+/* the prototype opened large */
+.view{display:flex;flex-direction:column;gap:12px}
+.vh{display:flex;align-items:center;gap:8px;font-size:12.5px;color:var(--mute)}
+.vh .vt{font-weight:600;color:var(--ink);font-size:14px}
+.ver{font-size:11px;font-weight:600;border-radius:999px;padding:2px 8px;background:#ececec;color:var(--ink2);transition:background 200ms ease,color 200ms ease}
+.ver.new{background:var(--gsoft);color:var(--green)}
+.vs{flex:1;position:relative;border-radius:14px;background:var(--hsoft);box-shadow:0 0 0 1px var(--line);padding:20px 22px;display:flex;flex-direction:column;justify-content:center;align-items:center;gap:16px}
+.vtog{display:inline-flex;background:#fff;border-radius:9px;padding:3px;font-size:12px;font-weight:500;box-shadow:0 0 0 1px rgba(0,0,0,.06);opacity:0;transform:scale(.92);transition:opacity 250ms ease-out,transform 300ms var(--ease),box-shadow 300ms ease}
+.vtog span{padding:4px 10px;border-radius:6px;color:var(--mute)}
+.vtog span.on{background:#f0f0f0;color:var(--ink)}
+.vtog em{font-style:normal;color:var(--green);margin-left:4px}
+.vs.v2 .vtog{opacity:1;transform:none;box-shadow:0 0 0 2px var(--green),0 0 0 6px var(--gsoft)}
+.vplans{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;width:100%}
+.vp{position:relative;background:#fff;border-radius:12px;padding:16px 14px 14px;display:flex;flex-direction:column;gap:6px;box-shadow:0 0 0 1px rgba(0,0,0,.06);min-height:180px;font-size:14px;color:var(--ink)}
+.vp.pop{box-shadow:0 0 0 2px var(--h5)}
+.vp.pop::before{content:"Popular";position:absolute;top:-9px;left:50%;transform:translateX(-50%);background:var(--h5);color:#fff;font-size:10px;font-weight:600;padding:2px 8px;border-radius:8px}
+.vpr{align-self:flex-start;padding:0 4px;margin:0 -4px;font-size:28px;font-weight:600;letter-spacing:-.03em;line-height:1.1;border-radius:6px;transition:background 400ms ease}
+.vpr small{font-size:11.5px;font-weight:400;color:var(--mute);letter-spacing:0}
+.vs.v2 .vp+.vp .vpr{background:var(--gsoft)}
+.vp i{display:block;height:6px;border-radius:3px;background:#ececec;width:80%}
+.vp i+i{width:60%}
+.vbt{margin-top:auto;height:30px;border-radius:8px;background:#ececec}
+.vp.pop .vbt{background:var(--ink)}
+.vf{display:flex;align-items:center;gap:10px}
+.vst{flex:1;display:flex;align-items:center;gap:8px;font-size:13px;color:var(--ink2);min-width:0}
+.vst .st{margin-top:0}
+.vst .st.none{display:none}
 /* agent session card */
 .agent{position:absolute;right:-28px;bottom:-44px;width:330px;background:#1b1d20;color:#e8e8e8;border-radius:14px;padding:12px 14px 14px;box-shadow:0 24px 50px -20px rgba(0,0,0,.45);font-size:13px;line-height:1.5;z-index:3}
 .agent{transition:opacity 300ms ease-out,transform 300ms ease-out}
@@ -234,6 +261,14 @@ footer{display:flex;justify-content:space-between;gap:16px;flex-wrap:wrap;font-s
   .proto .tag{font-size:8px}
   .agent{position:relative;left:auto;right:auto;bottom:auto;width:auto;margin:12px 0 0}
   .agent.gone{opacity:1;transform:none}
+  .view .vs{padding:16px 12px}
+  .vplans{gap:6px}
+  .vp{min-height:120px;padding:12px 8px 8px;font-size:12px}
+  .vpr{font-size:19px}
+  .vpr small{display:none}
+  .vtog{font-size:11px}
+  .vf{flex-wrap:wrap}
+  .vf .send{flex:1 0 100%;justify-content:center}
   .answer{flex-wrap:wrap}
   .answer .note{flex:1 0 100%}
   .answer .send{flex:1;justify-content:center}
@@ -280,10 +315,23 @@ footer{display:flex;justify-content:space-between;gap:16px;flex-wrap:wrap;font-s
           <div class="req hide" id="r-pricing">
             <div class="who"><span class="av">C</span>Claude app · Pricing page · Review</div>
             <h2>Which pricing layout should we ship?</h2>
-            <div class="proto"><div class="lay h"><span class="tag">A · Three plans</span><div class="plans"><div class="plan"><span class="nm">Free</span><span class="pr">$0</span><i></i><i></i><span class="bt"></span></div><div class="plan pop"><span class="nm">Pro</span><span class="pr">$12<small>/mo</small></span><span class="pin drop" id="p1" style="right:-7px;top:18px">1</span><i></i><i></i><span class="bt"></span></div><div class="plan"><span class="nm">Team</span><span class="pr">$24<small>/mo</small></span><i></i><i></i><span class="bt"></span></div></div></div><div class="lay"><span class="tag">B · One plan</span><div class="one"><span class="tog"><span>Monthly</span><span class="on">Yearly<em>-20%</em></span><span class="pin drop" id="p2" style="right:-24px;top:-2px">2</span></span><span class="big">$10<small> /mo, billed yearly</small></span><span class="ck">Unlimited projects</span><span class="ck">Team sharing</span><span class="bt"></span></div></div><div class="cbub" id="c1"><span class="cw">You</span><span class="ctx" id="c1t"></span><span class="caret"></span></div><div class="cbub" id="c2"><span class="cw">You</span><span class="ctx" id="c2t"></span><span class="caret"></span></div></div>
+            <div class="proto"><div class="lay h" id="thA"><span class="tag">A · Three plans</span><div class="plans"><div class="plan"><span class="nm">Free</span><span class="pr">$0</span><i></i><i></i><span class="bt"></span></div><div class="plan pop"><span class="nm">Pro</span><span class="pr">$12<small>/mo</small></span><i></i><i></i><span class="bt"></span></div><div class="plan"><span class="nm">Team</span><span class="pr">$24<small>/mo</small></span><i></i><i></i><span class="bt"></span></div></div></div><div class="lay"><span class="tag">B · One plan</span><div class="one"><span class="tog"><span>Monthly</span><span class="on">Yearly<em>-20%</em></span></span><span class="big">$10<small> /mo, billed yearly</small></span><span class="ck">Unlimited projects</span><span class="ck">Team sharing</span><span class="bt"></span></div></div></div>
             <dl class="need"><dt>Need</dt><dd>Click through both layouts and pick one. Pin a comment on anything to change.</dd></dl>
             <div class="opts"><div class="opt" id="pa"><span class="ck"><svg viewBox="0 0 10 10"><path d="M2 5.2 4.2 7.4 8 3" fill="none" stroke="#16181A" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg></span><div class="rec">Recommended</div><div class="ot">A: Three plans</div></div><div class="opt"><span class="ck"><svg viewBox="0 0 10 10"><path d="M2 5.2 4.2 7.4 8 3" fill="none" stroke="#16181A" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg></span><div class="ot" style="margin-top:28px">B: One plan, yearly toggle</div></div></div>
             <div class="answer"><div class="note" id="pnote"><span id="pnt">Add a note (optional)</span><span class="caret"></span></div><div class="send" id="psend">Decide</div></div>
+          </div>
+          <div class="req hide view" id="r-view">
+            <div class="vh"><span>Pricing page ›</span><span class="vt">A · Three plans</span><span class="ver" id="ver">v1</span></div>
+            <div class="vs" id="vs">
+              <div class="vtog"><span>Monthly</span><span class="on">Yearly<em>-20%</em></span></div>
+              <div class="vplans">
+                <div class="vp"><b>Free</b><span class="vpr">$0</span><i></i><i></i><span class="vbt"></span></div>
+                <div class="vp pop" id="vpro"><b>Pro</b><span class="vpr"><span id="pp">$12</span><small>/mo</small></span><i></i><i></i><span class="vbt"></span><span class="pin drop" id="vp1" style="right:-8px;top:34px">1</span></div>
+                <div class="vp"><b>Team</b><span class="vpr"><span id="tp">$24</span><small>/mo</small></span><i></i><i></i><span class="vbt"></span></div>
+              </div>
+              <div class="cbub" id="vc"><span class="cw">You</span><span class="ctx" id="vct"></span><span class="caret"></span></div>
+            </div>
+            <div class="vf"><div class="vst"><span class="st none" id="vsd"></span><span id="vsx">Click anywhere to pin a comment.</span></div><div class="send" id="vsend">Send comments</div></div>
           </div>
           <div class="req hide" id="r-migr">
             <div class="who"><span class="av cx">&gt;_</span>Claude Code · Billing service · just now</div>
@@ -353,9 +401,11 @@ document.querySelectorAll('.dl2').forEach(b=>b.addEventListener('click',()=>{con
   const still=location.hash==='#still';if(still)document.documentElement.classList.add('still');
   const reduce=still||matchMedia('(prefers-reduced-motion: reduce)').matches;
   const sleep=ms=>new Promise(r=>setTimeout(r,ms));
-  const PANES=['r-pricing','r-migr','r-subj','r-sent','r-empty'];
+  const PANES=['r-pricing','r-view','r-migr','r-subj','r-sent','r-empty'];
   const show=id=>PANES.forEach(k=>$(k).classList.toggle('hide',k!==id));
   const card=document.querySelector('.agent');
+  const vstat=(cls,txt)=>{$('vsd').className='st '+(cls||'none');$('vsx').textContent=txt};
+  const meta=(k,txt)=>{const r=row(k);if(r)r.querySelector('.m').textContent=txt};
   const agent=(cls,txt)=>{$('as').className='st '+cls;$('at').textContent=txt};
   let n=0,answered=6;
   const count=(v,bump=true)=>{n=v;const c=$('count');c.textContent=v;c.classList.toggle('zero',v===0);if(bump){c.classList.add('bump');setTimeout(()=>c.classList.remove('bump'),200)}};
@@ -369,7 +419,7 @@ document.querySelectorAll('.dl2').forEach(b=>b.addEventListener('click',()=>{con
   const moveTo=(el,fx=.5,fy=.5)=>{const s=stage.getBoundingClientRect(),r=el.getBoundingClientRect();cur.style.left=(r.left-s.left+r.width*fx)+'px';cur.style.top=(r.top-s.top+r.height*fy)+'px'};
   const press=async el=>{el.classList.add('press');await sleep(130);el.classList.remove('press')};
   const type=async(el,txt,ms=42)=>{el.textContent='';for(const ch of txt){el.textContent+=ch;await sleep(ms)}};
-  const placeBubble=(b,pin)=>{const pr=$('r-pricing').querySelector('.proto').getBoundingClientRect(),r=pin.getBoundingClientRect();
+  const placeBubble=(b,pin,box)=>{const pr=box.getBoundingClientRect(),r=pin.getBoundingClientRect();
     let x=r.right-pr.left+6,y=r.top-pr.top-4;b.style.left=x+'px';b.style.top=y+'px';
     if(x+b.offsetWidth>pr.width-4){b.style.left=Math.max(4,r.left-pr.left-b.offsetWidth-6)+'px';b.style.transformOrigin='right top'}};
   async function close(k,sentTo,what){
@@ -383,8 +433,9 @@ document.querySelectorAll('.dl2').forEach(b=>b.addEventListener('click',()=>{con
   }
   function reset(){
     rows.innerHTML='';count(0,false);show('r-empty');cur.style.opacity=0;
-    ['p1','p2'].forEach(i=>$(i).classList.remove('show'));['c1','c2'].forEach(i=>$(i).classList.remove('open'));
-    $('c1t').textContent='';$('c2t').textContent='';
+    $('vp1').classList.remove('show');$('vc').classList.remove('open');$('vct').textContent='';
+    $('vs').classList.remove('v2');$('ver').textContent='v1';$('ver').classList.remove('new');$('pp').textContent='$12';$('tp').textContent='$24';
+    $('vs').querySelectorAll('.vpr small').forEach(x=>x.textContent='/mo');vstat('','Click anywhere to pin a comment.');$('vsend').textContent='Send comments';$('vsend').classList.remove('ready');
     ['pa','o1','sa'].forEach(i=>$(i).classList.remove('on'));['psend','send','ssend'].forEach(i=>{$(i).classList.remove('ready');$(i).textContent='Decide'});
     $('pnote').classList.remove('typing','filled');$('pnt').textContent='Add a note (optional)';
     agent('work','Reading the schema and planning the migration…');card.classList.remove('gone');
@@ -409,17 +460,18 @@ document.querySelectorAll('.dl2').forEach(b=>b.addEventListener('click',()=>{con
       await sleep(600);agent('done','Got it: two steps. Starting step one.');await sleep(900);
       // 2. the pricing review: comment in line, draft a note
       card.classList.add('gone');showCur(row('pricing'));await sleep(60);await open('pricing');
-      const pro=$('p1').parentElement;moveTo(pro,.62,.42);await sleep(800);
-      $('p1').classList.add('show');await sleep(160);placeBubble($('c1'),$('p1'));$('c1').classList.add('open');await sleep(250);
-      await type($('c1t'),'Make Pro the default');await sleep(650);$('c1').classList.remove('open');await sleep(250);
-      const tog=$('p2').parentElement;moveTo(tog,.75,.5);await sleep(800);
-      $('p2').classList.add('show');await sleep(160);placeBubble($('c2'),$('p2'));$('c2').classList.add('open');await sleep(250);
-      await type($('c2t'),'Keep this yearly toggle');await sleep(650);$('c2').classList.remove('open');await sleep(250);
-      moveTo($('pa'),.6,.5);await sleep(750);$('pa').classList.add('on');$('psend').textContent='Decide: A: Three plans';$('psend').classList.add('ready');await sleep(500);
-      moveTo($('pnote'),.3,.5);await sleep(700);$('pnote').classList.add('typing','filled');
-      await type($('pnt'),"Ship A, with B's yearly toggle.",38);$('psend').textContent='Decide with changes + 2 comments';await sleep(500);
-      $('pnote').classList.remove('typing');moveTo($('psend'),.55,.6);await sleep(700);await press($('psend'));
-      await close('pricing','Claude app','A: Three plans · 2 comments');await sleep(1400);
+      const th=$('thA');moveTo(th,.5,.6);await sleep(800);await press(th);show('r-view');await sleep(800);
+      moveTo($('vpro'),.72,.3);await sleep(800);
+      $('vp1').classList.add('show');await sleep(160);placeBubble($('vc'),$('vp1'),$('vs'));$('vc').classList.add('open');await sleep(250);
+      await type($('vct'),'Add a yearly toggle, like in B');await sleep(650);$('vc').classList.remove('open');
+      vstat('','1 comment');$('vsend').classList.add('ready');await sleep(500);
+      moveTo($('vsend'),.55,.6);await sleep(700);await press($('vsend'));
+      $('vsend').classList.remove('ready');cur.style.opacity=0;vstat('work','Claude app is making v2…');meta('pricing','Claude app · Pricing page · making v2');await sleep(2000);
+      $('vp1').classList.remove('show');$('vs').classList.add('v2');$('ver').textContent='v2';$('ver').classList.add('new');$('pp').textContent='$10';$('tp').textContent='$20';
+      $('vs').querySelectorAll('.vpr small').forEach(x=>x.textContent='/mo, billed yearly');
+      vstat('done','v2: added the yearly toggle. Prices show yearly.');meta('pricing','Claude app · Pricing page · v2');$('vsend').textContent='Confirm v2';$('vsend').classList.add('ready');await sleep(1800);
+      showCur($('vsend'));await sleep(60);moveTo($('vsend'),.55,.6);await sleep(700);await press($('vsend'));
+      await close('pricing','Claude app','A: Three plans · v2');await sleep(1400);
       // 3. the subject line: accept the recommendation
       showCur(row('subj'));await sleep(60);await open('subj');
       moveTo($('sa'),.6,.45);await sleep(700);$('sa').classList.add('on');$('ssend').textContent='Decide: Your first agent';$('ssend').classList.add('ready');await sleep(600);
