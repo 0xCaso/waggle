@@ -66,6 +66,8 @@ h1{font-size:clamp(38px,5.6vw,64px);font-weight:500;line-height:1.03;letter-spac
 .side{background:var(--side);border-right:1px solid var(--line);padding:14px 10px;display:flex;flex-direction:column;gap:2px;overflow:hidden}
 .sh{display:flex;align-items:center;justify-content:space-between;padding:4px 8px 8px;font-size:13px;font-weight:600;color:var(--ink)}
 .count{font-variant-numeric:tabular-nums;min-width:20px;height:20px;border-radius:999px;background:var(--red);color:#fff;font-size:11.5px;display:grid;place-items:center;padding:0 6px;transition:transform 200ms var(--ease)}
+.count.zero{background:#d9d9d9}
+.av.cw2{background:#6E5DE7}
 .count.bump{transform:scale(1.15)}
 .rows{display:flex;flex-direction:column;gap:2px}
 .row{display:grid;grid-template-columns:10px 1fr;gap:10px;align-items:start;border-radius:10px;padding:9px 10px;cursor:pointer;transition:background 150ms ease;overflow:hidden}
@@ -136,6 +138,17 @@ h1{font-size:clamp(38px,5.6vw,64px);font-weight:500;line-height:1.03;letter-spac
 .proto .ck{display:flex;align-items:center;gap:4px;line-height:1.1}
 .proto .ck::before{content:"";width:5px;height:3px;border-left:1.3px solid var(--green);border-bottom:1.3px solid var(--green);transform:rotate(-45deg) translateY(-1px)}
 .proto .one .bt{margin-top:auto;height:12px;border-radius:4px;background:var(--ink);width:56px;align-self:flex-start}
+.pin.drop{transform:scale(0);opacity:0;transition:transform 260ms cubic-bezier(.34,1.56,.64,1),opacity 120ms ease}
+.pin.drop.show{transform:none;opacity:1}
+.cbub{position:absolute;z-index:3;display:flex;align-items:center;gap:6px;min-width:150px;max-width:210px;background:#fff;border-radius:10px;padding:7px 10px;font-size:11.5px;line-height:1.3;color:var(--ink);box-shadow:0 0 0 1px var(--line),0 8px 24px rgba(22,24,26,.14);opacity:0;transform:translateY(4px) scale(.97);transform-origin:left top;transition:opacity 160ms ease,transform 200ms var(--ease);pointer-events:none}
+.cbub.open{opacity:1;transform:none}
+.cbub .cw{flex:none;font-size:9.5px;font-weight:600;color:#fff;background:var(--ink);border-radius:5px;padding:1px 5px}
+.caret{display:none;width:1.5px;height:13px;background:var(--blue);margin-left:1px;animation:blink 1s steps(1) infinite}
+.cbub.open .caret,.note.typing .caret{display:inline-block}
+.note.filled{color:var(--ink)}
+.note.typing{color:var(--ink);box-shadow:0 0 0 2px var(--bsoft),0 0 0 1px var(--blue)}
+@keyframes blink{50%{opacity:0}}
+#r-pricing .answer{margin-top:10px}
 .pin{position:absolute;width:20px;height:20px;border-radius:50% 50% 50% 0;background:var(--red);color:#fff;font-size:10.5px;font-weight:600;display:grid;place-items:center;box-shadow:0 2px 6px rgba(224,53,43,.35)}
 .sent{position:absolute;inset:0;display:grid;place-items:center;text-align:center;padding:30px}
 .sent .ok{width:44px;height:44px;border-radius:50%;background:var(--gsoft);display:grid;place-items:center;margin:0 auto 12px}
@@ -145,6 +158,8 @@ h1{font-size:clamp(38px,5.6vw,64px);font-weight:500;line-height:1.03;letter-spac
 
 /* agent session card */
 .agent{position:absolute;right:-28px;bottom:-44px;width:330px;background:#1b1d20;color:#e8e8e8;border-radius:14px;padding:12px 14px 14px;box-shadow:0 24px 50px -20px rgba(0,0,0,.45);font-size:13px;line-height:1.5;z-index:3}
+.agent{transition:opacity 300ms ease-out,transform 300ms ease-out}
+.agent.gone{opacity:0;transform:translateY(8px)}
 .agent .ah{display:flex;align-items:center;gap:7px;font-size:12px;color:#9a9ca0;margin-bottom:8px}
 .agent .ah i{width:8px;height:8px;border-radius:50%;background:#d97757;display:block}
 .line{display:flex;gap:9px;align-items:flex-start;min-height:20px;transition:opacity 200ms ease-out}
@@ -218,6 +233,10 @@ footer{display:flex;justify-content:space-between;gap:16px;flex-wrap:wrap;font-s
   .proto .lay{padding-top:26px}
   .proto .tag{font-size:8px}
   .agent{position:relative;left:auto;right:auto;bottom:auto;width:auto;margin:12px 0 0}
+  .agent.gone{opacity:1;transform:none}
+  .answer{flex-wrap:wrap}
+  .answer .note{flex:1 0 100%}
+  .answer .send{flex:1;justify-content:center}
   .stagewrap{margin-bottom:0}
   .steps,.trust{grid-template-columns:1fr}
   section{padding-top:72px}
@@ -254,18 +273,17 @@ footer{display:flex;justify-content:space-between;gap:16px;flex-wrap:wrap;font-s
         <aside class="side">
           <div class="sh">Needs you <span class="count" id="count">2</span></div>
           <div class="rows" id="rows">
-            <div class="row" data-k="pricing"><span class="d"></span><div><div class="t">Which pricing layout should we ship?</div><div class="m">Claude app · Pricing page · 14 min</div></div></div>
-            <div class="row" data-k="subject"><span class="d"></span><div><div class="t">Which subject line for the launch email?</div><div class="m">Cowork · Launch email · 1 h</div></div></div>
           </div>
           <div class="quiet"><span class="gd"></span>Answered today · <b id="answered">6</b></div>
         </aside>
         <div class="pane">
-          <div class="req" id="r-pricing">
+          <div class="req hide" id="r-pricing">
             <div class="who"><span class="av">C</span>Claude app · Pricing page · Review</div>
             <h2>Which pricing layout should we ship?</h2>
-            <div class="proto"><div class="lay h"><span class="tag">A · Three plans</span><div class="plans"><div class="plan"><span class="nm">Free</span><span class="pr">$0</span><i></i><i></i><span class="bt"></span></div><div class="plan pop"><span class="nm">Pro</span><span class="pr">$12<small>/mo</small></span><span class="pin" style="right:-7px;top:18px">1</span><i></i><i></i><span class="bt"></span></div><div class="plan"><span class="nm">Team</span><span class="pr">$24<small>/mo</small></span><i></i><i></i><span class="bt"></span></div></div></div><div class="lay"><span class="tag">B · One plan</span><div class="one"><span class="tog"><span>Monthly</span><span class="on">Yearly<em>-20%</em></span><span class="pin" style="right:-24px;top:-2px">2</span></span><span class="big">$10<small> /mo, billed yearly</small></span><span class="ck">Unlimited projects</span><span class="ck">Team sharing</span><span class="bt"></span></div></div></div>
+            <div class="proto"><div class="lay h"><span class="tag">A · Three plans</span><div class="plans"><div class="plan"><span class="nm">Free</span><span class="pr">$0</span><i></i><i></i><span class="bt"></span></div><div class="plan pop"><span class="nm">Pro</span><span class="pr">$12<small>/mo</small></span><span class="pin drop" id="p1" style="right:-7px;top:18px">1</span><i></i><i></i><span class="bt"></span></div><div class="plan"><span class="nm">Team</span><span class="pr">$24<small>/mo</small></span><i></i><i></i><span class="bt"></span></div></div></div><div class="lay"><span class="tag">B · One plan</span><div class="one"><span class="tog"><span>Monthly</span><span class="on">Yearly<em>-20%</em></span><span class="pin drop" id="p2" style="right:-24px;top:-2px">2</span></span><span class="big">$10<small> /mo, billed yearly</small></span><span class="ck">Unlimited projects</span><span class="ck">Team sharing</span><span class="bt"></span></div></div><div class="cbub" id="c1"><span class="cw">You</span><span class="ctx" id="c1t"></span><span class="caret"></span></div><div class="cbub" id="c2"><span class="cw">You</span><span class="ctx" id="c2t"></span><span class="caret"></span></div></div>
             <dl class="need"><dt>Need</dt><dd>Click through both layouts and pick one. Pin a comment on anything to change.</dd></dl>
-            <div class="opts"><div class="opt"><span class="ck"><svg viewBox="0 0 10 10"><path d="M2 5.2 4.2 7.4 8 3" fill="none" stroke="#16181A" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg></span><div class="rec">Recommended</div><div class="ot">A: Three plans</div></div><div class="opt"><span class="ck"><svg viewBox="0 0 10 10"><path d="M2 5.2 4.2 7.4 8 3" fill="none" stroke="#16181A" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg></span><div class="ot" style="margin-top:28px">B: One plan, yearly toggle</div></div></div>
+            <div class="opts"><div class="opt" id="pa"><span class="ck"><svg viewBox="0 0 10 10"><path d="M2 5.2 4.2 7.4 8 3" fill="none" stroke="#16181A" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg></span><div class="rec">Recommended</div><div class="ot">A: Three plans</div></div><div class="opt"><span class="ck"><svg viewBox="0 0 10 10"><path d="M2 5.2 4.2 7.4 8 3" fill="none" stroke="#16181A" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg></span><div class="ot" style="margin-top:28px">B: One plan, yearly toggle</div></div></div>
+            <div class="answer"><div class="note" id="pnote"><span id="pnt">Add a note (optional)</span><span class="caret"></span></div><div class="send" id="psend">Decide</div></div>
           </div>
           <div class="req hide" id="r-migr">
             <div class="who"><span class="av cx">&gt;_</span>Claude Code · Billing service · just now</div>
@@ -275,9 +293,17 @@ footer{display:flex;justify-content:space-between;gap:16px;flex-wrap:wrap;font-s
               <div class="opt" id="o1"><span class="ck"><svg viewBox="0 0 10 10"><path d="M2 5.2 4.2 7.4 8 3" fill="none" stroke="#16181A" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg></span><div class="rec">Recommended</div><div class="ot">Two steps, no downtime</div><ul><li>Easy to roll back</li><li class="c">Takes one more day</li></ul></div>
               <div class="opt"><span class="ck"><svg viewBox="0 0 10 10"><path d="M2 5.2 4.2 7.4 8 3" fill="none" stroke="#16181A" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg></span><div class="ot" style="margin-top:28px">One step, tonight</div><ul><li>Done by tomorrow</li><li class="c">5 minutes of failed checkouts</li></ul></div>
             </div>
-            <div class="answer"><div class="note">Add a note (optional)</div><div class="send" id="send">Send to Claude Code</div></div>
+            <div class="answer"><div class="note">Add a note (optional)</div><div class="send" id="send">Decide</div></div>
           </div>
-          <div class="req hide sent" id="r-sent"><div><div class="ok"><svg viewBox="0 0 20 20"><path d="M5 10.5 8.5 14 15 6.5" fill="none" stroke="#18A058" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg></div><b>Sent to Claude Code</b><span>Two steps, no downtime</span></div></div>
+          <div class="req hide" id="r-subj">
+            <div class="who"><span class="av cw2">W</span>Cowork · Launch email · Question</div>
+            <h2>Which subject line for the launch email?</h2>
+            <dl class="need"><dt>Need</dt><dd>Pick the subject line I send to the waitlist.</dd></dl>
+            <div class="opts"><div class="opt" id="sa"><span class="ck"><svg viewBox="0 0 10 10"><path d="M2 5.2 4.2 7.4 8 3" fill="none" stroke="#16181A" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg></span><div class="rec">Recommended</div><div class="ot">Your first agent, live in 5 minutes</div><ul><li>Clear promise</li><li class="c">A bit plain</li></ul></div><div class="opt"><span class="ck"><svg viewBox="0 0 10 10"><path d="M2 5.2 4.2 7.4 8 3" fill="none" stroke="#16181A" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg></span><div class="ot" style="margin-top:28px">Meet your new teammate</div><ul><li>Friendly</li><li class="c">Says less</li></ul></div></div>
+            <div class="answer"><div class="note">Add a note (optional)</div><div class="send" id="ssend">Decide</div></div>
+          </div>
+          <div class="req hide sent" id="r-empty"><div><div class="ok"><svg viewBox="0 0 20 20"><path d="M5 10.5 8.5 14 15 6.5" fill="none" stroke="#18A058" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg></div><b>All caught up</b><span>Your agents are working. Waggle tells you when one needs you.</span></div></div>
+          <div class="req hide sent" id="r-sent"><div><div class="ok"><svg viewBox="0 0 20 20"><path d="M5 10.5 8.5 14 15 6.5" fill="none" stroke="#18A058" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg></div><b id="sw">Sent to Claude Code</b><span id="ss">Two steps, no downtime</span></div></div>
         </div>
       </div>
     </div>
@@ -327,33 +353,79 @@ document.querySelectorAll('.dl2').forEach(b=>b.addEventListener('click',()=>{con
   const still=location.hash==='#still';if(still)document.documentElement.classList.add('still');
   const reduce=still||matchMedia('(prefers-reduced-motion: reduce)').matches;
   const sleep=ms=>new Promise(r=>setTimeout(r,ms));
-  const show=id=>['r-pricing','r-migr','r-sent'].forEach(k=>$(k).classList.toggle('hide',k!==id));
+  const PANES=['r-pricing','r-migr','r-subj','r-sent','r-empty'];
+  const show=id=>PANES.forEach(k=>$(k).classList.toggle('hide',k!==id));
+  const card=document.querySelector('.agent');
   const agent=(cls,txt)=>{$('as').className='st '+cls;$('at').textContent=txt};
-  const count=n=>{const c=$('count');c.textContent=n;c.classList.add('bump');setTimeout(()=>c.classList.remove('bump'),200)};
-  const moveTo=(el,dx,dy)=>{const s=stage.getBoundingClientRect(),r=el.getBoundingClientRect();cur.style.left=(r.left-s.left+(dx??r.width*.5))+'px';cur.style.top=(r.top-s.top+(dy??r.height*.5))+'px'};
-  const newRow=()=>{const r=document.createElement('div');r.className='row new';r.dataset.k='migr';r.innerHTML='<span class="d ring"></span><div><div class="t">Run the invoices migration in one step or two?</div><div class="m">Claude Code · Billing service · now</div></div>';return r};
-  function reset(){rows.querySelectorAll('[data-k="migr"]').forEach(r=>r.remove());rows.querySelectorAll('.row').forEach(r=>r.classList.remove('sel'));rows.querySelector('[data-k="pricing"]').classList.add('sel');
-    $('o1').classList.remove('on');$('send').classList.remove('ready');show('r-pricing');$('count').textContent='2';$('answered').textContent='6';cur.style.opacity=0;
-    agent('work','Reading the schema and planning the migration…')}
-  if(reduce){reset();const r=newRow();r.classList.remove('new');rows.prepend(r);rows.querySelectorAll('.row').forEach(x=>x.classList.toggle('sel',x===r));$('count').textContent='3';show('r-migr');$('o1').classList.add('on');$('send').classList.add('ready');agent('wait','Asked you in Waggle. Waiting for your answer.');return}
+  let n=0,answered=6;
+  const count=(v,bump=true)=>{n=v;const c=$('count');c.textContent=v;c.classList.toggle('zero',v===0);if(bump){c.classList.add('bump');setTimeout(()=>c.classList.remove('bump'),200)}};
+  const REQ={
+    pricing:['Which pricing layout should we ship?','Claude app · Pricing page'],
+    subj:['Which subject line for the launch email?','Cowork · Launch email'],
+    migr:['Run the invoices migration in one step or two?','Claude Code · Billing service']};
+  const addRow=(k,anim=true)=>{const r=document.createElement('div');r.className='row'+(anim?' new':'');r.dataset.k=k;r.innerHTML=`<span class="d${anim?' ring':''}"></span><div><div class="t">${REQ[k][0]}</div><div class="m">${REQ[k][1]} · now</div></div>`;rows.prepend(r);return r};
+  const row=k=>rows.querySelector(`[data-k="${k}"]`);
+  const select=k=>rows.querySelectorAll('.row').forEach(x=>x.classList.toggle('sel',x.dataset.k===k));
+  const moveTo=(el,fx=.5,fy=.5)=>{const s=stage.getBoundingClientRect(),r=el.getBoundingClientRect();cur.style.left=(r.left-s.left+r.width*fx)+'px';cur.style.top=(r.top-s.top+r.height*fy)+'px'};
+  const press=async el=>{el.classList.add('press');await sleep(130);el.classList.remove('press')};
+  const type=async(el,txt,ms=42)=>{el.textContent='';for(const ch of txt){el.textContent+=ch;await sleep(ms)}};
+  const placeBubble=(b,pin)=>{const pr=$('r-pricing').querySelector('.proto').getBoundingClientRect(),r=pin.getBoundingClientRect();
+    let x=r.right-pr.left+6,y=r.top-pr.top-4;b.style.left=x+'px';b.style.top=y+'px';
+    if(x+b.offsetWidth>pr.width-4){b.style.left=Math.max(4,r.left-pr.left-b.offsetWidth-6)+'px';b.style.transformOrigin='right top'}};
+  async function close(k,sentTo,what){
+    const r=row(k);r.style.maxHeight=r.offsetHeight+'px';r.offsetWidth;r.classList.add('out');
+    count(n-1);answered++;$('answered').textContent=answered;
+    $('sw').textContent='Sent to '+sentTo;$('ss').textContent=what;show('r-sent');cur.style.opacity=0;
+    await sleep(380);r.remove();
+  }
+  async function open(k){
+    const r=row(k);moveTo(r,.55,.55);await sleep(750);select(k);show('r-'+k);await sleep(900);
+  }
+  function reset(){
+    rows.innerHTML='';count(0,false);show('r-empty');cur.style.opacity=0;
+    ['p1','p2'].forEach(i=>$(i).classList.remove('show'));['c1','c2'].forEach(i=>$(i).classList.remove('open'));
+    $('c1t').textContent='';$('c2t').textContent='';
+    ['pa','o1','sa'].forEach(i=>$(i).classList.remove('on'));['psend','send','ssend'].forEach(i=>{$(i).classList.remove('ready');$(i).textContent='Decide'});
+    $('pnote').classList.remove('typing','filled');$('pnt').textContent='Add a note (optional)';
+    agent('work','Reading the schema and planning the migration…');card.classList.remove('gone');
+  }
+  if(reduce){reset();['subj','pricing','migr'].forEach(k=>addRow(k,false));count(3,false);select('migr');show('r-migr');$('o1').classList.add('on');$('send').textContent='Decide: Two steps';$('send').classList.add('ready');agent('wait','Asked you in Waggle. Waiting for your answer.');return}
   let vis=true;new IntersectionObserver(e=>vis=e[0].isIntersecting).observe(stage);
+  const showCur=el=>{cur.style.transition='none';moveTo(el,.8,1.4);cur.offsetWidth;cur.style.transition='';cur.style.opacity=1};
   async function run(){
     for(;;){
       while(!vis||document.hidden)await sleep(300);
-      reset();await sleep(1600);
+      reset();await sleep(1500);
+      // three requests arrive
+      addRow('subj');count(1);await sleep(900);
+      addRow('pricing');count(2);await sleep(900);
       agent('wait','Asked you in Waggle. Waiting for your answer.');
-      const r=newRow();rows.prepend(r);count(3);await sleep(1100);
-      cur.style.transition='none';moveTo(r,r.offsetWidth*.8,r.offsetHeight*1.4);cur.offsetWidth;cur.style.transition='';cur.style.opacity=1;await sleep(60);
-      moveTo(r,r.offsetWidth*.55,r.offsetHeight*.55);await sleep(750);
-      rows.querySelectorAll('.row').forEach(x=>x.classList.toggle('sel',x===r));show('r-migr');await sleep(1100);
-      moveTo($('o1'),$('o1').offsetWidth*.6,$('o1').offsetHeight*.45);await sleep(800);
-      $('o1').classList.add('on');$('send').classList.add('ready');await sleep(900);
-      moveTo($('send'),$('send').offsetWidth*.55,$('send').offsetHeight*.6);await sleep(800);
-      $('send').classList.add('press');await sleep(130);$('send').classList.remove('press');
-      r.style.maxHeight=r.offsetHeight+'px';r.offsetWidth;r.classList.add('out');count(2);$('answered').textContent='7';
-      show('r-sent');cur.style.opacity=0;await sleep(700);
-      agent('done','Got it: two steps. Starting step one.');
-      await sleep(3200);
+      addRow('migr');count(3);await sleep(1000);
+      // 1. the migration: pick and send
+      showCur(row('migr'));await sleep(60);await open('migr');
+      moveTo($('o1'),.6,.45);await sleep(750);$('o1').classList.add('on');$('send').textContent='Decide: Two steps';$('send').classList.add('ready');await sleep(700);
+      moveTo($('send'),.55,.6);await sleep(700);await press($('send'));
+      await close('migr','Claude Code','Two steps, no downtime');
+      await sleep(600);agent('done','Got it: two steps. Starting step one.');await sleep(900);
+      // 2. the pricing review: comment in line, draft a note
+      card.classList.add('gone');showCur(row('pricing'));await sleep(60);await open('pricing');
+      const pro=$('p1').parentElement;moveTo(pro,.62,.42);await sleep(800);
+      $('p1').classList.add('show');await sleep(160);placeBubble($('c1'),$('p1'));$('c1').classList.add('open');await sleep(250);
+      await type($('c1t'),'Make Pro the default');await sleep(650);$('c1').classList.remove('open');await sleep(250);
+      const tog=$('p2').parentElement;moveTo(tog,.75,.5);await sleep(800);
+      $('p2').classList.add('show');await sleep(160);placeBubble($('c2'),$('p2'));$('c2').classList.add('open');await sleep(250);
+      await type($('c2t'),'Keep this yearly toggle');await sleep(650);$('c2').classList.remove('open');await sleep(250);
+      moveTo($('pa'),.6,.5);await sleep(750);$('pa').classList.add('on');$('psend').textContent='Decide: A: Three plans';$('psend').classList.add('ready');await sleep(500);
+      moveTo($('pnote'),.3,.5);await sleep(700);$('pnote').classList.add('typing','filled');
+      await type($('pnt'),"Ship A, with B's yearly toggle.",38);$('psend').textContent='Decide with changes + 2 comments';await sleep(500);
+      $('pnote').classList.remove('typing');moveTo($('psend'),.55,.6);await sleep(700);await press($('psend'));
+      await close('pricing','Claude app','A: Three plans · 2 comments');await sleep(1400);
+      // 3. the subject line: accept the recommendation
+      showCur(row('subj'));await sleep(60);await open('subj');
+      moveTo($('sa'),.6,.45);await sleep(700);$('sa').classList.add('on');$('ssend').textContent='Decide: Your first agent';$('ssend').classList.add('ready');await sleep(600);
+      moveTo($('ssend'),.55,.6);await sleep(700);await press($('ssend'));
+      await close('subj','Cowork','Your first agent, live in 5 minutes');await sleep(1300);
+      show('r-empty');await sleep(2600);
     }
   }
   run();
