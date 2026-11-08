@@ -110,12 +110,32 @@ h1{font-size:clamp(38px,5.6vw,64px);font-weight:500;line-height:1.03;letter-spac
 .send{height:40px;border-radius:12px;background:var(--ink);color:#fff;font-size:13.5px;font-weight:500;padding:0 16px;display:flex;align-items:center;white-space:nowrap;transition:transform 120ms var(--ease),opacity 150ms ease;opacity:.4}
 .send.ready{opacity:1}
 .send.press{transform:scale(0.97)}
-.proto{height:118px;border-radius:12px;background:#fff;box-shadow:0 0 0 1px var(--line);margin-bottom:12px;display:grid;grid-template-columns:1fr 1fr;gap:10px;padding:10px;position:relative}
-.proto div{border-radius:8px;background:var(--side);padding:10px;display:flex;flex-direction:column;gap:6px}
-.proto div b{display:block;height:8px;border-radius:4px;background:#e1e1e1}
-.proto div b:nth-child(1){width:50%;height:10px;background:#d4d4d4}
-.proto div b:nth-child(3){width:70%}
-.proto div.h{background:var(--hsoft)}
+.proto{height:138px;border-radius:12px;background:#fff;box-shadow:0 0 0 1px var(--line);margin-bottom:12px;display:grid;grid-template-columns:1fr 1fr;gap:10px;padding:10px;position:relative}
+.proto .lay{position:relative;border-radius:8px;background:var(--side);padding:22px 8px 8px;overflow:hidden}
+.proto .lay.h{background:var(--hsoft)}
+.proto .tag{position:absolute;top:6px;left:8px;font-size:9px;font-weight:600;letter-spacing:.02em;color:var(--mute)}
+.proto .plans{display:grid;grid-template-columns:repeat(3,1fr);gap:5px;height:100%}
+.proto .plan{background:#fff;border-radius:6px;padding:6px 6px 5px;display:flex;flex-direction:column;gap:2px;box-shadow:0 0 0 1px rgba(0,0,0,.05);font-size:8.5px;line-height:1.2;color:var(--ink2);min-width:0}
+.proto .plan.pop{box-shadow:0 0 0 1.5px var(--h5);position:relative}
+.proto .plan.pop::before{content:"Popular";position:absolute;top:-6px;left:50%;transform:translateX(-50%);background:var(--h5);color:#fff;font-size:7px;font-weight:600;padding:1px 5px;border-radius:6px}
+.proto .plan .nm{font-weight:600;color:var(--ink)}
+.proto .plan .pr{font-size:13px;font-weight:600;color:var(--ink);letter-spacing:-.02em}
+.proto .plan .pr small{font-size:7.5px;font-weight:400;color:var(--mute)}
+.proto .plan i{display:block;height:4px;border-radius:2px;background:#e6e6e6;width:80%}
+.proto .plan i+i{width:60%}
+.proto .plan .bt{margin-top:auto;height:11px;border-radius:4px;background:#ececec}
+.proto .plan.pop .bt{background:var(--ink)}
+.proto .one{background:#fff;border-radius:6px;height:100%;padding:7px 8px;display:flex;flex-direction:column;gap:4px;box-shadow:0 0 0 1px rgba(0,0,0,.05);font-size:8.5px;color:var(--ink2)}
+.proto .tog{position:relative;display:inline-flex;align-self:flex-start;background:#f0f0f0;border-radius:6px;padding:2px;font-size:7.5px;font-weight:500}
+.proto .tog span{padding:1px 6px;border-radius:4px;color:var(--mute)}
+.proto .tog span.on{background:#fff;color:var(--ink);box-shadow:0 1px 2px rgba(0,0,0,.08)}
+.proto .tog .pin{padding:0;border-radius:50% 50% 50% 0;color:#fff;font-size:10.5px}
+.proto .tog em{font-style:normal;color:var(--green);margin-left:3px}
+.proto .big{font-size:17px;font-weight:600;color:var(--ink);letter-spacing:-.03em;line-height:1}
+.proto .big small{font-size:8px;font-weight:400;color:var(--mute);letter-spacing:0}
+.proto .ck{display:flex;align-items:center;gap:4px;line-height:1.1}
+.proto .ck::before{content:"";width:5px;height:3px;border-left:1.3px solid var(--green);border-bottom:1.3px solid var(--green);transform:rotate(-45deg) translateY(-1px)}
+.proto .one .bt{margin-top:auto;height:12px;border-radius:4px;background:var(--ink);width:56px;align-self:flex-start}
 .pin{position:absolute;width:20px;height:20px;border-radius:50% 50% 50% 0;background:var(--red);color:#fff;font-size:10.5px;font-weight:600;display:grid;place-items:center;box-shadow:0 2px 6px rgba(224,53,43,.35)}
 .sent{position:absolute;inset:0;display:grid;place-items:center;text-align:center;padding:30px}
 .sent .ok{width:44px;height:44px;border-radius:50%;background:var(--gsoft);display:grid;place-items:center;margin:0 auto 12px}
@@ -192,7 +212,11 @@ footer{display:flex;justify-content:space-between;gap:16px;flex-wrap:wrap;font-s
   .need dd{margin-bottom:6px}
   .opts{grid-template-columns:1fr}
   .opt ul li:nth-child(2){display:none}
-  .proto{height:90px}
+  .proto{height:128px}
+  .proto .plan i{display:none}
+  .proto .plan .pr small{display:none}
+  .proto .lay{padding-top:26px}
+  .proto .tag{font-size:8px}
   .agent{position:relative;left:auto;right:auto;bottom:auto;width:auto;margin:12px 0 0}
   .stagewrap{margin-bottom:0}
   .steps,.trust{grid-template-columns:1fr}
@@ -239,9 +263,9 @@ footer{display:flex;justify-content:space-between;gap:16px;flex-wrap:wrap;font-s
           <div class="req" id="r-pricing">
             <div class="who"><span class="av">C</span>Claude app · Pricing page · Review</div>
             <h2>Which pricing layout should we ship?</h2>
-            <div class="proto"><div class="h"><b></b><b></b><b></b></div><div><b></b><b></b><b></b></div><span class="pin" style="left:38%;top:24%">1</span><span class="pin" style="left:82%;top:58%">2</span></div>
+            <div class="proto"><div class="lay h"><span class="tag">A · Three plans</span><div class="plans"><div class="plan"><span class="nm">Free</span><span class="pr">$0</span><i></i><i></i><span class="bt"></span></div><div class="plan pop"><span class="nm">Pro</span><span class="pr">$12<small>/mo</small></span><span class="pin" style="right:-7px;top:18px">1</span><i></i><i></i><span class="bt"></span></div><div class="plan"><span class="nm">Team</span><span class="pr">$24<small>/mo</small></span><i></i><i></i><span class="bt"></span></div></div></div><div class="lay"><span class="tag">B · One plan</span><div class="one"><span class="tog"><span>Monthly</span><span class="on">Yearly<em>-20%</em></span><span class="pin" style="right:-24px;top:-2px">2</span></span><span class="big">$10<small> /mo, billed yearly</small></span><span class="ck">Unlimited projects</span><span class="ck">Team sharing</span><span class="bt"></span></div></div></div>
             <dl class="need"><dt>Need</dt><dd>Click through both layouts and pick one. Pin a comment on anything to change.</dd></dl>
-            <div class="opts"><div class="opt"><span class="ck"><svg viewBox="0 0 10 10"><path d="M2 5.2 4.2 7.4 8 3" fill="none" stroke="#16181A" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg></span><div class="rec">Recommended</div><div class="ot">Compact, one column</div></div><div class="opt"><span class="ck"><svg viewBox="0 0 10 10"><path d="M2 5.2 4.2 7.4 8 3" fill="none" stroke="#16181A" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg></span><div class="ot" style="margin-top:28px">Detailed, with a comparison</div></div></div>
+            <div class="opts"><div class="opt"><span class="ck"><svg viewBox="0 0 10 10"><path d="M2 5.2 4.2 7.4 8 3" fill="none" stroke="#16181A" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg></span><div class="rec">Recommended</div><div class="ot">A: Three plans</div></div><div class="opt"><span class="ck"><svg viewBox="0 0 10 10"><path d="M2 5.2 4.2 7.4 8 3" fill="none" stroke="#16181A" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg></span><div class="ot" style="margin-top:28px">B: One plan, yearly toggle</div></div></div>
           </div>
           <div class="req hide" id="r-migr">
             <div class="who"><span class="av cx">&gt;_</span>Claude Code · Billing service · just now</div>
