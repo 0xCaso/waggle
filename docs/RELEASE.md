@@ -21,7 +21,10 @@ The same key signs every Waggle update. Generate it once, no matter how many rel
 
 ## Public releases repo
 
-Host the updates in a public GitHub repo, `limone-eth/waggle-releases`. Create it once and leave it
+Host the updates in a public GitHub repo, `waggle-so/waggle-releases`. It moved there from
+`limone-eth/waggle-releases` on 2026-11-08 (before that, `limone-eth/knock-releases`). GitHub redirects both old
+URLs, so builds that read an old feed URL still find the appcast. Never create a new repo under an old name: that
+ends the redirect and stops updates for those builds. Create it once and leave it
 public, or the app cannot download updates from a friend's Mac. It holds nothing but the release
 assets: each `Waggle-<version>.zip` and `appcast.xml`, plus `Waggle.zip` and `Waggle.dmg` under names that
 never change. The install page links `Waggle.dmg` (the app and a link to Applications, signed, notarized
@@ -53,7 +56,7 @@ The command:
 3. zips `Waggle.app`,
 4. signs the zip with Sparkle `sign_update` (the private key comes from the Keychain),
 5. writes `appcast.xml`,
-6. creates a GitHub release `v0.1.1` on `limone-eth/waggle-releases` with the zip and `appcast.xml`,
+6. creates a GitHub release `v0.1.1` on `waggle-so/waggle-releases` with the zip and `appcast.xml`,
    marked latest,
 7. tags the private repo `v0.1.1`.
 
@@ -134,7 +137,7 @@ Without the certificate, the build stays ad-hoc and the first install still need
 
 ## Release day for the rename (HAIL-171, Waggle 0.2.0)
 
-1. Rename the GitHub repo `limone-eth/knock-releases` to `limone-eth/waggle-releases`. GitHub redirects the
+1. Rename the GitHub repo `limone-eth/knock-releases` to `waggle-so/waggle-releases`. GitHub redirects the
    old URL, so builds before 0.2.0 (which read the old feed URL) still find the appcast. Do this before
    you run `scripts/release.sh`, which publishes to the new name.
 2. Write `docs/release-notes/0.2.0.md`. It must list what a person changes by hand (see that file).

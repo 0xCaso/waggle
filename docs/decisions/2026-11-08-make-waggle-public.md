@@ -29,7 +29,7 @@ Two points at the cut.
 none
 
 ## Open questions
-- When to move waggle-releases to the org (from the launch plan).
+- Moved: waggle-releases is now waggle-so/waggle-releases (2026-11-08). Old URLs redirect.
 - Credit for the second author (from the launch plan).
 - New og:image for the home page (case c_97b1fb8f).
 

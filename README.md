@@ -14,7 +14,7 @@ Everything stays on your Mac, unless you turn on a connector or Sharing.
 ## Install
 
 Download the latest
-[Waggle.dmg](https://github.com/limone-eth/waggle-releases/releases/latest/download/Waggle.dmg), open it and
+[Waggle.dmg](https://github.com/waggle-so/waggle-releases/releases/latest/download/Waggle.dmg), open it and
 drag Waggle onto Applications, then follow [INSTALL.md](INSTALL.md). It takes about 5 minutes. The app is
 signed and notarized, and it updates itself.
 

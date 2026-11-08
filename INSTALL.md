@@ -22,12 +22,12 @@ Bun 1.3 or later; a developer tools path.
 ## 2. Get Waggle
 
 From the release (recommended for testers). A person downloads
-[Waggle.dmg](https://github.com/limone-eth/waggle-releases/releases/latest/download/Waggle.dmg), opens it
+[Waggle.dmg](https://github.com/waggle-so/waggle-releases/releases/latest/download/Waggle.dmg), opens it
 and drags Waggle onto the Applications folder. An agent uses the zip of the same build:
 
 ```bash
 curl -L -o ~/Downloads/Waggle.zip \
-  https://github.com/limone-eth/waggle-releases/releases/latest/download/Waggle.zip
+  https://github.com/waggle-so/waggle-releases/releases/latest/download/Waggle.zip
 ditto -x -k ~/Downloads/Waggle.zip ~/Applications
 ```
 

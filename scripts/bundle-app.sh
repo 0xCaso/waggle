@@ -200,7 +200,7 @@ FEED_URL=""
 PUBLIC_KEY=""
 SU_BLOCK=""
 if [ "${KNOCK_RELEASE:-0}" = "1" ]; then
-    FEED_URL="${KNOCK_FEED_URL:-https://github.com/limone-eth/waggle-releases/releases/latest/download/appcast.xml}"
+    FEED_URL="${KNOCK_FEED_URL:-https://github.com/waggle-so/waggle-releases/releases/latest/download/appcast.xml}"
     PUBLIC_KEY="${KNOCK_SPARKLE_PUBLIC_KEY:-}"
     if [ -z "$PUBLIC_KEY" ] && [ -f "$ROOT/scripts/sparkle-public-key" ]; then
         PUBLIC_KEY="$(cat "$ROOT/scripts/sparkle-public-key")"

@@ -17,7 +17,7 @@ VERSION=""
 DRY_RUN=0
 NOTES_FILE=""
 ED_KEY_FILE=""
-FEED_URL="https://github.com/limone-eth/waggle-releases/releases/latest/download/appcast.xml"
+FEED_URL="https://github.com/waggle-so/waggle-releases/releases/latest/download/appcast.xml"
 DOWNLOAD_URL_PREFIX=""
 
 while [ $# -gt 0 ]; do
@@ -213,7 +213,7 @@ printf '%s\n' "$NOTES" > "$NOTES_PATH"
 
 # The download URL prefix is the releases repo's per-release asset path.
 if [ -z "$DOWNLOAD_URL_PREFIX" ]; then
-    DOWNLOAD_URL_PREFIX="https://github.com/limone-eth/waggle-releases/releases/download/v$VERSION/"
+    DOWNLOAD_URL_PREFIX="https://github.com/waggle-so/waggle-releases/releases/download/v$VERSION/"
 fi
 ZIP_URL="${DOWNLOAD_URL_PREFIX}${ZIP_NAME}"
 PUBDATE="$(date "+%a, %d %b %Y %H:%M:%S %z")"
@@ -231,7 +231,7 @@ if [ "$DRY_RUN" = "1" ]; then
     exit 0
 fi
 
-# Real release: publish to limone-eth/waggle-releases and tag the private repo.
+# Real release: publish to waggle-so/waggle-releases and tag this repo.
 # The install page links releases/latest/download/Waggle.dmg, a name that never goes stale.
 # The same zip also goes up as Waggle.zip, for the agent install and for older guides. Sparkle
 # keeps the versioned name from the appcast.
@@ -246,7 +246,7 @@ if grep -q 'LEGACY_KNOCK_ALIASES = true' "$ROOT/daemon/src/protocol/legacy-alias
     RELEASE_ASSETS+=("$LEGACY_ZIP")
 fi
 gh release create "v$VERSION" "${RELEASE_ASSETS[@]}" "$APPCAST" \
-    --repo "limone-eth/waggle-releases" \
+    --repo "waggle-so/waggle-releases" \
     --title "v$VERSION" \
     --notes "$NOTES" \
     --latest
