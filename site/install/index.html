@@ -1,0 +1,265 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Install Waggle</title>
+<link rel="icon" href="/favicon.svg" type="image/svg+xml">
+<link rel="icon" href="/favicon-32.png" sizes="32x32" type="image/png">
+<link rel="apple-touch-icon" href="/apple-touch-icon.png">
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="Waggle">
+<meta property="og:title" content="Install Waggle">
+<meta property="og:description" content="Set up Waggle on your Mac in ten minutes, with the Claude app, Cowork, Claude Code or Codex.">
+<meta property="og:url" content="https://waggle.so/install/">
+<meta property="og:image" content="https://waggle.so/og.png">
+<meta name="description" content="Set up Waggle on your Mac in ten minutes, with the Claude app, Cowork, Claude Code or Codex.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter+Tight:ital,wght@0,400;0,500;0,600;1,400&family=JetBrains+Mono:wght@400&display=swap" rel="stylesheet">
+<style>
+:root{--ink:#16181A;--ink2:#4A4C50;--mute:#6b6b6b;--faint:#e6e6e6;--fill:#f6f6f6;--bg:#fff;--h3:#F9C846;--h5:#F2B01E;--h6:#E89A0C;--hsoft:#FDF4DA;--red:#E0352B;--green:#18A058;--blue:#2B59F0;--ease:cubic-bezier(0.23,1,0.32,1)}
+*{box-sizing:border-box}
+html{-webkit-text-size-adjust:100%;scroll-behavior:smooth}
+body{margin:0;background:var(--bg);color:var(--ink);font:400 17px/1.6 "Inter Tight",system-ui,-apple-system,sans-serif;-webkit-font-smoothing:antialiased}
+.page{max-width:1040px;margin:0 auto;padding:0 20px 120px}
+.by{display:flex;justify-content:space-between;align-items:center;padding:32px 0;font-size:14px;color:var(--mute)}
+.logo{display:inline-flex;align-items:center;gap:7px;color:var(--ink);text-decoration:none;font-size:19px;font-weight:500;letter-spacing:-0.035em;line-height:1}
+a{color:inherit}
+code{font:400 .86em "JetBrains Mono",ui-monospace,monospace;background:var(--fill);padding:.1em .35em;border-radius:4px}
+strong{font-weight:600}
+
+/* hero */
+.hero{display:grid;grid-template-columns:1fr 1fr;gap:56px;align-items:center;padding:48px 0 72px}
+.hero h1{font-size:clamp(40px,5.4vw,60px);font-weight:500;line-height:1.02;letter-spacing:-0.04em;margin:0 0 18px}
+.hero .sub{font-size:20px;line-height:1.4;letter-spacing:-0.02em;color:var(--mute);margin:0 0 28px;max-width:26em}
+.cta{display:flex;gap:12px;align-items:center;flex-wrap:wrap}
+.dl{display:inline-flex;align-items:center;box-sizing:border-box;height:50px;gap:10px;background:var(--ink);color:#fff;text-decoration:none;border-radius:12px;padding:13px 20px 13px 17px;font-weight:500;font-size:16px;transition:transform 160ms var(--ease),box-shadow 160ms var(--ease)}
+.dl:hover{transform:translateY(-1px);box-shadow:0 8px 24px rgba(22,24,26,.18)}
+.dl svg{width:17px;height:17px;margin-top:-2px}
+.meta{font-size:14px;color:var(--mute)}
+.dl2{display:inline-flex;align-items:center;box-sizing:border-box;height:50px;gap:9px;background:#fff;color:var(--ink);border:1px solid var(--faint);border-radius:12px;padding:12px 18px 12px 15px;font:500 16px "Inter Tight",sans-serif;cursor:pointer;transition:border-color 150ms ease,transform 160ms var(--ease)}
+.dl2:hover{border-color:var(--ink);transform:translateY(-1px)}
+.dl2 svg{width:16px;height:16px}
+.meta2{font-size:14px;color:var(--mute);margin-top:12px}
+.agents{display:flex;gap:8px;flex-wrap:wrap;margin-top:22px}
+.agents span{font-size:13.5px;border:1px solid var(--faint);border-radius:999px;padding:4px 11px;color:var(--ink2)}
+
+/* hero loop */
+.stage{position:relative;height:430px}
+.usecase{position:absolute;left:0;top:0;display:flex;align-items:center;gap:10px;font-size:13px;color:var(--mute)}
+.uc-label{font-weight:500;color:var(--ink);border:1px solid var(--faint);border-radius:999px;padding:3px 10px;background:#fff}
+.uc-dots{display:flex;gap:5px}.uc-dots i{width:6px;height:6px;border-radius:50%;background:var(--faint);display:block;transition:background 300ms}.uc-dots i.on{background:var(--h5)}
+.chat,.inbox{position:absolute;background:#fff;border:1px solid var(--faint);border-radius:16px;box-shadow:0 20px 50px -24px rgba(22,24,26,.25)}
+.chat{left:0;top:58px;width:58%;height:340px;padding:14px}
+.chat .hd,.inbox .hd{display:flex;align-items:center;gap:7px;font-size:12.5px;color:var(--mute);margin-bottom:12px}
+.dot{width:8px;height:8px;border-radius:50%;background:#d97757}
+.msg{border-radius:12px;padding:9px 12px;font-size:13.5px;line-height:1.45;margin:8px 0;max-width:94%;opacity:0;transform:translateY(6px)}
+.msg.me{background:var(--fill);margin-left:auto}
+.msg.ai{border:1px solid var(--faint)}
+.msg.reply{background:#E9F6EF;border:1px solid #CBEBD8}
+.inbox{right:0;top:40px;width:54%;padding:14px;opacity:0;transform:translateX(18px)}
+.rq{font-weight:500;font-size:15px;letter-spacing:-0.01em;line-height:1.3;margin:2px 0 10px}
+.uc-art:empty{display:none}
+.uc-art{height:64px;border:1px solid var(--faint);border-radius:9px;margin:0 0 8px;padding:7px;display:grid;grid-template-columns:1fr 1fr;gap:6px}
+.uc-art div{border-radius:5px;background:var(--fill);position:relative}
+.uc-art div.h{background:var(--hsoft)}
+.o{display:flex;align-items:center;gap:8px;border:1px solid var(--faint);border-radius:9px;padding:7px 10px;margin:6px 0;font-size:13.5px;line-height:1.3}
+.o .n{flex:none;width:19px;height:19px;border-radius:5px;border:1px solid #d6d6d6;display:grid;place-items:center;font-size:11.5px}
+.o .r{margin-left:auto;padding-left:8px;font-size:11.5px;color:#B07A00;font-weight:500}
+.pros{font-size:11.5px;color:var(--mute);margin:-2px 0 4px 28px}
+.sendb{display:flex;justify-content:flex-end;margin-top:10px}.sendb span{background:var(--ink);color:#fff;border-radius:8px;padding:5px 12px;font-size:13px}
+.notif{position:absolute;right:6px;top:30px;width:260px;background:rgba(246,246,246,.97);border:1px solid var(--faint);border-radius:14px;padding:10px 12px;display:flex;gap:9px;font-size:12.5px;line-height:1.4;opacity:0;transform:translateY(-10px);box-shadow:0 10px 30px -12px rgba(0,0,0,.25);z-index:3}
+.notif b{font-weight:600}
+.cursor{position:absolute;width:18px;height:22px;z-index:4;opacity:0}
+.loop .m1{animation:show 9s infinite}
+.loop .m2{animation:show2 9s infinite}
+.loop .notif{animation:notif 9s infinite}
+.loop .inbox{animation:inbox 9s infinite}
+.loop .pk{animation:pick 9s infinite}
+.loop .cursor{animation:cur 9s infinite}
+.loop .m3{animation:show3 9s infinite}
+@keyframes show{0%,4%{opacity:0;transform:translateY(6px)}8%,95%{opacity:1;transform:none}100%{opacity:0}}
+@keyframes show2{0%,12%{opacity:0;transform:translateY(6px)}16%,95%{opacity:1;transform:none}100%{opacity:0}}
+@keyframes notif{0%,20%{opacity:0;transform:translateY(-10px)}24%,36%{opacity:1;transform:none}40%,100%{opacity:0;transform:translateY(-10px)}}
+@keyframes inbox{0%,36%{opacity:0;transform:translateX(18px)}42%,95%{opacity:1;transform:none}100%{opacity:0}}
+@keyframes pick{0%,54%{background:#fff;border-color:var(--faint)}58%,100%{background:var(--hsoft);border-color:transparent}}
+@keyframes cur{0%,44%{opacity:0;left:90%;top:92%}48%{opacity:1;left:90%;top:92%}56%{opacity:1;left:62%;top:50%}62%{left:62%;top:50%}70%{opacity:1;left:93%;top:82%}74%,100%{opacity:0;left:93%;top:82%}}
+@keyframes show3{0%,74%{opacity:0;transform:translateY(6px)}80%,95%{opacity:1;transform:none}100%{opacity:0}}
+@media (prefers-reduced-motion:reduce){.loop *{animation:none!important}.msg,.inbox{opacity:1!important;transform:none!important}.notif,.cursor{display:none}}
+
+/* steps */
+.steps{display:grid;gap:20px}
+.step{display:grid;grid-template-columns:56px 1fr;gap:20px;border:1px solid var(--faint);border-radius:18px;padding:26px 28px}
+.hex{width:44px;height:48px;display:grid;place-items:center;position:relative;font-weight:600;font-size:18px}
+.hex svg{position:absolute;inset:0}
+.hex span{position:relative;color:var(--ink)}
+.step h2{font-size:26px;font-weight:500;letter-spacing:-0.03em;line-height:1.15;margin:6px 0 10px}
+.step p{margin:0 0 .9em;color:var(--ink2)}
+.step ol,.step ul{margin:0 0 1em;padding-left:1.25em;color:var(--ink2)}
+.step li{margin:.35em 0}
+.step li strong{color:var(--ink)}
+h3{font-size:16.5px;font-weight:600;letter-spacing:-0.01em;margin:22px 0 6px;color:var(--ink)}
+.seg{display:inline-flex;background:var(--fill);border-radius:11px;padding:3px;gap:2px;margin:4px 0 6px;flex-wrap:wrap}
+.seg button{border:0;background:transparent;font:500 14.5px "Inter Tight",sans-serif;color:var(--ink2);padding:7px 13px;border-radius:8px;cursor:pointer;transition:background 150ms ease}
+.seg button[aria-selected="true"]{background:#fff;color:var(--ink);box-shadow:0 1px 2px rgba(0,0,0,.08)}
+.pane{display:none}.pane.on{display:block}
+.after{margin:10px 0 0;padding-left:20px}.after li{margin:6px 0;color:var(--ink2)}
+
+/* prompts */
+.prompt{border:1px solid var(--faint);border-radius:12px;margin:8px 0 18px;overflow:hidden;background:#fff}
+.prompt pre{margin:0;padding:14px 16px;font:400 14px/1.55 "JetBrains Mono",ui-monospace,monospace;white-space:pre-wrap;color:var(--ink);background:var(--fill)}
+.prompt .bar{display:flex;flex-wrap:wrap;gap:8px;justify-content:flex-end;padding:8px 10px;border-top:1px solid var(--faint)}
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:6px;height:32px;box-sizing:border-box;line-height:1;font:500 13.5px "Inter Tight",sans-serif;border:1px solid var(--faint);background:#fff;color:var(--ink);border-radius:8px;padding:6px 12px;cursor:pointer;text-decoration:none;transition:border-color 150ms ease}
+.btn:hover{border-color:var(--ink)}
+.btn.primary{background:var(--ink);color:#fff;border-color:var(--ink)}
+.btn svg{width:14px;height:14px;flex:none}
+.note{display:flex;gap:14px;background:var(--hsoft);border-radius:14px;padding:16px 18px;margin:6px 0 4px;color:var(--ink2);font-size:16px}
+.note svg{flex:none;width:26px;height:28px;margin-top:2px}
+.note strong{color:var(--ink)}
+
+/* next */
+.section-title{font-size:30px;font-weight:500;letter-spacing:-0.035em;margin:80px 0 22px}
+.grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px}
+@media (max-width:640px){.grid{grid-template-columns:1fr}}
+.tile{border:1px solid var(--faint);border-radius:16px;padding:18px 18px 16px;display:flex;flex-direction:column}
+.tile p{margin-bottom:16px!important}
+.tile .act{margin-top:auto;border-top:1px solid var(--faint);padding-top:12px;display:flex;flex-direction:column;gap:10px}
+.tile .act q{font:400 12.5px/1.5 "JetBrains Mono",ui-monospace,monospace;color:var(--mute);quotes:none;display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden}
+.tile .act .row2{display:flex;gap:8px}
+.tile .act .btn{flex:1;white-space:nowrap;padding:6px 10px;font-size:13px}
+.tile > svg{width:34px;height:34px;margin-bottom:10px}
+.tile b{display:block;font-weight:600;margin-bottom:4px}
+.tile p{margin:0;font-size:15px;color:var(--mute);line-height:1.5}
+.help{margin-top:56px;color:var(--mute);font-size:15.5px}
+.help ul{padding-left:1.2em}
+.help strong{color:var(--ink)}
+@media (max-width:820px){.hero{grid-template-columns:1fr;gap:36px;padding-top:24px}.step{grid-template-columns:1fr;gap:6px;padding:22px 20px}}
+</style>
+</head>
+<body>
+<div class="page">
+  <div class="by"><a class="logo" href="/" aria-label="Waggle home"><svg viewBox="0 0 100 100" width="22" height="22" aria-hidden="true"><defs><linearGradient id="lg-honey" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#F9C846"/><stop offset="1" stop-color="#E89A0C"/></linearGradient></defs><path d="M50 0 L93.3 25 L93.3 75 L50 100 L6.7 75 L6.7 25 Z" fill="url(#lg-honey)"/><path d="M27 40 L38 63 L50 43 L62 63 L73 40" fill="none" stroke="#fff" stroke-width="9" stroke-linejoin="round" stroke-linecap="round"/></svg><span>waggle</span></a><a href="https://github.com/waggle-so/waggle">GitHub</a></div>
+
+  <section class="hero">
+    <div>
+      <h1>Install Waggle</h1>
+      <p class="sub">Your agent works as usual. When it needs you, it sends a decision request: the options with pros and cons, its pick, and the work to look at. Your answer goes straight back.</p>
+      <div class="cta">
+        <a class="dl" href="https://github.com/limone-eth/waggle-releases/releases/latest/download/Waggle.dmg"><svg viewBox="0 0 384 512" aria-hidden="true"><path fill="currentColor" d="M318.7 268.7c-.2-36.7 16.4-64.4 50-84.8-18.8-26.9-47.2-41.7-84.7-44.6-35.5-2.8-74.3 20.7-88.5 20.7-15 0-49.4-19.7-76.4-19.7C63.3 141.2 4 184.8 4 273.5q0 39.3 14.4 81.2c12.8 36.7 59 126.7 107.2 125.2 25.2-.6 43-17.9 75.8-17.9 31.8 0 48.3 17.9 76.4 17.9 48.6-.7 90.4-82.5 102.6-119.3-65.2-30.7-61.7-90-61.7-91.9zm-56.6-164.2c27.3-32.4 24.8-61.9 24-72.5-24.1 1.4-52 16.4-67.9 34.9-17.5 19.8-27.8 44.3-25.6 71.9 26.1 2 49.9-11.4 69.5-34.3z"/></svg>Download for Mac</a>
+        <button class="dl2" type="button" data-copy="Install the Waggle Mac app: download https://github.com/limone-eth/waggle-releases/releases/latest/download/Waggle.zip, unzip it into ~/Applications, and open it."><svg viewBox="0 0 16 16" aria-hidden="true"><rect x="5" y="5" width="9" height="9" rx="2" fill="none" stroke="currentColor" stroke-width="1.5"/><path d="M11 3.5V3a1 1 0 0 0-1-1H3a1 1 0 0 0-1 1v7a1 1 0 0 0 1 1h.5" fill="none" stroke="currentColor" stroke-width="1.5"/></svg><span>Install with your agent</span></button>
+      </div>
+      <div class="meta2">macOS 14 or later</div>
+      <div class="agents"><span>Claude app</span><span>Cowork</span><span>Claude Code</span><span>Codex</span></div>
+    </div>
+
+    <div class="stage loop" aria-hidden="true">
+      <div class="usecase"><span class="uc-label">Product marketing</span><span class="uc-dots"><i class="on"></i><i></i><i></i><i></i></span></div>
+      <div class="chat">
+        <div class="hd"><span class="dot"></span><span class="uc-agent">Claude app</span> · new chat</div>
+        <div class="msg me m1 uc-ask">Write two subject lines for the launch email and ask me which one.</div>
+        <div class="msg ai m2 uc-ai">Here are two options. I'll ask you in Waggle which one to send.</div>
+        <div class="msg reply m3"><b>Your answer:</b> <span class="uc-reply">1. Writing the email now.</span></div>
+      </div>
+      <div class="notif"><svg width="22" height="24" viewBox="0 0 44 48"><path d="M22 1 L42.8 13 L42.8 35 L22 47 L1.2 35 L1.2 13 Z" fill="#F2B01E"/><path d="M12 20 L17 30 L22 22 L27 30 L32 20" fill="none" stroke="#fff" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/></svg><div><b>Waggle</b><br><span class="uc-notif">Claude asks: which subject line?</span></div></div>
+      <div class="inbox">
+        <div class="hd"><svg width="14" height="15" viewBox="0 0 44 48"><path d="M22 1 L42.8 13 L42.8 35 L22 47 L1.2 35 L1.2 13 Z" fill="#F2B01E"/></svg>Waggle</div>
+        <div class="rq">Which subject line should we send?</div>
+        <div class="uc-art"></div>
+        <div class="o pk"><span class="n">1</span><span class="uc-o1">Your first agent, live in 5 minutes</span><span class="r">Rec.</span></div>
+        <div class="pros uc-p1">+ clear promise · − a bit plain</div>
+        <div class="o"><span class="n">2</span><span class="uc-o2">Meet your new teammate</span></div>
+        <div class="sendb"><span>Send</span></div>
+      </div>
+      <svg class="cursor" viewBox="0 0 18 22"><path d="M1 1l15 11-7 1-3 7z" fill="#16181A" stroke="#fff" stroke-width="1.2"/></svg>
+    </div>
+  </section>
+
+  <div class="steps">
+    <section class="step">
+      <div class="hex"><svg viewBox="0 0 44 48"><path d="M22 1 L42.8 13 L42.8 35 L22 47 L1.2 35 L1.2 13 Z" fill="#FDF4DA" stroke="#F2B01E" stroke-width="1.5"/></svg><span>1</span></div>
+      <div>
+        <h2>Get the app</h2>
+        <ol>
+          <li>Open <strong>Waggle.dmg</strong> and drag <strong>Waggle</strong> onto the <strong>Applications</strong> folder next to it.</li>
+          <li>Open Waggle from Applications. macOS asks once to confirm an app downloaded from the internet: choose <strong>Open</strong>.</li>
+        </ol>
+        <h3>Or let Claude Code install it</h3>
+        <div class="prompt"><pre>Install the Waggle Mac app: download https://github.com/limone-eth/waggle-releases/releases/latest/download/Waggle.zip, unzip it into ~/Applications, and open it.</pre><div class="bar"><button class="btn copy" type="button">Copy for Claude Code</button></div></div>
+      </div>
+    </section>
+
+    <section class="step">
+      <div class="hex"><svg viewBox="0 0 44 48"><path d="M22 1 L42.8 13 L42.8 35 L22 47 L1.2 35 L1.2 13 Z" fill="#FDF4DA" stroke="#F2B01E" stroke-width="1.5"/></svg><span>2</span></div>
+      <div>
+        <h2>Connect your agent</h2>
+        <p>When you open Waggle, its setup walks you through this in the app: press <strong>Connect</strong> next to each agent you use. One is enough. After that, one step happens outside Waggle:</p>
+        <ul class="after">
+          <li><strong>Claude app and Cowork:</strong> quit the Claude app and open it again. It loads Waggle only when it starts.</li>
+          <li><strong>Claude Code:</strong> start a new session.</li>
+          <li><strong>Codex:</strong> type <code>/hooks</code> once and trust the Waggle hooks.</li>
+        </ul>
+      </div>
+    </section>
+
+    <section class="step">
+      <div class="hex"><svg viewBox="0 0 44 48"><path d="M22 1 L42.8 13 L42.8 35 L22 47 L1.2 35 L1.2 13 Z" fill="#FDF4DA" stroke="#F2B01E" stroke-width="1.5"/></svg><span>3</span></div>
+      <div>
+        <h2>Send your first request</h2>
+        <p>Send this to your agent. The first time, it asks permission to use Waggle: choose <strong>Always allow</strong>. Then a notification appears: open the request, pick one, and press <strong>Send</strong>.</p>
+        <div class="prompt"><pre>Try Waggle: write two short subject lines for a launch email, A plain and B playful, and ask me in Waggle which one to use.</pre><div class="bar"><button class="btn copy" type="button">Copy</button><a class="btn primary send" href="#" ><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M3 8h9M8.5 4.5 12 8l-3.5 3.5" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg>Open in the Claude app</a></div></div>
+        <div class="note"><svg viewBox="0 0 44 48" aria-hidden="true"><path d="M22 1 L42.8 13 L42.8 35 L22 47 L1.2 35 L1.2 13 Z" fill="#F2B01E"/><path d="M22 14v14M22 33v1" stroke="#fff" stroke-width="4" stroke-linecap="round"/></svg><div><strong>In the Claude app and Cowork,</strong> answer within about a minute and Claude picks it up by itself. Later than that, Claude has stopped waiting: Waggle shows <strong>Claude is not checking</strong> with <strong>Copy reply</strong>. Paste that line into the chat and Claude continues.</div></div>
+      </div>
+    </section>
+  </div>
+
+  <h2 class="section-title">Worth trying next</h2>
+  <div class="grid">
+    <div class="tile"><svg viewBox="0 0 34 34" aria-hidden="true"><rect x="5" y="3" width="22" height="28" rx="4" fill="#FDF4DA" stroke="#16181A" stroke-width="1.4"/><path d="M10 11h12M10 16h12M10 21h7" stroke="#16181A" stroke-width="1.4" stroke-linecap="round"/><path d="M21 26l7-7 2.5 2.5-7 7H21z" fill="#F2B01E" stroke="#16181A" stroke-width="1.2" stroke-linejoin="round"/></svg><b>Edit documents in place</b><p>Press Edit on a document, change the text, press Done. Your version goes back to the agent with what changed.</p><div class="act"><q>Write a one-page brief for our next launch and send it to me in Waggle as a document to review. I will edit it there.</q><div class="row2"><button class="btn copy" type="button">Copy</button><a class="btn primary send" href="#"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M3 8h9M8.5 4.5 12 8l-3.5 3.5" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg>Open in Claude</a></div></div></div>
+    <div class="tile"><svg viewBox="0 0 34 34" aria-hidden="true"><path d="M10 4 L17 8 L17 16 L10 20 L3 16 L3 8 Z" fill="#F9C846" stroke="#16181A" stroke-width="1.3"/><path d="M24 4 L31 8 L31 16 L24 20 L17 16 L17 8 Z" fill="#fff" stroke="#16181A" stroke-width="1.3"/><path d="M17 16 L24 20 L24 28 L17 32 L10 28 L10 20 Z" fill="#E89A0C" stroke="#16181A" stroke-width="1.3"/></svg><b>Name your work</b><p>Ask your agent to use a topic, like "Pricing research". Requests with the same topic group together.</p><div class="act"><q>For this work, use the Waggle topic "Pricing research" on every request you send me.</q><div class="row2"><button class="btn copy" type="button">Copy</button><a class="btn primary send" href="#"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M3 8h9M8.5 4.5 12 8l-3.5 3.5" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg>Open in Claude</a></div></div></div>
+    <div class="tile"><svg viewBox="0 0 34 34" aria-hidden="true"><path d="M7 3h13l7 7v21H7z" fill="#fff" stroke="#16181A" stroke-width="1.4" stroke-linejoin="round"/><path d="M20 3v7h7" fill="none" stroke="#16181A" stroke-width="1.4" stroke-linejoin="round"/><circle cx="17" cy="21" r="6" fill="#F2B01E"/><path d="M17 18v6M14 21h6" stroke="#16181A" stroke-width="1.4" stroke-linecap="round"/></svg><b>Start from a document</b><p>Drop a brief, a PRD or interview notes on Waggle and pick what you want back: options, designs, a prototype or a review. Or attach it in Claude and send this:</p><div class="act"><q>Read the brief I attached and give me three directions, each with pros and cons. Ask me in Waggle which one to take.</q><div class="row2"><button class="btn copy" type="button">Copy</button><a class="btn primary send" href="#"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M3 8h9M8.5 4.5 12 8l-3.5 3.5" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg>Open in Claude</a></div></div></div>
+    <div class="tile"><svg viewBox="0 0 34 34" aria-hidden="true"><circle cx="17" cy="17" r="13" fill="#FDF4DA" stroke="#16181A" stroke-width="1.4"/><circle cx="12" cy="13" r="2.4" fill="#E0352B"/><circle cx="21" cy="11" r="2.4" fill="#2B59F0"/><circle cx="23" cy="19" r="2.4" fill="#18A058"/><circle cx="12" cy="21" r="2.4" fill="#F2B01E"/></svg><b>Your design system</b><p>Settings &gt; Artifacts takes your design.md, or ask your agent to save it, so designs start in your style. Optional.</p><div class="act"><q>Save this as my Waggle design kit, then use it for every design you send me: [paste your design.md here]</q><div class="row2"><button class="btn copy" type="button">Copy</button><a class="btn primary send" href="#"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M3 8h9M8.5 4.5 12 8l-3.5 3.5" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg>Open in Claude</a></div></div></div>
+  </div>
+
+  <h2 class="section-title">Good first waggles</h2>
+  <div class="prompt"><pre>From these interview notes, give me three directions for the feature, each with pros and cons, and ask me in Waggle which one to take to the team.</pre><div class="bar"><button class="btn copy" type="button">Copy</button><a class="btn primary send" href="#" ><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M3 8h9M8.5 4.5 12 8l-3.5 3.5" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg>Open in the Claude app</a></div></div>
+  <div class="prompt"><pre>Draft the onboarding email for our new customers and two subject lines, and ask me in Waggle which direction to take.</pre><div class="bar"><button class="btn copy" type="button">Copy</button><a class="btn primary send" href="#" ><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M3 8h9M8.5 4.5 12 8l-3.5 3.5" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg>Open in the Claude app</a></div></div>
+
+  <div class="help">
+    <ul>
+      <li><strong>No Waggle in the Claude tools menu:</strong> quit and reopen the Claude app.</li>
+      <li><strong>Your agent cannot reach Waggle:</strong> open Waggle (it must be running), then ask again.</li>
+      <li><strong>Anything else:</strong> <a href="https://github.com/waggle-so/waggle/issues/new/choose">open an issue on GitHub</a> with a screenshot.</li>
+    </ul>
+  </div>
+</div>
+<script>
+const textOf=el=>{const c=el.closest('.prompt,.act');return c.querySelector('pre,q').textContent.trim();};
+document.querySelectorAll('.copy').forEach(b=>b.addEventListener('click',()=>{
+  const old=b.textContent;
+  navigator.clipboard.writeText(textOf(b)).then(()=>{b.textContent='Copied';setTimeout(()=>b.textContent=old,1400)}).catch(()=>{});
+}));
+document.querySelectorAll('.send').forEach(a=>{a.href='claude://claude.ai/new?q='+encodeURIComponent(textOf(a));});
+document.querySelectorAll('.seg button').forEach(b=>b.addEventListener('click',()=>{
+  b.parentElement.querySelectorAll('button').forEach(x=>x.setAttribute('aria-selected',x===b));
+  b.closest('div:not(.seg)').querySelectorAll('.pane').forEach(p=>p.classList.toggle('on',p.id===b.dataset.pane));
+}));
+
+document.querySelectorAll('.dl2').forEach(b=>b.addEventListener('click',()=>{const l=b.querySelector('span'),o=l.textContent;b.style.width=b.offsetWidth+'px';b.style.justifyContent='center';navigator.clipboard.writeText(b.dataset.copy).then(()=>{l.textContent='Copied';setTimeout(()=>l.textContent=o,2200)}).catch(()=>{});}));
+const UC=[
+ {label:"Product marketing",agent:"Claude app",ask:"Write two subject lines for the launch email and ask me which one.",ai:"Here are two options. I'll ask you in Waggle which one to send.",notif:"Claude asks: which subject line?",q:"Which subject line should we send?",o1:"Your first agent, live in 5 minutes",o2:"Meet your new teammate",p1:"+ clear promise · − a bit plain",reply:"1. Writing the email now.",art:0},
+ {label:"Research",agent:"Cowork",ask:"From these interview notes, find directions for 'see all conversations'.",ai:"I found three directions. I'll ask you in Waggle which one to take to the team.",notif:"Claude asks: which direction?",q:"Which direction do we take to the team?",o1:"Search across every conversation",o2:"Flag only the failed ones",p1:"+ 6 of 8 users asked · − bigger build",reply:"1. Drafting the one-pager for the team.",art:0},
+ {label:"Design",agent:"Claude app",ask:"Design the pricing card in two layouts and ask me which one.",ai:"Two layouts are ready. I'll send them to you in Waggle.",notif:"Claude asks: which pricing layout?",q:"Which pricing layout should we ship?",o1:"Compact, one column",o2:"Detailed, with a comparison",p1:"+ fast to scan · − hides limits",reply:"1, tighten the headline. Updating the design.",art:1},
+ {label:"Engineering",agent:"Claude Code",ask:"Plan the database migration and check with me before running it.",ai:"The plan is ready. I'll ask you in Waggle before I run anything.",notif:"Claude Code asks: run the migration?",q:"Run the migration tonight or in two steps?",o1:"Two steps, no downtime",o2:"Tonight, 5 minutes down",p1:"+ safe rollback · − one more day",reply:"1. Starting step one.",art:0}
+];
+(()=>{const st=document.querySelector('.loop');if(!st)return;let i=0;
+const set=(c,v)=>st.querySelectorAll('.'+c).forEach(e=>e.textContent=v);
+const show=u=>{set('uc-label',u.label);set('uc-agent',u.agent);set('uc-ask',u.ask);set('uc-ai',u.ai);set('uc-notif',u.notif);set('uc-o1',u.o1);set('uc-o2',u.o2);set('uc-p1',u.p1);set('uc-reply',u.reply);
+ st.querySelector('.rq').textContent=u.q;st.querySelector('.uc-art').innerHTML=u.art?'<div class="h"></div><div></div>':'';
+ st.querySelectorAll('.uc-dots i').forEach((d,k)=>d.classList.toggle('on',k===i));};
+show(UC[0]);
+st.querySelector('.m1').addEventListener('animationiteration',()=>{i=(i+1)%UC.length;show(UC[i]);});
+})();
+</script>
+</body>
+</html>

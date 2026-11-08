@@ -1,0 +1,17 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><title>scripted-body</title>
+<style>body{margin:0;background:#EDEDED}.frame{margin:12px 20px;background:#fff;height:200px}</style></head><body>
+<div class="tabs" data-tabs></div>
+<div class="frame" data-frame></div>
+<script>
+// Like a prototype that builds its tabs and frame on load (WAG-292).
+const views = {a: 'A · first', b: 'B · second', c: 'C · third'};
+let current = 'a';
+function draw() {
+  document.querySelector('[data-tabs]').innerHTML = Object.entries(views)
+    .map(([k, name]) => `<button class="${current === k ? 'on' : ''}" data-v="${k}">${name}</button>`).join('');
+  document.querySelector('[data-frame]').innerHTML = `<p id="built">${views[current]}</p>`;
+  document.querySelectorAll('[data-v]').forEach(e => e.onclick = () => { current = e.dataset.v; draw(); });
+}
+draw();
+</script></body></html>

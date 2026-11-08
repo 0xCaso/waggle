@@ -1,0 +1,9 @@
+@import "tailwindcss";
+
+@theme {
+  --color-brand: oklch(0.62 0.19 250);
+  --color-surface: oklch(0.98 0 0);
+  --radius-card: 14px;
+  --font-sans: "DM Sans", system-ui, sans-serif;
+  --spacing: 4px;
+}

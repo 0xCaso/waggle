@@ -1,0 +1,8 @@
+{
+  "name": "waggle",
+  "version": "0.4.0",
+  "license": "Apache-2.0",
+  "description": "Waggle for Claude Code: the Waggle MCP server, a skill for writing good asks, and a mod that shows Waggle status above the prompt.",
+  "author": { "name": "Waggle" },
+  "keywords": ["waggle", "review", "decisions", "mcp"]
+}

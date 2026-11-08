@@ -1,0 +1,686 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Decision requests</title>
+<link rel="icon" href="/favicon.svg" type="image/svg+xml">
+<link rel="icon" href="/favicon-32.png" sizes="32x32" type="image/png">
+<link rel="apple-touch-icon" href="/apple-touch-icon.png">
+<meta property="og:type" content="article">
+<meta property="og:site_name" content="Waggle">
+<meta property="og:title" content="Decision requests">
+<meta property="og:description" content="When producing software gets cheap, the decision becomes the unit of collaboration. So what comes after the pull request?">
+<meta property="og:url" content="https://waggle.so/decision-requests/">
+<meta property="og:image" content="https://waggle.so/decision-requests/og.png">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="Decision requests">
+<meta name="twitter:description" content="When producing software gets cheap, the decision becomes the unit of collaboration. So what comes after the pull request?">
+<meta name="twitter:image" content="https://waggle.so/decision-requests/og.png">
+<meta name="description" content="When producing software gets cheap, the decision becomes the unit of collaboration. So what comes after the pull request?">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter+Tight:ital,wght@0,400;0,500;0,600;1,400;1,500&display=swap" rel="stylesheet">
+<style>
+:root{
+  --ink:#16181A; --mute:#6b6b6b; --faint:#d9d9d9; --bg:#fff;
+  --red:#F2B01E; --green:#18A058; --blue:#2B59F0;
+  --ease-out:cubic-bezier(0.23,1,0.32,1);
+  --ease-in-out:cubic-bezier(0.77,0,0.175,1);
+  --col-text:420px; --col-fig:660px; --gap:clamp(40px,7vw,120px);
+}
+*{box-sizing:border-box}
+html{-webkit-text-size-adjust:100%}
+body{margin:0;background:var(--bg);color:var(--ink);font:400 clamp(17px,1.2vw,18px)/1.6 "Inter Tight",system-ui,-apple-system,sans-serif;-webkit-font-smoothing:antialiased;text-rendering:optimizeLegibility}
+p{margin:0 0 1.1em;text-wrap:pretty}
+h1,h2{font-weight:500;margin:0;text-wrap:balance}
+.wrap{width:100%;max-width:calc(var(--col-text) + var(--gap) + var(--col-fig));margin:0 auto}
+.page{padding:0 clamp(20px,8.3vw,120px)}
+
+/* progress */
+.progress{position:fixed;inset:0 0 auto 0;height:2px;background:var(--ink);transform-origin:0 50%;transform:scaleX(0);z-index:20}
+
+/* hero */
+.hero{padding:clamp(24px,3vw,40px) 0 clamp(16px,3vw,32px)}
+.by{display:flex;justify-content:space-between;align-items:center;font-size:14px;color:var(--mute)}
+.logo{display:inline-flex;align-items:center;gap:7px;color:var(--ink);text-decoration:none;font-size:19px;font-weight:500;letter-spacing:-0.035em;line-height:1}
+.logo:focus-visible{outline:1.5px solid var(--blue);outline-offset:4px;border-radius:4px}
+
+.hero h1{font-size:clamp(38px,4.4vw,58px);font-weight:500;line-height:1.04;letter-spacing:-0.035em;margin:clamp(72px,12vh,128px) 0 16px}
+.hero .sub{font-size:clamp(19px,1.7vw,24px);font-weight:400;letter-spacing:-0.02em;line-height:1.3;color:var(--mute);margin:0 0 clamp(32px,5vh,48px);max-width:30em;text-wrap:balance}
+.hero-fig{width:100%;margin-top:8px}
+.hero-fig svg{width:100%;height:auto;display:block}
+.reveal{opacity:0;transform:translateY(8px);transition:opacity 700ms var(--ease-out),transform 700ms var(--ease-out)}
+.ready .reveal{opacity:1;transform:none}
+.ready .reveal.d1{transition-delay:80ms}
+
+/* chapters */
+/* type scale: title 60 / heading 34 / pull 24 italic / body 19.5 / figure labels ~15 */
+.ch-head{padding-top:clamp(56px,8vh,88px)}
+.ch-head hr{border:0;height:1px;background:var(--faint);margin:0 0 24px}
+.ch-head h2{font-size:clamp(26px,2.3vw,32px);font-weight:500;line-height:1.12;letter-spacing:-0.03em;max-width:16em}
+.ch .stage{display:none}
+/* text and its figure share a row, tops aligned, so a figure always starts level with its paragraph */
+.row{display:grid;grid-template-columns:minmax(300px,var(--col-text)) minmax(0,var(--col-fig));justify-content:space-between;align-items:center;column-gap:var(--gap);padding:clamp(28px,5vh,48px) 0}
+.ch-head + .ch .row:first-child{padding-top:24px}
+.step{opacity:.28;transition:opacity 300ms ease}
+.step.active{opacity:1}
+.step p:last-child{margin-bottom:0}
+.step a,.closing a{color:inherit;text-decoration:underline;text-decoration-thickness:1px;text-underline-offset:3px;text-decoration-color:rgba(0,0,0,.35);transition:text-decoration-color 150ms ease}
+@media (hover:hover) and (pointer:fine){.step a:hover{text-decoration-color:var(--ink)}}
+.step a:focus-visible{outline:1.5px solid var(--blue);outline-offset:2px;border-radius:2px}
+.step strong{font-weight:600}
+/* legacy highlighter style, unused */
+mark{color:inherit;background:linear-gradient(transparent 58%,#FFEFA3 58%,#FFEFA3 92%,transparent 92%);-webkit-box-decoration-break:clone;box-decoration-break:clone;padding:0 1px}
+
+.row-fig{display:grid}
+
+/* figure crossfade: exit fast, enter slower, blur bridges the two states */
+.fig{grid-area:1/1;width:100%;height:auto;max-height:calc(100svh - 140px);opacity:0;filter:blur(6px);transform:translateY(10px);
+  transition:opacity 180ms ease-out,filter 180ms ease-out,transform 180ms ease-out;pointer-events:none;overflow:visible}
+.fig.on{opacity:1;filter:blur(0);transform:none;
+  transition:opacity 520ms var(--ease-out) 120ms,filter 520ms var(--ease-out) 120ms,transform 520ms var(--ease-out) 120ms}
+
+/* elements inside a figure: reset instantly when hidden, stagger in when shown */
+.fig .e{opacity:0;transform:translateY(6px);transform-box:fill-box;transform-origin:center;transition:none}
+.fig.on .e{opacity:1;transform:none;
+  transition:opacity 420ms var(--ease-out) calc(var(--i,0) * 60ms + 160ms),transform 520ms var(--ease-out) calc(var(--i,0) * 60ms + 160ms)}
+.fig .ln{stroke-dasharray:1;stroke-dashoffset:1}
+.fig.on .ln{stroke-dashoffset:0;transition:opacity 200ms ease calc(var(--i,0) * 60ms + 160ms),stroke-dashoffset 760ms var(--ease-in-out) calc(var(--i,0) * 60ms + 160ms)}
+.fig .grow{transform-origin:var(--o) 50%;transform:scaleX(var(--s))}
+.bee .wing{transform-box:fill-box;transform-origin:50% 100%;animation:flap 140ms ease-in-out infinite alternate}
+.bee .w2{animation-delay:-70ms}
+@keyframes flap{to{transform:scaleY(.4)}}
+.fig .e.frag{transform:translate(var(--dx),var(--dy))}
+.fig.on .e.frag{transform:none}
+.fig .e.burst{transform-box:view-box;transform-origin:580px 210px;transform:scale(.55)}
+.fig.on .e.burst{transform:none;transition:opacity 160ms ease-out calc(var(--i,0) * 60ms + 160ms),transform 420ms var(--ease-out) calc(var(--i,0) * 60ms + 160ms)}
+.fig-slop.on .tm{transform-box:fill-box;transform-origin:center;animation:jolt 360ms var(--ease-out) 560ms 1}
+@keyframes jolt{20%{transform:translateX(-4px) rotate(-3deg)}45%{transform:translateX(4px) rotate(2deg)}70%{transform:translateX(-2px)}}
+.fig.on .grow{transform:scaleX(1);transition:opacity 300ms ease calc(var(--i,0) * 60ms + 160ms),transform 1100ms var(--ease-in-out) calc(var(--i,0) * 60ms + 360ms)}
+
+.fig.on.fig-media{pointer-events:auto}
+.fig-media .tile,.fig-media .seg{cursor:pointer;outline:none}
+.fig-media .tile .inner{transform-box:fill-box;transform-origin:center;transition:transform 160ms var(--ease-out)}
+.fig-media .tile:active .inner{transform:scale(.96)}
+.fig-media .frame{stroke:var(--faint);transition:stroke 150ms ease}
+@media (hover:hover) and (pointer:fine){.fig-media .tile:hover .frame{stroke:var(--mute)}}
+.fig-media .tile.sel .frame{stroke:var(--green);stroke-width:1.5}
+.fig-media .tile:focus-visible .frame,.fig-media .seg:focus-visible .segbg{stroke:var(--blue);stroke-width:2}
+.fig-media .pv{opacity:0;transition:opacity 200ms ease}
+.fig-media .pv.show{opacity:1}
+.fig-media .mock-try{opacity:0;transition:opacity 180ms ease}
+.fig-media .mock-signup{transition:opacity 180ms ease}
+.fig-media.v-try .mock-try{opacity:1}
+.fig-media.v-try .mock-signup{opacity:0}
+.fig-media .prog{transform-box:fill-box;transform-origin:left center;transform:scaleX(0)}
+.fig-media .pv.show .prog{animation:prog 4s linear infinite}
+@keyframes prog{to{transform:scaleX(1)}}
+.pull{padding:8px 0 0}
+.pull p{font-size:clamp(20px,1.8vw,23px);font-weight:500;letter-spacing:-0.02em;line-height:1.3;max-width:var(--col-text);margin:0}
+
+/* waggle dance interlude: breaks the two-column rhythm before the closing */
+.dance{display:grid;grid-template-columns:minmax(300px,var(--col-text)) minmax(0,var(--col-fig));justify-content:space-between;column-gap:var(--gap);align-items:center;
+  border-top:1px solid var(--faint);margin:clamp(56px,8vh,88px) 0 clamp(80px,12vh,120px);padding:clamp(32px,5vh,48px) 0 0;opacity:0;transform:translateY(10px);transition:opacity 700ms var(--ease-out),transform 700ms var(--ease-out)}
+.dance.on{opacity:1;transform:none}
+.dance .label{font-size:13px;letter-spacing:.06em;text-transform:uppercase;color:#C98A00;display:flex;align-items:center;gap:8px;margin:0 0 12px}
+.dance .label svg{width:22px;height:16px;overflow:visible}
+.dance p{margin:0}
+.dance .src{font-size:15px;color:var(--mute);margin-top:14px}
+.dance a{color:inherit;text-decoration:underline;text-decoration-thickness:1px;text-underline-offset:3px;text-decoration-color:rgba(0,0,0,.35)}
+.dance svg.scene{width:100%;height:auto;display:block;overflow:visible;max-width:560px;justify-self:end}
+.closing{padding:clamp(80px,12vh,128px) 0 0;text-align:center}
+.closing .mark{width:32px;height:32px;display:block;margin:0 auto 32px}
+.closing .big{font-size:clamp(32px,4vw,50px);font-weight:500;line-height:1.08;letter-spacing:-0.035em;max-width:17em;margin:0 auto;text-wrap:balance}
+.closing .next{display:inline-flex;align-items:baseline;gap:10px;margin-top:36px;color:var(--ink);text-decoration:none;font-size:clamp(16px,1.3vw,18px);font-weight:500;border-bottom:1px solid rgba(0,0,0,.35);padding-bottom:2px;transition:border-color 150ms ease}
+.closing .next span{display:inline-block;transition:transform 200ms var(--ease-out)}
+@media (hover:hover) and (pointer:fine){.closing .next:hover{border-color:var(--ink)}.closing .next:hover span{transform:translateX(3px)}}
+.closing .next:focus-visible{outline:1.5px solid var(--blue);outline-offset:4px;border-radius:2px}
+footer{padding:0 0 48px;color:var(--mute);font-size:15px}
+
+/* mobile: figure pinned on top, text scrolls beneath */
+@media (max-width:900px){
+  .row{grid-template-columns:1fr;row-gap:24px;padding:24px 0}
+  .fig{max-height:none}
+  .hero{min-height:80svh}
+  .dance{grid-template-columns:1fr;row-gap:24px}
+}
+
+@media (prefers-reduced-motion:reduce){
+  .reveal,.fig,.fig .e,.fig .grow{transform:none!important;filter:none!important}
+  .fig,.fig.on{transition:opacity 200ms ease!important}
+  .fig .e,.fig.on .e{transition:opacity 200ms ease!important}
+  .fig .ln{stroke-dashoffset:0}
+  .fig-slop.on .tm{animation:none}
+  .bee .wing{animation:none}
+  .progress{display:none}
+  .dance{transform:none}
+}
+</style>
+</head>
+<body>
+<div class="progress" id="progress"></div>
+
+<div class="page">
+<div class="wrap">
+
+<header class="hero">
+  <div class="by reveal"><a class="logo" href="/" aria-label="Waggle home"><svg viewBox="0 0 100 100" width="22" height="22" aria-hidden="true"><defs><linearGradient id="lg-honey" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#F9C846"/><stop offset="1" stop-color="#E89A0C"/></linearGradient></defs><path d="M50 0 L93.3 25 L93.3 75 L50 100 L6.7 75 L6.7 25 Z" fill="url(#lg-honey)"/><path d="M27 40 L38 63 L50 43 L62 63 L73 40" fill="none" stroke="#fff" stroke-width="9" stroke-linejoin="round" stroke-linecap="round"/></svg><span>waggle</span></a><span>Oct 3, 2026</span></div>
+  <h1 class="reveal d1">Decision requests</h1>
+  <p class="sub reveal d1">A new way for product teams to work together</p>
+  <div class="hero-fig" id="hero" aria-hidden="true"></div>
+</header>
+
+<section class="ch" data-figs="pipeline">
+  <div class="steps">
+    <div class="step">
+      <p>For most of software history, the way product teams worked together was shaped by a simple constraint: <strong>making software was expensive.</strong></p>
+      <p>Turning an idea into a product required different kinds of expertise, so the work moved through specialists. Product decided what should be built, design translated that into an experience, engineering turned it into software, and QA made sure it worked. <strong>The handoffs between those roles became the operating system of the team.</strong></p>
+      <p>Most of the artifacts we still use come from that model: specs, tickets, wireframes, Figma files and pull requests. They are ways of carrying intent from one person to the next.</p>
+    </div>
+  </div>
+  <div class="stage" aria-hidden="true"><div class="stage-in"></div></div>
+</section>
+
+<div class="pull"><p>AI changes the economics underneath that system.</p></div>
+
+<div class="ch-head"><hr><h2>Roles get wider, not meaningless</h2></div>
+<section class="ch" data-figs="spectrum,pulled">
+  <div class="steps">
+    <div class="step">
+      <p>The boundaries between product, design and engineering were blurring well before generative AI. <a href="https://marcelochaman.com/s/design-engineering#the-spectrum" target="_blank" rel="noopener">Marcelo Chaman describes design engineering as a spectrum</a> rather than a single new role: people sit at different points between design and engineering. AI makes it easier to move along that spectrum because it lowers the cost of working outside your strongest discipline.</p>
+      <p><strong>Nobody’s job goes away. Everyone’s range gets wider.</strong></p>
+    </div>
+    <div class="step">
+      <p>A designer shows up to the review with something you can click instead of a Figma file. A product person brings a working version of the idea rather than a document describing it. An engineer tries several interface directions before asking the designer which one deserves their time.</p>
+      <p>The designer is still the designer. Being able to build something is not the same as being able to judge it or maintain it, so deep expertise gets more valuable: there is far more to evaluate.</p>
+      <p>Specialists stop being mandatory steps that every piece of work has to cross. They become the people you pull in at the moments where their judgment matters most.</p>
+    </div>
+  </div>
+  <div class="stage" aria-hidden="true"><div class="stage-in"></div></div>
+</section>
+
+<div class="ch-head"><hr><h2>Exploration is cheap. Attention is not.</h2></div>
+<section class="ch" data-figs="idea,slop,rec">
+  <div class="steps">
+    <div class="step">
+      <p>When the cost of producing software falls, the number of possibilities you can explore goes up. I can try five implementations instead of committing to the first one.</p>
+      <p>I think this is where the line between vibe coding and professional work sits. Vibe coding stops at the first thing that works. A professional builds the alternatives, compares them, and finds out which one is better before committing.</p>
+    </div>
+    <div class="step">
+      <p>The other half is what you do with the results. The lazy version is to drop all five options on a teammate and ask them to figure it out. That moves the cost from you to them. At Shopify, Tobi Lütke says, they call these <a href="https://flaviocopes.com/slop-grenades/" target="_blank" rel="noopener">slop grenades</a>.</p>
+    </div>
+    <div class="step">
+      <p>So if you are using AI, you should take on a new responsibility: <strong>absorb the exploration yourself.</strong> Send the agents out to scout, compare what they bring back, discard the weak options, form a recommendation, and only then bring in someone else’s judgment where it is useful.</p>
+      <p>How you bring it in matters too. A prototype that looks finished tends to close the conversation, so it should arrive as a question.</p>
+    </div>
+  </div>
+  <div class="stage" aria-hidden="true"><div class="stage-in"></div></div>
+</section>
+
+<div class="ch-head"><hr><h2>Judgment is the scarce part</h2></div>
+<section class="ch" data-figs="session,team,settled">
+  <div class="steps">
+    <div class="step">
+      <p>Someone still has to decide which direction is better, which trade-off is worth making, whether the thing solves the right problem and whether it fits the rest of the product. That part did not get cheaper.</p>
+      <p>An agent cannot always make that call. Agents are very good at math, pattern matching and coding, which is why producing the options got cheap. Choosing between them is a different skill. <a href="https://hugo0.com/blog/how-to-do-valuable-work-in-2026" target="_blank" rel="noopener">My friend Hugo explains part of why</a>: the agent sees only what is in its session.</p>
+    </div>
+    <div class="step">
+      <p>What it misses is the untidy knowledge a team carries around: the tech debt discussed three months ago, the user who complained about exactly the thing you are touching, the taste that comes from years of shipping. Keeping that bigger picture in mind is still your job.</p>
+      <p>That gives a clear division of labor. Agents explore, build and prepare the decision. A person who knows the product, and who answers for the result, makes it.</p>
+    </div>
+    <div class="step">
+      <p>Many decisions no longer need anyone else. With AI I can settle them on my own, without interrupting a colleague, and that is where much of the speed comes from. The ones that still need another person are where collaboration now happens.</p>
+      <p>This changes what I think the basic object of collaboration should be. If execution becomes cheap, <strong>perhaps the decision itself becomes the real unit of collaboration.</strong></p>
+    </div>
+  </div>
+  <div class="stage" aria-hidden="true"><div class="stage-in"></div></div>
+</section>
+
+<div class="ch-head"><hr><h2>Artifacts become communication</h2></div>
+<section class="ch" data-figs="media,timeline,forms">
+  <div class="steps">
+    <div class="step">
+      <p>If the decision is what travels, the artifacts around it have one job: <strong>make it fast to understand.</strong></p>
+      <p><a href="https://x.com/karpathy/status/2105819303471976479" target="_blank" rel="noopener">Andrej Karpathy recently made this point</a> about model outputs: go beyond prose to diagrams, interactive webpages and bespoke explainer videos. We can now choose the medium by how well it communicates, not by how expensive it is to produce.</p>
+    </div>
+    <div class="step">
+      <p>A prototype no longer needs to be a step toward shipping. It can exist for half an hour, help three people understand a trade-off, lead to a decision and then be thrown away. That makes software itself a communication medium.</p>
+    </div>
+    <div class="step">
+      <p>Communication today is optimized for the sender, and the receiver pays the cost of understanding. AI makes it cheap to invert that: the same idea can reach a founder as a short summary, a designer as a visual comparison and an engineer as a list of edge cases.</p>
+      <p><strong>The goal becomes minimizing time-to-understanding rather than time-to-send.</strong></p>
+    </div>
+  </div>
+  <div class="stage" aria-hidden="true"><div class="stage-in"></div></div>
+</section>
+
+<div class="ch-head"><hr><h2>What comes after the pull request?</h2></div>
+<section class="ch" data-figs="layers,reviewers,dr,rfc,asks">
+  <div class="steps">
+    <div class="step">
+      <p>Our tools hold the work, not the decision behind it. A Linear ticket describes a task, a Figma file contains a design, a pull request contains a code change. Whoever reviews them has to reconstruct the more important thing underneath: what decision is being made, what alternatives were considered, and where their judgment is needed.</p>
+    </div>
+    <div class="step">
+      <p>But a product decision now comes with a prototype, user research, screenshots, generated experiments and an implementation. The people reviewing it include engineers, designers, product managers, founders, domain experts and AI agents. Most of the humans here will never open a diff to read the code.</p>
+    </div>
+    <div class="step">
+      <p>If the decision is the unit of collaboration, the tool should be built around it. Call it a <strong>decision request</strong> (DR). A pull request asks whether a change is correct. <strong>A decision request asks whether it is the right thing to build.</strong> A person or an agent brings the question, the alternatives already explored, the evidence, a recommendation, and whatever artifacts make the decision easiest to understand.</p>
+      <p>Imagine deciding whether new users should create an account before or after they first try the product. The decision request states that question in a sentence, links three variants anyone can click through, says which it recommends and why the others lost, asks the designer about the flow and the engineer about the data model, and sets a date to check the choice.</p>
+    </div>
+    <div class="step">
+      <p>This can sound like a request for comments (RFC) or a decision record with a new name. Two things are different.</p>
+      <p><strong>The alternatives are built, not described.</strong> An RFC argues for an option in prose because building three versions was too expensive. Now the reviewer can try them.</p>
+    </div>
+    <div class="step">
+      <p><strong>The author can be an agent.</strong> Agents do more of the work between one meaningful choice and the next, and they need a way to stop and ask for judgment in a form a human can absorb quickly.</p>
+    </div>
+  </div>
+  <div class="stage" aria-hidden="true"><div class="stage-in"></div></div>
+</section>
+
+<section class="closing">
+  <svg class="mark" viewBox="-16 -16 32 32" aria-hidden="true"><polygon points="0.0,-14.0 12.1,-7.0 12.1,7.0 0.0,14.0 -12.1,7.0 -12.1,-7.0" fill="#F2B01E"/></svg>
+  <p class="big">AI removes the scarcity of production. It does not remove the need for collaboration. It changes what collaboration is for.</p>
+  <a class="next" href="/decision-requests/example/">See one decision, start to finish <span aria-hidden="true">→</span></a>
+</section>
+<aside class="dance" id="dance">
+  <div>
+    <div class="label"><svg viewBox="-12 -12 24 20" aria-hidden="true"><use href="#wd-bee"/></svg>Meanwhile, in the hive</div>
+    <p>Honeybees solved a version of this long ago. When a swarm needs a new home, scouts fly out to inspect possible sites and each reports what she found with a waggle dance: the angle gives the direction, the length gives the distance, and the better the site, the longer she dances. Nobody votes on a description. Other scouts go and look for themselves, and the swarm moves only when enough of them agree. A few explore, the ones who matter check, and the group decides.</p>
+    <p class="src">From Thomas Seeley, <a href="https://press.princeton.edu/books/hardcover/9780691147215/honeybee-democracy" target="_blank" rel="noopener">Honeybee Democracy</a></p>
+  </div>
+  <svg class="scene" viewBox="0 0 560 320" aria-hidden="true" font-family="Inter Tight, system-ui, sans-serif">
+    <defs><g id="wd-bee"><g class="bee">
+      <ellipse class="wing" cx="-1" cy="-6" rx="4.5" ry="3.2" fill="#fff" stroke="#6b6b6b" stroke-width=".8"/>
+      <ellipse class="wing w2" cx="4" cy="-5.5" rx="4" ry="2.8" fill="#fff" stroke="#6b6b6b" stroke-width=".8"/>
+      <ellipse cx="1" cy="0" rx="7.5" ry="5" fill="#F2B01E" stroke="#000"/>
+      <path d="M-1.5 -4.4V4.4M2.5 -4.6V4.6" stroke="#000" stroke-width="1.6"/>
+      <circle cx="-7" cy="0" r="2.8" fill="#000"/>
+    </g></g></defs>
+    <g font-size="15" fill="#6b6b6b" text-anchor="middle">
+      <polygon points="470,38 486,47 486,65 470,74 454,65 454,47" fill="none" stroke="#C98A00" stroke-width="1.5"/>
+      <text x="470" y="96">hollow oak</text>
+      <polygon points="490,138 506,147 506,165 490,174 474,165 474,147" fill="#F2B01E"/>
+      <text x="490" y="196">tree cavity, chosen</text>
+      <polygon points="460,238 476,247 476,265 460,274 444,265 444,247" fill="none" stroke="#C98A00" stroke-width="1.5"/>
+      <text x="460" y="296">wall gap</text>
+    </g>
+    <g stroke="#C98A00" stroke-width="1" stroke-dasharray="3 5" fill="none" opacity=".7">
+      <path d="M200 160 C300 90 380 60 450 56"/>
+      <path d="M200 160 C300 160 400 156 470 156"/>
+      <path d="M200 160 C300 230 380 256 440 256"/>
+    </g>
+    <path id="wd-eight" d="M120 160 L160 160 C200 160 200 110 160 110 L120 110 L80 110 C40 110 40 160 80 160 L120 160 L160 160 C200 160 200 210 160 210 L120 210 L80 210 C40 210 40 160 80 160 Z" fill="none" stroke="#d9d9d9" stroke-width="1" stroke-dasharray="2 4" transform="rotate(-8 120 160)"/>
+    <path d="M84 160 l6 -5 l6 10 l6 -10 l6 10 l6 -10 l6 10 l6 -10 l6 10 l6 -5" fill="none" stroke="#C98A00" stroke-width="1.2" transform="rotate(-8 120 160)"/>
+    <g><use href="#wd-bee" transform="scale(-1.6,1.6)"/><animateMotion dur="5.2s" repeatCount="indefinite" rotate="auto"><mpath href="#wd-eight"/></animateMotion></g>
+    <text x="120" y="262" font-size="15" fill="#6b6b6b" text-anchor="middle">the dance: angle is direction,</text>
+    <text x="120" y="281" font-size="15" fill="#6b6b6b" text-anchor="middle">length is distance</text>
+      <g><use href="#wd-bee" transform="scale(-1.3,1.3)"/><animateMotion dur="6s" repeatCount="indefinite" rotate="auto" path="M200 160 C300 90 380 60 450 56 C380 70 300 100 200 160"/></g>
+      <g><use href="#wd-bee" transform="scale(-1.3,1.3)"/><animateMotion dur="4.6s" begin="-1.5s" repeatCount="indefinite" rotate="auto" path="M200 160 C300 160 400 156 470 156 C400 166 300 168 200 160"/></g>
+      <g><use href="#wd-bee" transform="scale(-1.3,1.3)"/><animateMotion dur="5.4s" begin="-3s" repeatCount="indefinite" rotate="auto" path="M200 160 C300 230 380 256 440 256 C380 246 300 220 200 160"/></g>
+      <g><use href="#wd-bee" transform="scale(-1.3,1.3)"/><animateMotion dur="4.6s" begin="-3.8s" repeatCount="indefinite" rotate="auto" path="M200 160 C300 160 400 156 470 156 C400 166 300 168 200 160"/></g>
+  </svg>
+</aside>
+<footer>Oct 3, 2026</footer>
+
+</div>
+</div>
+
+<script>
+/* tiny SVG vocabulary: ● person (ink), ○ agent (blue), ⬢ decision (honey), green = chosen */
+const C={ink:'#16181A',mute:'#6b6b6b',faint:'#d9d9d9',bg:'#fff',fill:'#f3f3f3',dim:'#b5b5b5',red:'#F2B01E',green:'#18A058',blue:'#2B59F0',honey:'#F2B01E',honeyDark:'#C98A00'};
+const col=c=>C[c]||c;
+const K=0.88;
+const sty=i=>` style="--i:${i||0}"`;
+const L=(x1,y1,x2,y2,c,i,w)=>`<path class="e ln" pathLength="1" d="M${x1} ${y1}L${x2} ${y2}" fill="none" stroke="${col(c||'mute')}" stroke-width="${w||1}"${sty(i)}/>`;
+const P=(d,c,i)=>`<path class="e ln" pathLength="1" d="${d}" fill="none" stroke="${col(c||'ink')}" stroke-width="1"${sty(i)}/>`;
+/* a scout bee: agents. wings flutter in CSS */
+const BEE=()=>`<ellipse class="wing" cx="-1" cy="-6" rx="4.5" ry="3.2" fill="#fff" stroke="${C.mute}" stroke-width=".8"/><ellipse class="wing w2" cx="4" cy="-5.5" rx="4" ry="2.8" fill="#fff" stroke="${C.mute}" stroke-width=".8"/><ellipse cx="1" cy="0" rx="7.5" ry="5" fill="${C.honey}" stroke="${C.ink}"/><path d="M-1.5 -4.4V4.4M2.5 -4.6V4.6" stroke="${C.ink}" stroke-width="1.6"/><circle cx="-7" cy="0" r="2.8" fill="${C.ink}"/>`;
+/* a honeycomb cell: decisions */
+const HEX=(x,y,r)=>[0,1,2,3,4,5].map(k=>{const a=(k*60-90)*Math.PI/180;return (x+r*Math.cos(a)).toFixed(1)+','+(y+r*Math.sin(a)).toFixed(1)}).join(' ');
+const D=(x,y,k,r,i,flip)=>{r=r||8;if(k==='a')return `<g class="e"${sty(i)}><g transform="translate(${x} ${y}) scale(${((flip?-1:1)*r/8*1.5).toFixed(2)},${(r/8*1.5).toFixed(2)})"><g class="bee">${BEE()}</g></g></g>`;const a=k==='a',g=k==='g';return `<circle class="e" cx="${x}" cy="${y}" r="${r}" fill="${a||g?C.bg:C.ink}" stroke="${a?C.blue:g?C.mute:C.ink}" stroke-width="${a?1.5:1}"${sty(i)}/>`};
+const Q=(x,y,s,i)=>`<polygon class="e" points="${HEX(x,y,s*0.66)}" fill="${C.red}"${sty(i)}/>`;
+const T=(x,y,s,o)=>{o=o||{};const z=(o.size||17)*K,lines=[].concat(s),lh=z*1.25;
+  return `<text class="e" x="${x}" y="${y+z*0.85}" font-size="${z}" fill="${col(o.fill||'ink')}"${o.it?' font-style="italic"':''}${o.anchor?` text-anchor="${o.anchor}"`:''}${o.strike?' text-decoration="line-through"':''}${sty(o.i)}>`+
+    lines.map((l,j)=>`<tspan x="${x}" dy="${j?lh:0}">${l}</tspan>`).join('')+`</text>`};
+const R=(x,y,w,h,o)=>{o=o||{};return `<rect class="e" x="${x}" y="${y}" width="${w}" height="${h}" rx="${o.rx||0}" fill="${col(o.fill||'none')}" stroke="${o.stroke?col(o.stroke):'none'}" stroke-width="${o.sw||1}"${sty(o.i)}/>`};
+const B=(x,y,w,h,label,o)=>{o=o||{};const z=(o.size||17)*K,cx=x+w/2,cy=y+h/2;
+  const inner=`<rect x="${x}" y="${y}" width="${w}" height="${h}" fill="${C.bg}" stroke="${col(o.stroke||'mute')}" stroke-width="${o.sw||1}"/>`+
+    `<text x="${cx}" y="${cy+z*0.33}" font-size="${z}" text-anchor="middle" fill="${col(o.fill||'ink')}"${o.it?' font-style="italic"':''}${o.strike?' text-decoration="line-through"':''}>${label}</text>`;
+  const g=`<g class="e"${sty(o.i)}>${inner}</g>`;
+  return o.rot?`<g transform="rotate(${o.rot} ${cx} ${cy})">${g}</g>`:g};
+
+const F={
+hero:{w:620,h:220,d(){let s='';const cx=110,cy=110;
+  [[-80,-50,'p'],[85,-40,'p'],[10,85,'p'],[-90,40,'a'],[60,70,'a'],[-15,-88,'a']].forEach(([dx,dy,k],j)=>{s+=L(cx+dx,cy+dy,cx,cy,'mute',j+2)+D(cx+dx,cy+dy,k,8,j)});
+  s+=Q(cx,cy,16,8);
+  [['p','person'],['a','agent'],['d','decision']].forEach(([k,t],j)=>{const x=300+j*120;s+=(k==='d'?Q(x,98,12,10+j):D(x,98,k,7,10+j))+T(x+16,88,t,{fill:'mute',i:10+j})});
+  return s}},
+
+pipeline:{h:560,d(){let s='';
+  /* the old operating system: work moves down through specialists, carried by artifacts */
+  const st=[['Product','decided what should be built'],['Design','translated that into an experience'],['Engineering','turned it into software'],['QA','made sure it worked']];
+  const doc=(cx,cy,t,i)=>`<g class="e"${sty(i)}><path d="M${cx-11} ${cy-14}h15l7 7v21h-22z" fill="${C.bg}" stroke="${C.ink}"/><path d="M${cx+4} ${cy-14}v7h7" fill="none" stroke="${C.ink}"/><text x="${cx+24}" y="${cy+5}" font-size="${16*K}" font-style="italic" fill="${C.mute}">${t}</text></g>`;
+  st.forEach(([n,d],j)=>{const y=j*150;
+    s+=B(0,y,200,64,n,{i:j*1.6,size:19})+T(232,y+22,d,{it:1,fill:'mute',i:j*1.6+0.3});
+    if(j<3){s+=L(100,y+64,100,y+150,'mute',j*1.6+0.6);s+=doc(100,y+107,['spec','wireframe','pull request'][j],j*1.6+1)}});
+  return s}},
+
+spectrum:{h:400,d(){let s='';
+  /* same people, same depth (the dot); only the reach (the bar) changes. One lane per person */
+  const ppl=[['designer',170,140,460],['design engineer',320,180,560],['product engineer',470,300,660],['engineer',620,380,660]];
+  const ly=(base,j)=>base+j*26;
+  s+=T(140,0,'design',{fill:'mute',size:15,i:0})+T(660,0,'engineering',{fill:'mute',size:15,anchor:'end',i:0});
+  ppl.forEach(([n,x],j)=>s+=`<path class="e ln" pathLength="1" d="M${x} ${ly(84,j)+8}V${ly(262,j)-8}" fill="none" stroke="${C.faint}" style="--i:${3+j*0.2}"/>`);
+  const panel=(base,title,after,i0)=>{let o=T(0,base-48,title,{size:19,fill:after?'green':'ink',i:i0});
+    ppl.forEach(([n,x,a0,a1],j)=>{const y=ly(base,j),i=i0+0.4+j*0.25;
+      o+=T(0,y-8,n,{size:15,fill:'mute',i})+L(140,y,660,y,'faint',i);
+      if(after)o+=`<rect class="e grow" x="${a0}" y="${y-4}" width="${a1-a0}" height="8" rx="4" fill="${C.bg}" stroke="${C.green}" vector-effect="non-scaling-stroke" style="--i:${i};--o:${((x-a0)/(a1-a0)*100).toFixed(1)}%;--s:${(60/(a1-a0)).toFixed(3)}"/>`;
+      else o+=R(x-30,y-4,60,8,{rx:4,fill:'faint',i});
+      o+=D(x,y,'p',6,i+0.2)});
+    return o};
+  s+=panel(84,'Before',0,0.5)+panel(262,'With AI',1,3.5);
+  return s+T(660,382,'same depth, wider reach',{it:1,fill:'mute',anchor:'end',i:6})}},
+
+pulled:{h:380,d(){
+  /* the work is iteration, not a line: faint earlier attempts, one path that ships, and roles called in whatever order the work needs them */
+  const ghosts=[[[0,164.6],[60,245.5],[120,160.3],[180,247.4],[240,151.9],[300,229.7],[360,172.1],[420,255.1],[480,163.9],[540,235.2],[600,139.6],[660,243]],
+    [[0,158.3],[73.3,235.4],[146.7,146.6],[220,232.6],[293.3,150.7],[366.7,243.2],[440,167.9],[513.3,248.3],[586.7,168.7],[660,245.6]],
+    [[0,165.3],[50.8,237.6],[101.5,152.5],[152.3,235.1],[203.1,163.8],[253.8,238.4],[304.6,172.5],[355.4,236.3],[406.2,160.5],[456.9,243.9],[507.7,175],[558.5,230.7],[609.2,175.1],[660,244.4]]];
+  const pd=pts=>'M'+pts.map(p=>p.join(' ')).join('L');
+  let s='';
+  ghosts.forEach((g,j)=>{s+=P(pd(g),'faint',j*0.6)});
+  const fin=[[0,200],[110,150],[190,235],[300,165],[390,230],[500,170],[570,215],[660,200]];
+  s+=`<path class="e ln" pathLength="1" d="${pd(fin)}" fill="none" stroke="${C.ink}" stroke-width="1.6" stroke-linejoin="round"${sty(2.2)}/>`;
+  /* who is pulled in, in the order the work calls them: Engineering, Design, Product, Design again, QA */
+  [['Engineering',110,'t',fin[1]],['Design',190,'b',fin[2]],['Product',300,'t',fin[3]],['Design',500,'t',fin[5]],['QA',570,'b',fin[6]]].forEach(([n,cx,side,pt],j)=>{
+    const by=side==='t'?56:306,i=4+j*0.9;
+    s+=B(cx-55,side==='t'?8:306,110,48,n,{i})+L(cx,by,pt[0],pt[1],'mute',i+0.4)+Q(pt[0],pt[1],20,i+0.8)});
+  return s+T(0,358,'the work, attempt after attempt',{fill:'mute',i:0})+T(660,358,'pulled in at the moments where their judgment matters',{it:1,anchor:'end',i:10})}},
+
+idea:{h:420,d(){let s=B(0,180,150,60,'Idea',{i:0});for(let j=0;j<5;j++){const y=20+j*80;s+=L(150,210,330,y+30,'mute',1+j*0.6)+B(330,y,170,60,'Option '+'ABCDE'[j],{i:2+j*0.6})}return s}},
+
+slop:{h:420,d(){let s='';[-3,2,-1,3,-2].forEach((r,j)=>{const y=20+j*80;s+=B(0,y,170,60,'Option '+'ABCDE'[j],{rot:r,i:j*0.4})+L(170,y+30,522,210+(j-2)*14,'mute',2.5+j*0.3)});
+  s+=`<g class="e"${sty(4.6)}><circle class="tm" cx="580" cy="210" r="60" fill="${C.bg}" stroke="${C.ink}"/></g>`+T(580,196,'teammate',{anchor:'middle',i:4.6});
+  /* the grenade goes off: rays out of the teammate, debris flying outward */
+  const cx=580,cy=210;let rays='';
+  [0,28,61,90,118,148,218,243,270,301,332].forEach((a,j)=>{const t=a*Math.PI/180,r1=68,r2=r1+(j%3===0?30:j%3===1?18:24);
+    rays+=`<path d="M${(cx+r1*Math.cos(t)).toFixed(1)} ${(cy+r1*Math.sin(t)).toFixed(1)}L${(cx+r2*Math.cos(t)).toFixed(1)} ${(cy+r2*Math.sin(t)).toFixed(1)}" stroke="${C.ink}" stroke-width="1.2"/>`});
+  s+=`<g class="e burst"${sty(7)}>${rays}</g>`;
+  [[20,128],[75,112],[140,124],[200,116],[255,130],[315,120],[350,134],[105,140]].forEach(([a,r],j)=>{const t=a*Math.PI/180,x=cx+r*Math.cos(t),y=cy+r*Math.sin(t);
+    s+=`<g class="e frag" style="--i:${7.2+j*0.08};--dx:${((cx-x)*0.75).toFixed(1)}px;--dy:${((cy-y)*0.75).toFixed(1)}px"><rect x="${(x-5).toFixed(1)}" y="${(y-3).toFixed(1)}" width="10" height="6" fill="${C.bg}" stroke="${C.mute}" transform="rotate(${a*1.7%90} ${x.toFixed(1)} ${y.toFixed(1)})"/></g>`});
+  return s+T(580,352,'slop grenade',{it:1,size:24,anchor:'middle',i:8})}},
+
+rec:{h:420,d(){let s='';for(let j=0;j<5;j++){const y=20+j*80,w=j===2;s+=B(0,y,170,60,'Option '+'ABCDE'[j],w?{stroke:'green',i:0}:{stroke:'faint',fill:'dim',strike:1,i:j*0.3})}
+  s+=L(170,210,300,210,'ink',2)+B(300,170,170,80,'Option C?',{stroke:'green',it:1,size:24,i:3})+T(385,264,'a recommendation, sent as a question',{it:1,anchor:'middle',fill:'mute',i:4});
+  s+=L(470,210,602,210,'ink',5)+D(612,210,'p',10,6)+T(612,230,'teammate',{anchor:'middle',i:6});return s}},
+
+session:{h:440,d(){let s=`<circle class="e" cx="330" cy="210" r="186" fill="none" stroke="${C.ink}"${sty(0)}/>`;
+  /* inside the session: what it was given, what it produces fast, and the call it cannot make alone */
+  [['your docs',230],['instructions',330],['the code',430]].forEach(([t,x],j)=>{const w=t.length*7.4+18;
+    s+=`<g class="e"${sty(0.5+j*0.25)}><rect x="${x-w/2}" y="74" width="${w}" height="26" fill="${C.fill}"/><text x="${x}" y="92" font-size="${15*K}" text-anchor="middle" fill="${C.mute}">${t}</text></g>`+L(x,100,330,138,'faint',1.3)});
+  s+=D(330,148,'a',10,1.6)+T(356,138,'agent',{size:15,fill:'mute',i:1.6});
+  [['A',236],['B',296],['C',364],['D',424]].forEach(([k,x],j)=>{s+=L(330,158,x,212,'mute',2.2+j*0.2)+B(x-22,212,44,30,k,{i:2.5+j*0.2,size:16})+`<path class="e ln" pathLength="1" d="M${x} 242L330 292" fill="none" stroke="${C.faint}" stroke-dasharray="1"${sty(4+j*0.15)}/>`});
+  s+=`<g class="e"${sty(4.8)}><polygon points="${HEX(330,304,15)}" fill="${C.bg}" stroke="${C.honeyDark}" stroke-width="1.5"/><text x="330" y="309" font-size="${13*K}" text-anchor="middle" fill="${C.honeyDark}">?</text></g>`;
+  s+=T(330,326,'which one?',{it:1,anchor:'middle',fill:'honeyDark',size:15,i:5});
+  return s+T(330,416,'fast at options, blind outside its session',{it:1,anchor:'middle',i:5.6})}},
+
+team:{h:500,d(){let s=`<circle class="e" cx="330" cy="260" r="120" fill="none" stroke="${C.ink}"${sty(0)}/>`+D(330,200,'a',9,0)+T(330,166,'agent prepares',{anchor:'middle',fill:'mute',size:15,i:0});
+  s+=L(330,210,330,288,'mute',1)+Q(330,300,16,2);
+  /* the untidy context: loose fragments at odd angles, drifting in from outside in no particular order */
+  const frag=(x,y,r,inner,i)=>`<g transform="rotate(${r} ${x} ${y})"><g class="e frag" style="--i:${i};--dx:${((x-330)*0.14).toFixed(1)}px;--dy:${((y-260)*0.14).toFixed(1)}px">${inner}</g></g>`;
+  const txt=(x,y,lines,anchor)=>`<text x="${x}" y="${y}" font-size="${17*K}" font-style="italic" fill="${C.ink}"${anchor?` text-anchor="${anchor}"`:''}>`+[].concat(lines).map((l,j)=>`<tspan x="${x}" dy="${j?21:0}">${l}</tspan>`).join('')+`</text>`;
+  s+=frag(30,62,-6,txt(30,62,'the tech debt discussed three months ago'),4.2);
+  s+=frag(646,96,5,txt(646,96,['the user who complained about','exactly the thing you are touching'],'end'),3.4);
+  s+=frag(52,432,3,txt(52,432,['the taste that comes from','years of shipping']),5);
+  [[124,186],[78,304],[176,372],[512,196],[610,236],[476,430],[566,474],[262,468],[206,98],[468,30],[36,252],[622,392],[420,476],[118,118]].forEach(([x,y],j)=>s+=frag(x,y,0,`<circle cx="${x}" cy="${y}" r="${j%3?2:3}" fill="${j%2?C.mute:C.faint}"/>`,3+((j*7)%10)*0.3));
+  [[150,252,32],[528,378,-22],[372,452,12],[252,40,-38],[602,168,58],[96,372,-14]].forEach(([x,y,r],j)=>s+=frag(x,y,r,`<path d="M${x-8} ${y}h16" stroke="${C.mute}"/>`,3.2+((j*5)%7)*0.35));
+  s+=L(342,300,560,300,'ink',6)+D(570,300,'p',10,7)+T(570,318,'a person decides',{anchor:'middle',i:7});return s}},
+
+settled:{h:300,d(){let s='';for(let n=0;n<21;n++){const r=Math.floor(n/7),c=n%7;s+=Q(28+c*21+(r%2)*10.5,90+r*18.5,15,c*0.25+r*0.5)}
+  s+=D(120,220,'p',8,2)+T(134,210,'me',{fill:'mute',i:2})+T(130,256,'settled on my own',{it:1,anchor:'middle',i:3});
+  [[430,90],[500,70],[570,90]].forEach(([x,y],j)=>{s+=D(x,y,'p',9,4+j*0.3)+L(x,y,500,170,'ink',5)});
+  return s+Q(500,180,18,6)+T(500,256,'the few that need another person',{it:1,anchor:'middle',i:7})}},
+
+media:{h:380,d(){let s=T(660,4,'try each medium',{it:1,fill:'mute',size:15,anchor:'end',i:0});const ic=[
+  (x,y)=>`<rect x="${x-10}" y="${y-13}" width="20" height="26" fill="none" stroke="${C.ink}"/><path d="M${x-5} ${y-4}h10M${x-5} ${y+1}h10M${x-5} ${y+6}h6" stroke="${C.ink}"/>`,
+  (x,y)=>`<path d="M${x-8} ${y-6}L${x} ${y+7}M${x+8} ${y-6}L${x} ${y+7}" stroke="${C.ink}"/><circle cx="${x-8}" cy="${y-8}" r="3.5" fill="${C.bg}" stroke="${C.ink}"/><circle cx="${x+8}" cy="${y-8}" r="3.5" fill="${C.bg}" stroke="${C.ink}"/><circle cx="${x}" cy="${y+9}" r="3.5" fill="${C.bg}" stroke="${C.ink}"/>`,
+  (x,y)=>`<polygon points="${x-6},${y-10} ${x-6},${y+8} ${x-1},${y+3} ${x+3},${y+11} ${x+6},${y+9} ${x+2},${y+2} ${x+8},${y+2}" fill="none" stroke="${C.ink}" stroke-linejoin="round"/>`,
+  (x,y)=>`<polygon points="${x-6},${y-9} ${x-6},${y+9} ${x+9},${y}" fill="none" stroke="${C.ink}" stroke-linejoin="round"/>`];
+  [['prose','prose'],['diagram','diagram'],['interactive','interactive page'],['video','video']].forEach(([m,n],j)=>{const x=j*170;
+    s+=`<g class="e"${sty(j*0.5)}><g class="tile" data-m="${m}" role="button" tabindex="0" aria-label="Show the decision as ${n}"><g class="inner"><rect class="frame" x="${x}" y="30" width="150" height="110" fill="${C.bg}"/>${ic[j](x+75,70)}<text x="${x+75}" y="${116}" font-size="${17*K}" text-anchor="middle" fill="${C.ink}">${n}</text></g></g></g>`});
+  /* previews: the same decision, in each medium */
+  const box=`<rect x="150" y="174" width="360" height="140" fill="${C.bg}" stroke="${C.faint}"/>`;
+  s+=`<g class="pv" data-m="prose">${box}${[300,320,280,310,250,180].map((w,j)=>`<rect x="172" y="${194+j*18}" width="${w}" height="5" fill="${C.faint}"/>`).join('')}</g>`;
+  s+=`<g class="pv" data-m="diagram">${box}<rect x="180" y="196" width="120" height="36" fill="${C.bg}" stroke="${C.mute}"/><text x="240" y="219" font-size="${15*K}" text-anchor="middle" fill="${C.ink}">Signup first</text><rect x="360" y="196" width="120" height="36" fill="${C.bg}" stroke="${C.green}" stroke-width="1.5"/><text x="420" y="219" font-size="${15*K}" text-anchor="middle" fill="${C.green}">Try first</text><path d="M240 232L330 280M420 232L330 280" stroke="${C.mute}" fill="none"/><polygon points="${HEX(330,280,11)}" fill="${C.red}"/></g>`;
+  s+=`<g class="pv" data-m="interactive">${box}<rect x="150" y="174" width="360" height="18" fill="${C.fill}"/><circle cx="162" cy="183" r="3" fill="${C.faint}"/><circle cx="172" cy="183" r="3" fill="${C.faint}"/><circle cx="182" cy="183" r="3" fill="${C.faint}"/>
+    <g class="seg" data-v="signup" role="button" tabindex="0" aria-label="Show signup first"><rect class="segbg" x="200" y="202" width="130" height="24" fill="${C.ink}"/><text class="segtx" x="265" y="218" font-size="${14*K}" text-anchor="middle" fill="${C.bg}">Signup first</text></g>
+    <g class="seg" data-v="try" role="button" tabindex="0" aria-label="Show try first"><rect class="segbg" x="330" y="202" width="130" height="24" fill="${C.bg}" stroke="${C.faint}"/><text class="segtx" x="395" y="218" font-size="${14*K}" text-anchor="middle" fill="${C.ink}">Try first</text></g>
+    <g class="mock-signup"><rect x="275" y="238" width="110" height="14" fill="${C.bg}" stroke="${C.faint}"/><rect x="275" y="258" width="110" height="14" fill="${C.bg}" stroke="${C.faint}"/><rect x="275" y="280" width="110" height="16" fill="${C.mute}"/></g>
+    <g class="mock-try"><rect x="200" y="236" width="40" height="66" fill="${C.fill}"/><rect x="250" y="236" width="100" height="30" fill="${C.fill}"/><rect x="360" y="236" width="100" height="30" fill="${C.fill}"/><rect x="250" y="272" width="210" height="30" fill="${C.fill}"/><rect x="400" y="240" width="54" height="12" rx="6" fill="${C.bg}" stroke="${C.green}"/></g></g>`;
+  s+=`<g class="pv" data-m="video"><rect x="150" y="174" width="360" height="140" fill="#111"/><polygon points="318,226 318,262 348,244" fill="#fff"/><rect x="166" y="294" width="328" height="3" fill="#444"/><rect class="prog" x="166" y="294" width="328" height="3" fill="${C.red}"/></g>`;
+  return s+T(330,334,'chosen by how well it communicates, not by what it costs to make',{it:1,anchor:'middle',i:4})}},
+
+timeline:{h:300,d(){let s=L(0,210,660,210,'faint',0)+L(90,160,560,160,'ink',1)+L(90,152,90,168,'ink',1)+L(560,152,560,168,'ink',1)+T(325,118,'half an hour',{anchor:'middle',i:1.5});
+  s+=D(90,210,'p',11,2)+T(90,232,'built',{it:1,anchor:'middle',i:2});
+  s+=D(220,210,'p',11,3)+T(220,232,['three people understand','the trade-off'],{it:1,anchor:'middle',i:3});
+  s+=Q(430,210,16,4)+T(430,232,'a decision',{it:1,anchor:'middle',i:4});
+  s+=D(570,210,'g',11,5)+T(570,232,'thrown away',{it:1,anchor:'middle',fill:'mute',i:5});return s}},
+
+forms:{h:440,d(){let s=Q(60,210,24,0)+T(60,236,'decision',{anchor:'middle',i:0})+L(78,210,130,210,'mute',1);
+  /* the same decision, drawn in each reader's format */
+  const card=(y,h,inner,i)=>`<g class="e"${sty(i)}><rect x="300" y="${y}" width="360" height="${h}" fill="${C.bg}" stroke="${C.faint}"/>${inner}</g>`;
+  const cap=(y,t)=>`<text x="318" y="${y+24}" font-size="${15*K}" fill="${C.mute}">${t}</text>`;
+  const founder=y=>cap(y,'a short summary')+`<polygon points="${HEX(324,y+52,7)}" fill="${C.red}"/><rect x="338" y="${y+48}" width="190" height="8" fill="${C.ink}"/><rect x="318" y="${y+68}" width="250" height="4" fill="${C.faint}"/><rect x="318" y="${y+80}" width="170" height="4" fill="${C.faint}"/>`;
+  const screen=(x,y,win)=>`<rect x="${x}" y="${y}" width="96" height="62" fill="${win?C.bg:C.fill}" stroke="${win?C.green:C.faint}" stroke-width="${win?1.5:1}"/><rect x="${x}" y="${y}" width="20" height="62" fill="${C.faint}" opacity=".6"/><rect x="${x+28}" y="${y+10}" width="${win?50:40}" height="6" fill="${win?C.green:C.faint}"/><rect x="${x+28}" y="${y+24}" width="58" height="28" fill="${win?C.fill:C.bg}"/>`;
+  const designer=y=>cap(y,'a visual comparison')+screen(318,y+38,0)+screen(426,y+38,1)+screen(534,y+38,0)+`<text x="366" y="${y+114}" font-size="${14*K}" text-anchor="middle" fill="${C.mute}">A</text><text x="474" y="${y+114}" font-size="${14*K}" text-anchor="middle" fill="${C.green}">B</text><text x="582" y="${y+114}" font-size="${14*K}" text-anchor="middle" fill="${C.mute}">C</text>`;
+  const row=(y,done,w)=>`<rect x="318" y="${y}" width="11" height="11" fill="${C.bg}" stroke="${done?C.green:C.mute}"/>${done?`<path d="M320 ${y+6}l3 3 5-6" fill="none" stroke="${C.green}" stroke-width="1.5"/>`:''}<rect x="340" y="${y+4}" width="${w}" height="4" fill="${C.faint}"/>`;
+  const engineer=y=>cap(y,'a list of edge cases')+row(y+40,1,230)+row(y+60,1,180)+row(y+80,0,250)+row(y+100,0,150);
+  [['founder',26,100,founder],['designer',160,124,designer],['engineer',306,124,engineer]].forEach(([w,y,h,f],j)=>{const i=2+j*0.8;
+    s+=L(130,210,300,y+h/2,'mute',i)+T(300,y-22,w,{it:1,fill:'mute',i:i+0.4})+card(y,h,f(y),i+0.6)});
+  return s}},
+
+layers:{h:380,d(){let s='';[['Ticket','a task'],['Figma file','a design'],['Pull request','a code change']].forEach(([a,b],j)=>{const x=j*16,y=40+j*66;
+    s+=`<g class="e"${sty(j*0.6)}><rect x="${x}" y="${y}" width="500" height="54" fill="${C.bg}" stroke="${C.mute}"/><text x="${x+20}" y="${y+34}" font-size="${19*K}" fill="${C.ink}">${a}</text><text x="${x+480}" y="${y+33}" font-size="${17*K}" font-style="italic" fill="${C.mute}" text-anchor="end">${b}</text></g>`});
+  s+=`<g class="e"${sty(3)}><rect x="48" y="270" width="500" height="64" fill="${C.fill}"/><text x="68" y="308" font-size="${19*K}" font-style="italic" fill="${C.ink}">the decision</text><text x="528" y="312" font-size="${30*K}" fill="${C.honeyDark}" text-anchor="end">?</text></g>`;
+  return s+T(48,346,'underneath, left for the reviewer to reconstruct',{it:1,fill:'mute',i:4})}},
+
+reviewers:{h:400,d(){let s='';
+  /* what a decision now comes with, and who looks at what: only two reviewers reach the diff */
+  const arts=[['prototype',''],['user research',''],['screenshots',''],['experiments',''],['implementation','the diff']];
+  const ax=j=>j*136+58;
+  arts.forEach(([a,b],j)=>{const x=j*136,code=j===4;
+    s+=`<g class="e"${sty(j*0.3)}><rect x="${x}" y="40" width="116" height="58" fill="${code?C.bg:C.fill}" stroke="${code?C.ink:C.faint}"/><text x="${x+58}" y="${b?66:74}" font-size="${16*K}" text-anchor="middle" fill="${C.ink}">${a}</text>${b?`<text x="${x+58}" y="86" font-size="${15*K}" font-style="italic" text-anchor="middle" fill="${C.mute}">${b}</text>`:''}</g>`});
+  /* ordered to keep lines from crossing; the engineer's link to the diff is fading (dashed), the agent's is the real one */
+  const who=[['designer','p',[0,2]],['founder','p',[0]],['domain expert','p',[1]],['product manager','p',[1,3]],['engineer','p',[3]],['AI agent','a',[]]];
+  who.forEach(([n,k,looks],j)=>{const x=55+j*110;looks.forEach(t=>s+=L(x,292,ax(t),100,'faint',3+j*0.25));
+    s+=D(x,300,k,k==='a'?8:6,2+j*0.2)+T(x,318,n,{anchor:'middle',i:2+j*0.2})});
+  s+=`<path class="e" d="M495 292L602 100" fill="none" stroke="${C.mute}" stroke-dasharray="4 5"${sty(4.5)}/>`;
+  s+=L(605,292,602,100,'honeyDark',4.8,1.5);
+  return s+T(330,362,'increasingly, only agents read the diff',{it:1,anchor:'middle',fill:'mute',i:5.5})}},
+
+dr:{h:700,d(){let s=R(0,0,660,690,{stroke:'faint',fill:'bg',i:0});
+  s+=T(44,34,'Decision request',{fill:'honeyDark',i:0.5})+D(406,46,'a',6,0.5)+T(420,36,'opened by an agent, needs a human',{size:15,fill:'mute',i:0.5});
+  s+=T(44,82,['Should new users create an account before','or after they first try the product?'],{size:30,i:1});
+  const ui=[
+    /* A: signup form before anything else */
+    (x,y)=>`<rect x="${x}" y="${y}" width="180" height="120" fill="${C.fill}" stroke="${C.faint}"/><rect x="${x+50}" y="${y+16}" width="80" height="7" fill="${C.faint}"/><rect x="${x+40}" y="${y+34}" width="100" height="16" fill="${C.bg}" stroke="${C.faint}"/><rect x="${x+40}" y="${y+56}" width="100" height="16" fill="${C.bg}" stroke="${C.faint}"/><rect x="${x+40}" y="${y+82}" width="100" height="18" fill="${C.mute}"/>`,
+    /* B: straight into the product, signup deferred */
+    (x,y)=>`<rect x="${x}" y="${y}" width="180" height="120" fill="${C.bg}" stroke="${C.green}" stroke-width="1.5"/><rect x="${x}" y="${y}" width="36" height="120" fill="${C.fill}"/><rect x="${x+8}" y="${y+12}" width="20" height="5" fill="${C.faint}"/><rect x="${x+8}" y="${y+24}" width="20" height="5" fill="${C.faint}"/><rect x="${x+8}" y="${y+36}" width="20" height="5" fill="${C.faint}"/><rect x="${x+46}" y="${y+12}" width="56" height="7" fill="${C.faint}"/><rect x="${x+120}" y="${y+9}" width="50" height="13" rx="6.5" fill="${C.bg}" stroke="${C.green}"/><rect x="${x+46}" y="${y+32}" width="58" height="38" fill="${C.fill}"/><rect x="${x+112}" y="${y+32}" width="58" height="38" fill="${C.fill}"/><rect x="${x+46}" y="${y+78}" width="124" height="30" fill="${C.fill}"/>`,
+    /* C: product visible, signup prompt on top */
+    (x,y)=>`<rect x="${x}" y="${y}" width="180" height="120" fill="${C.fill}" stroke="${C.faint}"/><rect x="${x}" y="${y}" width="36" height="120" fill="${C.faint}" opacity=".5"/><rect x="${x+46}" y="${y+12}" width="124" height="38" fill="${C.faint}" opacity=".5"/><rect x="${x+46}" y="${y+58}" width="124" height="50" fill="${C.faint}" opacity=".5"/><rect x="${x+45}" y="${y+28}" width="90" height="64" fill="${C.bg}" stroke="${C.faint}"/><rect x="${x+57}" y="${y+40}" width="66" height="6" fill="${C.faint}"/><rect x="${x+57}" y="${y+52}" width="66" height="12" fill="${C.bg}" stroke="${C.faint}"/><rect x="${x+57}" y="${y+70}" width="66" height="13" fill="${C.mute}"/>`];
+  [['A · Signup first',0],['B · Try first (recommended)',1],['C · Hybrid',0]].forEach(([c,w],j)=>{const x=44+j*196,i=2+j*0.4;
+    s+=`<g class="e"${sty(i)}>${ui[j](x,190)}<text x="${x}" y="338" font-size="${15*K}" fill="${w?C.green:C.ink}">${c}</text></g>`});
+  let y=370;[['Why B',['A and C lost on drop-off before first value.'],60],['Asks',['Designer: the flow. Engineer: what deferred signup','does to the data model.'],84],['Depends on',['Most users never need an account in the first session.'],60],['Check on',['Six weeks after launch: was the choice right?'],60]].forEach(([k,v,h],j)=>{const i=3.5+j*0.6;
+    s+=L(44,y,616,y,'faint',i)+T(44,y+16,k,{size:15,fill:'mute',i})+T(170,y+14,v,{size:19,i});y+=h});
+  return s}},
+
+rfc:{h:400,d(){let s=T(0,40,'RFC',{size:22,i:0});[240,250,200,245,230,250,180,240,120].forEach((w,j)=>s+=R(0,100+j*28,w,4,{fill:'faint',i:0.5+j*0.2}));
+  s+=T(0,370,'argues for an option in prose',{it:1,fill:'mute',i:2.5})+T(360,40,'Decision request',{size:22,i:3});
+  ['A','B','C'].forEach((k,j)=>s+=B(360,100+j*92,300,76,'Variant '+k+'  ·  clickable',{stroke:j===1?'green':'faint',i:3.5+j*0.5}));
+  return s+T(360,370,'the reviewer can try them',{it:1,fill:'mute',i:5.5})}},
+
+asks:{h:420,d(){let s='';
+  /* pull request: one author, one artifact, one kind of reviewer */
+  s+=T(0,0,'Pull request',{size:19,i:0})+T(660,4,'is the change correct?',{it:1,fill:'mute',anchor:'end',i:0});
+  s+=D(40,90,'p',8,0.5)+T(40,108,'developer',{anchor:'middle',size:15,i:0.5})+L(48,90,220,90,'mute',1);
+  s+=B(220,68,110,44,'{ } diff',{i:1.5,size:16})+L(330,90,452,90,'mute',2);
+  s+=D(460,90,'p',8,2.5)+T(460,108,'engineer',{anchor:'middle',size:15,i:2.5})+L(468,90,560,90,'mute',3);
+  s+=`<g class="e"${sty(3.4)}><path d="M572 90l7 7 13-15" fill="none" stroke="${C.green}" stroke-width="1.5"/></g>`+T(600,82,'merge',{size:15,fill:'mute',i:3.4});
+  s+=L(0,160,660,160,'faint',3.6);
+  /* decision request: an agent brings the question, each person is asked about their part */
+  const y=300;s+=T(0,194,'Decision request',{size:19,fill:'honeyDark',i:4})+T(660,198,'is it the right thing to build?',{it:1,fill:'mute',anchor:'end',i:4});
+  s+=D(40,y,'a',9,4.5,1)+T(40,y+18,'agent',{anchor:'middle',size:15,i:4.5})+L(49,y,150,y,'mute',5);
+  s+=`<g class="e"${sty(5.5)}>${[0,1,2].map(j=>`<rect x="${150+j*8}" y="${y-22+j*6}" width="70" height="44" fill="${j===2?C.bg:C.fill}" stroke="${j===1?C.green:C.faint}"/>`).join('')}<text x="${193}" y="${y+46}" font-size="${14*K}" text-anchor="middle" fill="${C.mute}">question + 3 variants</text></g>`;
+  const ppl=[['designer','the flow',240],['engineer','the data model',280],['product manager','the metric',320],['founder','the bet',360]];
+  /* each person's line runs from the question, through them, into the decision */
+  ppl.forEach(([n,a,py],j)=>{const i=6+j*0.3;
+    s+=L(236,y,412,py,'faint',i)+D(418,py,'p',6,i+0.3);
+    s+=`<text class="e" x="432" y="${py-7}" font-size="${15*K}" fill="${C.ink}"${sty(i+0.3)}>${n}<tspan font-style="italic" fill="${C.mute}" font-size="${14*K}">  ·  ${a}</tspan></text>`;
+    s+=`<path class="e ln" pathLength="1" d="M424 ${py}H600L${636-11} ${y}" fill="none" stroke="${C.mute}"${sty(i+0.6)}/>`});
+  s+=Q(638,y,18,8.4);return s}}
+};
+
+const svg=(k,cls)=>{const f=F[k];return `<svg class="fig fig-${k}${cls?' '+cls:''}" viewBox="-12 -12 ${(f.w||660)+24} ${f.h+24}" font-family="Inter Tight, system-ui, sans-serif" xmlns="http://www.w3.org/2000/svg">${f.d()}</svg>`};
+
+/* hero: a loop of decisions. people and agents produce artifacts that travel into the decision, it resolves, the next one starts */
+const HERO_PRESETS=[
+  {q:'Sign up before or after the first try?',a:'try first, sign up later',
+   who:[['designer','p'],['prototype agent','a'],['engineer','p'],['analytics agent','a'],['founder','p']],
+   art:[[1,'3 variants'],[3,'funnel data'],[0,'flow notes'],[2,'data model risks']]},
+  {q:'Rebuild search, or tune the ranking?',a:'tune the ranking',
+   who:[['engineer','p'],['research agent','a'],['product manager','p'],['coding agent','a']],
+   art:[[1,'12 user interviews'],[3,'2 prototypes'],[0,'latency benchmark']]},
+  {q:'Price per seat or per usage?',a:'per usage, with a cap',
+   who:[['founder','p'],['analyst agent','a'],['domain expert','p'],['product manager','p']],
+   art:[[1,'pricing model'],[2,'customer calls'],[3,'churn risk']]},
+  {q:'Ship the redesign to everyone?',a:'ship to 20% first',
+   who:[['designer','p'],['experiment agent','a'],['QA','p'],['review agent','a'],['product manager','p']],
+   art:[[1,'A/B results'],[3,'regression report'],[0,'screenshots']]}
+];
+function startHero(){
+  const host=document.getElementById('hero'),NS='http://www.w3.org/2000/svg';
+  const reduce=matchMedia('(prefers-reduced-motion: reduce)').matches,narrowMQ=matchMedia('(max-width:700px)');
+  const EO='cubic-bezier(0.23,1,0.32,1)',EIO='cubic-bezier(0.77,0,0.175,1)';
+  const LAY={wide:{W:1200,H:320,cx:600,cy:120,slots:[[310,44],[230,120],[310,196],[890,44],[970,120],[890,196]],side:1,qy:172,ay:200,ly:292,fs:17},
+             narrow:{W:640,H:520,cx:320,cy:190,slots:[[130,56],[110,190],[130,324],[510,56],[530,190],[510,324]],side:0,qy:404,ay:436,ly:500,fs:22}};
+  const mk=(tag,at,par)=>{const e=document.createElementNS(NS,tag);for(const k in at)e.setAttribute(k,at[k]);if(par)par.appendChild(e);return e};
+  const sleep=ms=>new Promise(r=>setTimeout(r,ms));
+  let L,svgEl,stage,dia,gen=0,inView=true;
+  const visible=()=>inView&&!document.hidden;
+  const pulse=(sc,d)=>dia.animate([{transform:'scale(1)'},{transform:`scale(${sc})`},{transform:'scale(1)'}],{duration:d||360,easing:EO});
+  function build(){
+    L=narrowMQ.matches?LAY.narrow:LAY.wide;host.innerHTML='';
+    svgEl=mk('svg',{viewBox:`0 0 ${L.W} ${L.H}`,'font-family':'Inter Tight, system-ui, sans-serif',role:'img','aria-label':'People and agents produce artifacts that flow into a decision'},host);
+    svgEl.style.cssText='width:100%;height:auto;display:block;overflow:visible';
+    stage=mk('g',{},svgEl);
+    dia=mk('polygon',{points:HEX(L.cx,L.cy,14),fill:C.red},svgEl);
+    dia.style.transformBox='fill-box';dia.style.transformOrigin='center';
+    const lg=mk('g',{},svgEl),fs=L.fs*0.85,k=L.side?1:1.15,offs=[0,120,280,410].map(o=>o*k),x0=L.cx-240*k;
+    [['p','person'],['a','agent, a scout'],['r','artifact'],['d','decision']].forEach(([k,t],j)=>{const x=x0+offs[j],y=L.ly;
+      if(k==='p')mk('circle',{cx:x,cy:y,r:6,fill:C.ink},lg);
+      if(k==='a'){const b=mk('g',{transform:`translate(${x+2} ${y}) scale(1.2)`},lg);b.innerHTML=`<g class="bee">${BEE()}</g>`}
+      if(k==='r')mk('rect',{x:x-9,y:y-6,width:18,height:12,fill:C.bg,stroke:C.mute},lg);
+      if(k==='d')mk('polygon',{points:HEX(x,y,8),fill:C.red},lg);
+      const tx=mk('text',{x:x+(k==='a'?20:16),y:y+fs*0.33,'font-size':fs,fill:C.mute},lg);tx.textContent=t});
+  }
+  const fade=(el,delay,dur)=>el.animate([{opacity:0,transform:'translateY(6px)'},{opacity:1,transform:'none'}],{duration:dur||500,delay,easing:EO,fill:'both'});
+  async function play(p,my,still){
+    const g=mk('g',{},stage),order=[0,3,1,4,2,5],fs=L.fs;
+    const nodes=p.who.map(([n,k],j)=>{const[x,y]=L.slots[order[j]];return{n,k,x,y,left:x<L.cx}});
+    nodes.forEach((nd,j)=>{const ln=mk('path',{d:`M${nd.x} ${nd.y}L${L.cx} ${L.cy}`,fill:'none',stroke:C.faint,pathLength:1,'stroke-dasharray':1,'stroke-dashoffset':still?0:1},g);
+      if(!still)ln.animate([{strokeDashoffset:1},{strokeDashoffset:0}],{duration:800,delay:300+j*120,easing:EIO,fill:'forwards'})});
+    nodes.forEach((nd,j)=>{const ng=mk('g',{},g);
+      if(nd.k==='a'){nd.fly=mk('g',{},ng);nd.fly.style.transformBox='fill-box';nd.fly.style.transformOrigin='center';const ps=mk('g',{transform:`translate(${nd.x} ${nd.y}) scale(${nd.left?-1.7:1.7},1.7)`},nd.fly);ps.innerHTML=`<g class="bee">${BEE()}</g>`}
+      else mk('circle',{cx:nd.x,cy:nd.y,r:8,fill:C.ink},ng);
+      const t=mk('text',L.side?{x:nd.left?nd.x-(nd.k==='a'?26:16):nd.x+(nd.k==='a'?26:16),y:nd.y+fs*0.33,'text-anchor':nd.left?'end':'start'}:{x:nd.x,y:nd.y+34,'text-anchor':'middle'},ng);
+      t.setAttribute('font-size',fs);t.setAttribute('fill',C.ink);t.textContent=nd.n;
+      if(!still)fade(ng,180+j*120)});
+    const q=mk('text',{x:L.cx,y:L.qy,'text-anchor':'middle','font-size':fs*1.2,'font-style':'italic',fill:C.ink},g);q.textContent=p.q;
+    if(!still)fade(q,0,600);
+    const out=mk('text',{x:L.cx,y:L.ay,'text-anchor':'middle','font-size':fs,fill:C.green,opacity:still?1:0},g);out.textContent='→ '+p.a;
+    if(still)return;
+    const t0=1500,gap=1100,CD=3600;
+    p.art.forEach(([src,label],j)=>{const nd=nodes[src],d=t0+j*gap,chip=mk('g',{opacity:0},g),w=label.length*fs*0.46+22;
+      mk('rect',{x:-w/2,y:-14,width:w,height:28,fill:C.bg,stroke:C.mute},chip);
+      const tt=mk('text',{x:0,y:fs*0.3,'text-anchor':'middle','font-size':fs*0.85,fill:C.ink},chip);tt.textContent=label;
+      const at=f=>`translate(${(nd.x+(L.cx-nd.x)*f).toFixed(1)}px,${(nd.y+(L.cy-nd.y)*f).toFixed(1)}px)`;
+      /* emerge, glide slowly, pause to be read, then drop into the decision */
+      chip.animate([{transform:at(0.2)+' scale(.9)',opacity:0,easing:EO},{transform:at(0.3)+' scale(1)',opacity:1,offset:0.12,easing:'cubic-bezier(0.4,0,0.2,1)'},{transform:at(0.6)+' scale(1)',opacity:1,offset:0.5},{transform:at(0.62)+' scale(1)',opacity:1,offset:0.8,easing:EIO},{transform:at(1)+' scale(.6)',opacity:0}],{duration:CD,delay:d,fill:'forwards'});
+      /* a scout bee carries its own artifact in, waggles at the decision, and flies home */
+      if(nd.fly){const dt=f=>`translate(${((L.cx-nd.x)*f).toFixed(1)}px,${((L.cy-nd.y)*f-24).toFixed(1)}px)`;
+        nd.fly.animate([{transform:'translate(0px,0px)',easing:EO},{transform:dt(0.3),offset:0.12,easing:'cubic-bezier(0.4,0,0.2,1)'},{transform:dt(0.6),offset:0.5},
+          {transform:dt(0.6)+' translateX(6px) rotate(8deg)',offset:0.57},{transform:dt(0.6)+' translateX(-6px) rotate(-8deg)',offset:0.64},{transform:dt(0.6)+' translateX(6px) rotate(8deg)',offset:0.71},
+          {transform:dt(0.62),offset:0.8,easing:EIO},{transform:'translate(0px,0px)'}],{duration:CD,delay:d,fill:'none'})}
+      setTimeout(()=>{if(my===gen)pulse(1.3)},d+CD-150)});
+    const tr=t0+(p.art.length-1)*gap+CD+250;
+    await sleep(tr);if(my!==gen)return;
+    pulse(1.7,520);
+    const ring=mk('circle',{cx:L.cx,cy:L.cy,r:14,fill:'none',stroke:C.red},g);ring.style.transformBox='fill-box';ring.style.transformOrigin='center';
+    ring.animate([{transform:'scale(1)',opacity:0.6},{transform:'scale(3.4)',opacity:0}],{duration:900,easing:EO,fill:'forwards'});
+    out.animate([{opacity:0,transform:'translateY(4px)'},{opacity:1,transform:'none'}],{duration:500,delay:150,easing:EO,fill:'forwards'});
+    await sleep(2300);if(my!==gen)return;
+    await g.animate([{opacity:1},{opacity:0}],{duration:320,easing:'ease-out',fill:'forwards'}).finished.catch(()=>{});
+    g.remove();await sleep(250);
+  }
+  async function loop(my){let k=0;while(my===gen){while(!visible()&&my===gen)await sleep(300);if(my!==gen)return;await play(HERO_PRESETS[k%HERO_PRESETS.length],my);k++}}
+  function restart(){gen++;build();if(reduce)play(HERO_PRESETS[0],gen,true);else{const my=gen;setTimeout(()=>loop(my),500)}}
+  new IntersectionObserver(es=>es.forEach(e=>inView=e.isIntersecting)).observe(host);
+  narrowMQ.addEventListener('change',restart);
+  restart();
+}
+requestAnimationFrame(()=>requestAnimationFrame(()=>{document.body.classList.add('ready');startHero()}));
+
+/* the media figure is a real control: pick a medium, see the same decision in it */
+function setupMedia(el){
+  const tiles=[...el.querySelectorAll('.tile')],pvs=[...el.querySelectorAll('.pv')];
+  const pick=m=>{tiles.forEach(t=>{const on=t.dataset.m===m;t.classList.toggle('sel',on);t.setAttribute('aria-pressed',on)});pvs.forEach(p=>p.classList.toggle('show',p.dataset.m===m))};
+  const seg=v=>{el.classList.toggle('v-try',v==='try');el.querySelectorAll('.seg').forEach(g=>{const on=g.dataset.v===v;g.querySelector('.segbg').setAttribute('fill',on?C.ink:C.bg);g.querySelector('.segbg').setAttribute('stroke',on?'none':C.faint);g.querySelector('.segtx').setAttribute('fill',on?C.bg:C.ink)})};
+  const act=(node,fn)=>{node.addEventListener('click',e=>{e.stopPropagation();fn()});node.addEventListener('keydown',e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();fn()}})};
+  tiles.forEach(t=>act(t,()=>pick(t.dataset.m)));
+  el.querySelectorAll('.seg').forEach(g=>act(g,()=>seg(g.dataset.v)));
+  pick('interactive');seg('signup');
+}
+
+/* chapters: each paragraph group sits in a row with its own figure */
+const rows=[];
+document.querySelectorAll('.ch').forEach(ch=>{
+  const keys=ch.dataset.figs.split(',');
+  [...ch.querySelectorAll('.step')].forEach((step,j)=>{
+    const row=document.createElement('div');row.className='row';
+    step.replaceWith(row);row.appendChild(step);
+    const fw=document.createElement('div');fw.className='row-fig';if(keys[j]!=='media')fw.setAttribute('aria-hidden','true');fw.innerHTML=svg(keys[j]);if(keys[j]==='media')setupMedia(fw.firstElementChild);
+    row.appendChild(fw);rows.push(row);
+  });
+});
+/* the row crossing the middle of the screen is the one being read */
+const readIO=new IntersectionObserver(es=>es.forEach(e=>{if(e.isIntersecting)rows.forEach(r=>r.querySelector('.step').classList.toggle('active',r===e.target))}),{rootMargin:'-45% 0px -45% 0px'});
+/* break point: a figure draws in once 15% of it is above the 80% line of the viewport,
+   and resets only after it has fully left the screen, so scrolling back replays it without flicker */
+const onIO=new IntersectionObserver(es=>es.forEach(e=>{if(e.isIntersecting)e.target.firstElementChild.classList.add('on')}),{rootMargin:'0px 0px -20% 0px',threshold:0.15});
+const offIO=new IntersectionObserver(es=>es.forEach(e=>{if(!e.isIntersecting)e.target.firstElementChild.classList.remove('on')}),{threshold:0});
+rows.forEach(r=>{readIO.observe(r);const fw=r.querySelector('.row-fig');onIO.observe(fw);offIO.observe(fw)});
+rows[0].querySelector('.step').classList.add('active');
+/* trim each figure's viewBox to what it actually draws (height only, so widths stay consistent),
+   then the row centres text and drawing on each other */
+const fitFigs=()=>rows.forEach(r=>{const sv=r.querySelector('.row-fig svg');try{const b=sv.getBBox(),v=sv.viewBox.baseVal;if(b.height>0)sv.setAttribute('viewBox',`${v.x} ${(b.y-14).toFixed(1)} ${v.width} ${(b.height+28).toFixed(1)}`)}catch(e){}});
+fitFigs();if(document.fonts)document.fonts.ready.then(fitFigs);
+
+/* progress, transform only */
+const bar=document.getElementById('progress');
+let ticking=false;
+addEventListener('scroll',()=>{if(ticking)return;ticking=true;requestAnimationFrame(()=>{const h=document.documentElement;bar.style.transform=`scaleX(${h.scrollTop/(h.scrollHeight-h.clientHeight)})`;
+  /* above the first row nothing crosses the reading line, so the first group stays the one being read */
+  if(rows[0].getBoundingClientRect().top>innerHeight*0.45)rows.forEach((r,j)=>r.querySelector('.step').classList.toggle('active',j===0));
+  ticking=false})},{passive:true});
+
+// waggle dance interlude: fade in once, run the SMIL loop only while visible, still with reduced motion
+{const d=document.getElementById('dance'),sv=d.querySelector('svg.scene'),rm=matchMedia('(prefers-reduced-motion: reduce)').matches;
+ sv.pauseAnimations();
+ new IntersectionObserver(es=>es.forEach(e=>{if(e.isIntersecting)d.classList.add('on');if(!rm)e.isIntersecting?sv.unpauseAnimations():sv.pauseAnimations()}),{threshold:0.15}).observe(d);}
+</script>
+</body>
+</html>

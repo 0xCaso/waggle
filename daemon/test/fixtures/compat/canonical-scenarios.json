@@ -1,0 +1,46 @@
+{
+  "_about": "Asks and rounds in the canonical three blocks shape (items, stage on any ask, item_answers). The daemon serves them to the app. The old app models must decode what it serves (spec 7.3).",
+  "scenarios": [
+    {
+      "name": "items-one-with-stage",
+      "steps": [
+        { "op": "ask", "input": { "title": "Checkout layout: compact or detailed?", "need": "Pick the checkout layout.", "why": "Both layouts work. This is a product call.", "stage": { "name": "approaches", "step": 1, "total": 3 }, "items": [ { "id": "layout", "select": "one", "options": [ { "id": "a", "title": "Compact", "label": "Compact: one screen, fewer fields", "pros": ["Fast"], "cons": ["Hides billing"] }, { "id": "b", "title": "Detailed", "label": "Detailed: billing and shipping on one page" } ], "recommendation": "a", "recommendation_why": "It matches the rest of the app." } ], "artifact": { "type": "markdown", "content": "# Layouts" } } },
+        { "op": "reply", "input": { "item_answers": [ { "item_id": "layout", "choice": "a", "note": "Keep it small" } ], "comments": [], "captures": [] } },
+        { "op": "update", "input": { "message": "Here is the design.", "stage": { "name": "design", "step": 2, "total": 3 }, "items": [ { "id": "go", "options": [ { "id": "go", "label": "Go" }, { "id": "stop", "label": "Stop" } ], "recommendation": "go", "recommendation_why": "It is ready." } ] } },
+        { "op": "update", "input": { "message": "Relabel only.", "stage": { "name": "spec", "step": 3, "total": 3 } } }
+      ]
+    },
+    {
+      "name": "items-three-kinds",
+      "steps": [
+        { "op": "ask", "input": { "title": "Three calls", "need": "Answer all three.", "why": "They ship together.", "items": [ { "id": "layout", "question": "Which layout?", "select": "one", "options": [ { "id": "a", "label": "Compact" }, { "id": "b", "label": "Detailed" } ], "recommendation": "a", "recommendation_why": "Smaller." }, { "id": "areas", "question": "Which areas?", "select": "many", "max": 2, "options": [ { "id": "x", "label": "Cart" }, { "id": "y", "label": "Search" }, { "id": "z", "label": "Profile" } ], "recommendation": ["x"], "recommendation_why": "Most used." }, { "id": "free", "question": "Any other idea?", "select": "reply", "recommendation": "Ship in two steps" } ] } },
+        { "op": "reply", "input": { "message": "Not sure yet.", "comments": [], "captures": [] } },
+        { "op": "reply", "input": { "intent": "discuss", "leaning": ["layout/a"], "ruled_out": ["layout/b"], "message": "Lean to compact.", "comments": [], "captures": [] } },
+        { "op": "reply", "input": { "item_answers": [ { "item_id": "layout", "choice": "a", "note": "keep it small" }, { "item_id": "areas", "choices": ["x", "z"] }, { "item_id": "free", "text": "Ship in two steps" } ], "comments": [], "captures": [] } }
+      ]
+    },
+    {
+      "name": "items-grouped",
+      "steps": [
+        { "op": "ask", "input": { "title": "Checkout and search", "need": "Decide both.", "why": "One release.", "items": [ { "id": "q1/p1", "question": "Split the page?", "options": [ { "id": "o1", "label": "Yes" }, { "id": "o2", "label": "No" } ], "recommendation": "o1", "recommendation_why": "Shorter.", "group": { "id": "q1", "title": "Checkout", "now": ["One long page"] } }, { "id": "q2/p1", "question": "Add filters?", "options": [ { "id": "o1", "label": "Yes" }, { "id": "o2", "label": "No" } ], "recommendation": "o2", "recommendation_why": "Later.", "group": { "id": "q2", "title": "Search" } } ] } },
+        { "op": "reply", "input": { "answers": [ { "question_id": "q1", "point_id": "p1", "choice": "Yes" } ], "comments": [], "captures": [] } }
+      ]
+    },
+    {
+      "name": "review-items",
+      "steps": [
+        { "op": "ask", "input": { "title": "Review the pricing page", "need": "Review the draft.", "why": "It ships today.", "artifacts": [ { "type": "markdown", "name": "Write-up", "content": "# Pricing" }, { "type": "markdown", "name": "Notes", "content": "# Notes" } ], "items": [ { "id": "decision", "options": [ { "id": "approve", "title": "Approve", "label": "Approve: ship it as it is" }, { "id": "request_changes", "title": "Request changes", "label": "Request changes: use my comments" } ], "recommendation": "approve", "recommendation_why": "It reads well." } ] } },
+        { "op": "reply", "input": { "message": "One comment first.", "comments": [], "captures": [] } },
+        { "op": "reply", "input": { "item_answers": [ { "item_id": "decision", "choice": "request_changes" } ], "message": "Fix the title.", "comments": [], "captures": [] } }
+      ]
+    },
+    {
+      "name": "reply-item-single",
+      "steps": [
+        { "op": "ask", "input": { "title": "Name the feature", "need": "Pick a name.", "why": "Only you know.", "items": [ { "id": "name", "select": "reply", "recommendation": "Hive", "recommendation_why": "Short." } ] } },
+        { "op": "reply", "input": { "item_answers": [ { "item_id": "name", "text": "Call it Comb." } ], "comments": [], "captures": [] } },
+        { "op": "update", "input": { "message": "Named it Comb.", "done": true } }
+      ]
+    }
+  ]
+}

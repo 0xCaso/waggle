@@ -1,0 +1,119 @@
+{
+  "_about": "Old agent payloads (waggle_ask / knock_ask / waggle_update) and the replies that answer them, in the shapes of docs/protocol-mvp.md and the guide examples at 0.2.21. Each step runs in order against one case. `reply` steps use the reply.submit fields. The golden file holds what the 0.2.21 daemon stored and sent back.",
+  "scenarios": [
+    {
+      "name": "question-options",
+      "steps": [
+        { "op": "ask", "input": { "kind": "question", "title": "Checkout layout?", "need": "Pick the checkout layout.", "why": "Both work. It is a product call.", "recommendation": "a", "recommendation_why": "It matches the rest of the app.", "options": [ { "id": "a", "title": "Compact", "label": "Compact: one screen, fewer fields", "pros": ["Fast"], "cons": ["Hides billing"] }, { "id": "b", "label": "Detailed: billing and shipping on one page" } ] } },
+        { "op": "reply", "input": { "choice": "a", "message": "Keep it small.", "comments": [], "captures": [] } }
+      ]
+    },
+    {
+      "name": "question-options-comments-only",
+      "steps": [
+        { "op": "ask", "input": { "kind": "question", "title": "Layout?", "need": "Pick.", "why": "Both work.", "recommendation": "a", "recommendation_why": "Default.", "options": [ { "id": "a", "label": "Compact" }, { "id": "b", "label": "Detailed" } ] } },
+        { "op": "reply", "input": { "message": "Can you show both side by side?", "comments": [], "captures": [] } }
+      ]
+    },
+    {
+      "name": "select-many",
+      "steps": [
+        { "op": "ask", "input": { "kind": "question", "title": "Which areas first?", "need": "Pick up to two areas.", "why": "Time is short.", "select": "many", "max": 2, "recommendation": ["x", "z"], "recommendation_why": "They block the release.", "options": [ { "id": "x", "label": "Billing" }, { "id": "y", "label": "Search" }, { "id": "z", "label": "Sync" } ] } },
+        { "op": "reply", "input": { "choices": ["x", "z"], "comments": [], "captures": [] } }
+      ]
+    },
+    {
+      "name": "reply-only",
+      "steps": [
+        { "op": "ask", "input": { "kind": "question", "title": "What should the empty state say?", "need": "Write the empty state copy.", "why": "Only you know the tone.", "recommendation": "Nothing here yet. Add your first case.", "recommendation_why": "Short and friendly." } },
+        { "op": "reply", "input": { "message": "Say: All clear.", "comments": [], "captures": [] } }
+      ]
+    },
+    {
+      "name": "review-approve",
+      "steps": [
+        { "op": "ask", "input": { "kind": "review", "title": "Review the pricing page", "need": "Review the draft.", "why": "It ships today.", "recommendation": "approve", "recommendation_why": "It reads well.", "artifact": { "type": "markdown", "content": "# Pricing\n\nThree plans." } } },
+        { "op": "reply", "input": { "choice": "approve", "message": "Ship it.", "comments": [], "captures": [] } }
+      ]
+    },
+    {
+      "name": "review-free-text-recommendation",
+      "steps": [
+        { "op": "ask", "input": { "kind": "review", "title": "Review the plan", "need": "Review the plan.", "why": "It ships today.", "recommendation": "Ship with the two small fixes I listed.", "recommendation_why": "They are cheap.", "artifact": { "type": "markdown", "content": "# Plan\n\nStep one." } } },
+        { "op": "reply", "input": { "message": "Change step one.", "comments": [], "captures": [] } }
+      ]
+    },
+    {
+      "name": "review-own-options",
+      "steps": [
+        { "op": "ask", "input": { "kind": "review", "title": "Review the copy", "need": "Review.", "why": "Ships today.", "recommendation": "ok", "recommendation_why": "Fine.", "options": [ { "id": "ok", "label": "Looks right" }, { "id": "fix", "label": "Needs a fix" } ], "artifact": { "type": "markdown", "content": "# Copy" } } },
+        { "op": "reply", "input": { "choice": "fix", "message": "Fix the title.", "comments": [], "captures": [] } }
+      ]
+    },
+    {
+      "name": "plan-stages",
+      "steps": [
+        { "op": "ask", "input": { "kind": "plan", "stage": { "name": "questions", "step": 1, "total": 5, "total_is_estimate": true }, "title": "Plan: onboarding flow", "need": "Who is the first user of onboarding?", "why": "It decides the first screen.", "recommendation": "a", "recommendation_why": "Most of your users are new.", "options": [ { "id": "a", "title": "New users", "label": "People who just installed Waggle" }, { "id": "b", "title": "Teams", "label": "Teams who share a queue" } ] } },
+        { "op": "reply", "input": { "choice": "a", "comments": [], "captures": [] } },
+        { "op": "update", "input": { "message": "Which approach fits?", "stage": { "name": "approaches" }, "recommendation": "x", "recommendation_why": "It is the shortest path.", "options": [ { "id": "x", "title": "Wizard", "label": "A step by step wizard" }, { "id": "y", "title": "Checklist", "label": "One checklist page" } ] } },
+        { "op": "reply", "input": { "choice": "x", "comments": [], "captures": [] } },
+        { "op": "update", "input": { "message": "Here is the design.", "stage": { "name": "design" }, "artifact": { "type": "markdown", "content": "# Design\n\nA wizard." }, "recommendation": "go", "recommendation_why": "It is done.", "options": [ { "id": "go", "label": "Go" }, { "id": "stop", "label": "Stop" } ] } },
+        { "op": "reply", "input": { "choice": "go", "comments": [], "captures": [] } },
+        { "op": "update", "input": { "message": "Plan accepted. Building now.", "done": true } }
+      ]
+    },
+    {
+      "name": "questions",
+      "steps": [
+        { "op": "ask", "input": { "kind": "question", "title": "Three product calls", "need": "Answer each point.", "why": "They share one release.", "recommendation": "see points", "recommendation_why": "Each point has its own.", "questions": [ { "id": "q1", "title": "Checkout", "now": ["One long page"], "points": [ { "id": "p1", "text": "Split the page?", "options": ["Yes, split", "No, keep"] }, { "id": "p2", "text": "Show a summary?" } ] }, { "id": "q2", "title": "Search", "points": [ { "id": "p1", "text": "Add filters?", "options": ["Yes", "No"] } ] } ] } },
+        { "op": "reply", "input": { "answers": [ { "question_id": "q1", "point_id": "p1", "choice": "Yes, split" }, { "question_id": "q1", "point_id": "p2", "choice": "Talk with the team" }, { "question_id": "q2", "point_id": "p1", "choice": "No" } ], "comments": [], "captures": [] } }
+      ]
+    },
+    {
+      "name": "update-with-options",
+      "steps": [
+        { "op": "ask", "input": { "kind": "question", "title": "Layout?", "need": "Pick.", "why": "Both work.", "recommendation": "a", "recommendation_why": "Default.", "options": [ { "id": "a", "label": "Compact" }, { "id": "b", "label": "Detailed" } ] } },
+        { "op": "reply", "input": { "message": "Show me more.", "intent": "more_detail", "format": "eli5", "comments": [], "captures": [] } },
+        { "op": "update", "input": { "message": "Here is a narrower choice.", "recommendation": "c", "recommendation_why": "Smaller.", "options": [ { "id": "c", "label": "Compact with billing" }, { "id": "d", "label": "Detailed" } ] } },
+        { "op": "reply", "input": { "choice": "c", "options_set": "latest", "comments": [], "captures": [] } }
+      ]
+    },
+    {
+      "name": "update-message-and-artifact",
+      "steps": [
+        { "op": "ask", "input": { "kind": "review", "title": "Review", "need": "Review.", "why": "Ships.", "recommendation": "approve", "recommendation_why": "Good.", "artifact": { "type": "markdown", "content": "# v1" } } },
+        { "op": "reply", "input": { "choice": "request_changes", "message": "Add a section.", "comments": [], "captures": [] } },
+        { "op": "update", "input": { "message": "Added the section.", "artifact": { "type": "markdown", "content": "# v2" } } }
+      ]
+    },
+    {
+      "name": "done",
+      "steps": [
+        { "op": "ask", "input": { "kind": "question", "title": "Layout?", "need": "Pick.", "why": "Both work.", "recommendation": "a", "recommendation_why": "Default.", "options": [ { "id": "a", "label": "Compact" }, { "id": "b", "label": "Detailed" } ] } },
+        { "op": "reply", "input": { "choice": "a", "comments": [], "captures": [] } },
+        { "op": "update", "input": { "message": "Built it.", "done": true } }
+      ]
+    },
+    {
+      "name": "more-detail-diagram",
+      "steps": [
+        { "op": "ask", "input": { "kind": "question", "title": "Layout?", "need": "Pick.", "why": "Both work.", "recommendation": "a", "recommendation_why": "Default.", "options": [ { "id": "a", "label": "Compact" }, { "id": "b", "label": "Detailed" } ] } },
+        { "op": "reply", "input": { "message": "Draw it.", "intent": "more_detail", "format": "diagram", "comments": [], "captures": [] } }
+      ]
+    },
+    {
+      "name": "discuss-lean-and-rule-out",
+      "steps": [
+        { "op": "ask", "input": { "kind": "question", "title": "Layout?", "need": "Pick.", "why": "Both work.", "recommendation": "a", "recommendation_why": "Default.", "options": [ { "id": "a", "label": "Compact" }, { "id": "b", "label": "Detailed" }, { "id": "c", "label": "Wizard" } ] } },
+        { "op": "reply", "input": { "intent": "discuss", "leaning": ["a"], "ruled_out": ["c"], "message": "Not the wizard.", "comments": [], "captures": [] } }
+      ]
+    },
+    {
+      "name": "single-artifact-question",
+      "steps": [
+        { "op": "ask", "input": { "kind": "question", "title": "Which card?", "need": "Pick the pricing card.", "why": "Both look fine.", "recommendation": "a", "recommendation_why": "Clearer.", "artifact": { "type": "markdown", "content": "# Cards\n\nA and B." }, "options": [ { "id": "a", "label": "Card A" }, { "id": "b", "label": "Card B" } ] } },
+        { "op": "reply", "input": { "choice": "b", "comments": [], "captures": [] } }
+      ]
+    }
+  ]
+}

@@ -1,0 +1,20 @@
+{
+  "$schema": "https://agent-plugins.org/schemas/1.0.0/plugin.schema.json",
+  "name": "waggle",
+  "version": "0.2.0",
+  "license": "Apache-2.0",
+  "description": "Waggle for Codex: a skill for writing good asks, and hooks that give Waggle live session state and keep a turn open while a Waggle ask waits.",
+  "author": { "name": "Waggle" },
+  "keywords": ["waggle", "review", "decisions", "mcp"],
+  "extensions": {
+    "com.openai": {
+      "hooks": "./hooks/hooks.json",
+      "interface": {
+        "displayName": "Waggle",
+        "shortDescription": "Ask the human for decisions and reviews in the Waggle Mac app.",
+        "developerName": "Waggle",
+        "category": "Productivity"
+      }
+    }
+  }
+}

@@ -1,0 +1,109 @@
+{
+ "case": {
+  "id": "c_00e0e2db-5220-44a7-b54e-67f4e6706d7e",
+  "task_id": "t_3733bc6e-0af8-4890-88a7-ec6877157420",
+  "task_name": "WAG-282",
+  "project": "app",
+  "linear_key": null,
+  "kind": "question",
+  "title": "Investor demo: is this the flow to build?",
+  "need": "Review the drawn flow of 25 screens.",
+  "questions": [],
+  "why": "It sets the demo scope.",
+  "recommendation": "c",
+  "recommendation_why": "Shortest path.",
+  "select": "one",
+  "max": null,
+  "recommendations": [
+   "c"
+  ],
+  "options": [
+   {
+    "id": "c",
+    "label": "Put it after sign-in",
+    "title": "After sign-in"
+   }
+  ],
+  "first_options": [
+   {
+    "id": "a",
+    "label": "Build the flow",
+    "title": "Flow"
+   },
+   {
+    "id": "b",
+    "label": "Build the intake",
+    "title": "Intake"
+   }
+  ],
+  "first_recommendation": "a",
+  "options_updated_at": "2026-10-07T16:07:39.061Z",
+  "options_seq": 1,
+  "round_question": "Where does the intake go in the demo?\n\nIt sits after the sign-in screen.\n\nPick one.",
+  "latest_reply_from_first_options": true,
+  "status": "needs_you",
+  "has_artifact": false,
+  "artifact_kind": null,
+  "latest_reply_id": "reply_11710817-fb10-4232-86ea-a4dd698996d0",
+  "latest_reply_state": "queued",
+  "latest_reply_at": "2026-10-07T16:07:39.053Z",
+  "latest_reply_delivered_at": null,
+  "latest_reply_apply_state": null,
+  "latest_reply_choice": "a",
+  "latest_reply_choices": [],
+  "latest_reply_answers": [],
+  "latest_reply_message": null,
+  "latest_reply_intent": "decision",
+  "latest_reply_format": null,
+  "latest_reply_source": "mac",
+  "first_reply_submitted_at": "2026-10-07T16:07:39.053Z",
+  "update_count": 1,
+  "latest_update_at": "2026-10-07T16:07:39.061Z",
+  "latest_update_message": "Where does the intake go in the demo?\n\nIt sits after the sign-in screen.\n\nPick one.",
+  "revision_count": 0,
+  "latest_revision_at": null,
+  "runtime": "claude",
+  "session_state": null,
+  "dismissed_at": null,
+  "follows_case_id": null,
+  "replaces_case_id": null,
+  "withdrawn_at": null,
+  "done_at": null,
+  "last_check_at": null,
+  "session_can_nudge": null,
+  "session_client_name": null,
+  "session_ended_at": null,
+  "created_at": "2026-10-07T16:07:39.053Z",
+  "updated_at": "2026-10-07T16:07:39.061Z"
+ },
+ "task": {
+  "id": "t_3733bc6e-0af8-4890-88a7-ec6877157420",
+  "name": "WAG-282",
+  "project": "app"
+ },
+ "messages": [
+  {
+   "id": "m_828aa6da-f839-4d1e-977c-274f048d5c89",
+   "case_id": "c_00e0e2db-5220-44a7-b54e-67f4e6706d7e",
+   "role": "agent",
+   "text": "Where does the intake go in the demo?\n\nIt sits after the sign-in screen.\n\nPick one.",
+   "created_at": "2026-10-07T16:07:39.061Z"
+  }
+ ],
+ "revisions": [],
+ "comments": [],
+ "replies": [
+  {
+   "id": "reply_11710817-fb10-4232-86ea-a4dd698996d0",
+   "case_id": "c_00e0e2db-5220-44a7-b54e-67f4e6706d7e",
+   "idempotency_key": "k1",
+   "choice": "a",
+   "comments": [],
+   "captures": [],
+   "intent": "decision",
+   "source": "mac",
+   "state": "queued",
+   "created_at": "2026-10-07T16:07:39.053Z"
+  }
+ ]
+}

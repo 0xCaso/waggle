@@ -1,0 +1,9 @@
+:root {
+  --color-brand: #0f766e;
+  --color-surface: #ffffff;
+  --color-text: #1c1917;
+  --radius-md: 8px;
+  --space-4: 16px;
+  --font-sans: "Source Sans 3", system-ui, sans-serif;
+  --shadow-card: 0 1px 2px rgb(0 0 0 / 0.08);
+}

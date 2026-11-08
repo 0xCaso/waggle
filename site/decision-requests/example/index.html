@@ -1,0 +1,558 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>One decision request</title>
+<link rel="icon" href="/favicon.svg" type="image/svg+xml">
+<link rel="icon" href="/favicon-32.png" sizes="32x32" type="image/png">
+<link rel="apple-touch-icon" href="/apple-touch-icon.png">
+<meta property="og:type" content="article">
+<meta property="og:site_name" content="Waggle">
+<meta property="og:title" content="From three prototypes to one team decision">
+<meta property="og:description" content="One decision from start to finish: three prototypes from your agent, teammates who answer in Waggle or Slack, and a decision with its reasons on record.">
+<meta property="og:url" content="https://waggle.so/decision-requests/example/">
+<meta property="og:image" content="https://waggle.so/decision-requests/og.png">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="From three prototypes to one team decision">
+<meta name="twitter:description" content="One decision from start to finish: three prototypes from your agent, teammates who answer in Waggle or Slack, and a decision with its reasons on record.">
+<meta name="twitter:image" content="https://waggle.so/decision-requests/og.png">
+<meta name="description" content="One decision from start to finish: three prototypes from your agent, teammates who answer in Waggle or Slack, and a decision with its reasons on record.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter+Tight:ital,wght@0,400;0,500;0,600;1,400;1,500&display=swap" rel="stylesheet">
+<style>
+:root{
+  --ink:#16181A; --ink2:#4A4C50; --mute:#6b6b6b; --faint:#d9d9d9; --line:#E6E6E6; --bg:#fff; --list:#FAFAFA; --side:#F3F3F3;
+  --honey:#F2B01E; --honey-deep:#C98A00; --honey-soft:#FDF4DA;
+  --red:#E0352B; --green:#18A058; --green-soft:#E3F5EA; --blue:#2B59F0; --blue-soft:#F2F5FE;
+  --maya:#B35BD6; --tom:#2F8F83;
+  --ease-out:cubic-bezier(0.23,1,0.32,1); --ease-in-out:cubic-bezier(0.77,0,0.175,1);
+}
+*{box-sizing:border-box}
+html{-webkit-text-size-adjust:100%}
+body{margin:0;background:var(--bg);color:var(--ink);font:400 clamp(17px,1.2vw,18px)/1.6 "Inter Tight",system-ui,-apple-system,sans-serif;-webkit-font-smoothing:antialiased;text-rendering:optimizeLegibility}
+p{margin:0 0 1.1em;text-wrap:pretty}
+h1,h2,h3{font-weight:500;margin:0;text-wrap:balance}
+.page{padding:0 clamp(16px,6vw,96px);overflow-x:clip}
+.wrap{max-width:1240px;margin:0 auto}
+
+/* top bar */
+.by{display:flex;justify-content:space-between;align-items:center;gap:16px;padding:clamp(24px,3vw,40px) 0 0;font-size:14px;color:var(--mute)}
+.by a.back{color:var(--mute);text-decoration:none;transition:color 150ms ease}
+@media (hover:hover) and (pointer:fine){.by a.back:hover{color:var(--ink)}}
+.logo{display:inline-flex;align-items:center;gap:7px;color:var(--ink);text-decoration:none;font-size:19px;font-weight:500;letter-spacing:-0.035em;line-height:1}
+.logo:focus-visible,.by a.back:focus-visible{outline:1.5px solid var(--blue);outline-offset:4px;border-radius:4px}
+
+/* hero */
+.hero{text-align:center;padding:clamp(56px,10vh,104px) 0 0}
+.hero h1{font-size:clamp(38px,5.2vw,72px);line-height:1.02;letter-spacing:-0.04em;margin:0 auto 18px;max-width:12em}
+.hero .sub{font-size:clamp(18px,1.7vw,23px);letter-spacing:-0.02em;line-height:1.35;color:var(--mute);margin:0 auto;max-width:27em;text-wrap:balance}
+.reveal{opacity:0;transform:translateY(8px);transition:opacity 700ms var(--ease-out),transform 700ms var(--ease-out)}
+.ready .reveal{opacity:1;transform:none}
+.ready .d1{transition-delay:80ms}.ready .d2{transition-delay:160ms}.ready .d3{transition-delay:260ms}
+
+/* hero scene: the finished decision with the team around it */
+.scene{position:relative;max-width:1180px;margin:clamp(40px,7vh,72px) auto 0;padding:0 0 clamp(24px,4vh,40px)}
+.glow{position:absolute;inset:8% 6% 0;background:radial-gradient(60% 60% at 50% 40%,rgba(242,176,30,.22),rgba(242,176,30,0) 70%);filter:blur(20px);z-index:0}
+.scene .win{position:relative;z-index:1;margin:0 auto;max-width:720px;text-align:left}
+.float{position:absolute;z-index:2;background:rgba(255,255,255,.88);backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);border:1px solid var(--line);border-radius:14px;box-shadow:0 12px 32px -12px rgba(0,0,0,.18);padding:10px 12px;font-size:13px;line-height:1.4;color:var(--ink2);width:210px;text-align:left;animation:bob 6s ease-in-out infinite}
+.float .who{display:flex;gap:8px;align-items:center;margin-bottom:4px;font-size:12.5px;color:var(--mute)}
+.float .who b{color:var(--ink);font-weight:500}
+.float.f1{left:0;top:18%;transform:rotate(-3deg)}
+.float.f2{right:0;top:44%;transform:rotate(2deg);animation-delay:-2s}
+.float.f3{left:3%;bottom:10%;transform:rotate(1.5deg);animation-delay:-4s;width:200px}
+@keyframes bob{50%{translate:0 -6px}}
+
+/* shared app look */
+.win{background:var(--bg);border:1px solid var(--line);border-radius:14px;box-shadow:0 1px 2px rgba(0,0,0,.04),0 24px 60px -24px rgba(0,0,0,.22);overflow:hidden;font-size:14px;line-height:1.45}
+.bar{display:flex;align-items:center;gap:8px;padding:10px 14px;border-bottom:1px solid var(--line);background:var(--list);font-size:13px;color:var(--mute);height:40px}
+.dots{display:flex;gap:6px;margin-right:6px}.dots i{width:10px;height:10px;border-radius:50%;background:#E2E2E2;display:block}
+.bar .faces{margin-left:auto;display:flex}
+.bar .faces .av{margin-left:-6px;box-shadow:0 0 0 2px var(--list)}
+.av{display:inline-grid;place-items:center;width:22px;height:22px;border-radius:50%;font-size:11px;font-weight:600;color:#fff;flex:none;line-height:1}
+.av.you{background:var(--ink)} .av.maya{background:var(--maya)} .av.tom{background:var(--tom)} .av.agent{background:var(--honey);color:var(--ink)}
+.chip{display:inline-flex;align-items:center;gap:6px;border-radius:999px;padding:3px 10px;font-size:12.5px;font-weight:500;white-space:nowrap}
+.chip.work{background:var(--blue-soft);color:var(--blue)} .chip.open{background:#FDECEA;color:var(--red)}
+.chip.done{background:var(--green-soft);color:var(--green)} .chip.rec{background:var(--honey-soft);color:var(--honey-deep)} .chip.mute{background:var(--side);color:var(--mute)}
+.pulse{width:7px;height:7px;border-radius:50%;background:currentColor;position:relative}
+.pulse::after{content:"";position:absolute;inset:0;border-radius:50%;background:currentColor;animation:ring 1.4s var(--ease-out) infinite}
+@keyframes ring{from{transform:scale(1);opacity:.5}to{transform:scale(2.6);opacity:0}}
+.phone{background:#fff;border:1px solid var(--line);border-radius:8px;padding:8px;display:flex;flex-direction:column;gap:5px}
+.phone .l{height:6px;border-radius:3px;background:#E9E9E9}
+.phone .btn{height:16px;border-radius:5px;background:var(--ink);margin-top:auto}
+.phone .field{height:14px;border-radius:4px;border:1px solid #E2E2E2}
+.phone .card{flex:1;border-radius:5px;background:var(--honey-soft)}
+.phone .toast{height:16px;border-radius:5px;background:var(--side);border:1px dashed #CFCFCF}
+.opt{display:flex;gap:12px;align-items:flex-start;border:1px solid var(--line);border-radius:12px;padding:9px 12px;background:#fff;transition:border-color 300ms ease,background 300ms ease}
+.opt .k{font-size:12px;color:var(--mute);width:18px;flex:none;padding-top:1px}
+.opt b{font-weight:500;display:block}
+.opt span.d{color:var(--mute);font-size:13px}
+.opt .chip{margin-left:auto;align-self:center}
+.opt.recd{border-color:var(--honey);background:var(--honey-soft)}
+.opt.win-opt{border-color:var(--green);background:var(--green-soft)}
+
+/* the story: text scrolls, the stage stays */
+.story{display:grid;grid-template-columns:minmax(260px,380px) minmax(0,1fr);column-gap:clamp(32px,6vw,96px);margin-top:clamp(56px,10vh,112px);border-top:1px solid var(--faint)}
+.steps{padding:12vh 0 30vh}
+.step{min-height:78vh;display:flex;flex-direction:column;justify-content:center;opacity:.25;transition:opacity 400ms ease}
+.step.active{opacity:1}
+.num{font-size:13px;letter-spacing:.06em;text-transform:uppercase;color:var(--honey-deep);margin:0 0 12px;font-weight:500;display:flex;align-items:center;gap:10px}
+.num i{display:block;height:1px;width:28px;background:var(--honey)}
+.step h2{font-size:clamp(26px,2.4vw,34px);line-height:1.1;letter-spacing:-0.03em;margin:0 0 18px}
+.step p{color:var(--ink2)}
+.step p:last-child{margin-bottom:0}
+.step strong{font-weight:600;color:var(--ink)}
+.diff{font-size:15px;line-height:1.5;color:var(--mute);border-left:2px solid var(--honey);padding-left:14px}
+
+.stage-col{position:relative}
+.stage-pin{position:sticky;top:0;height:100svh;display:flex;align-items:center;justify-content:center}
+.stage-box{position:relative;width:100%;max-width:680px;aspect-ratio:600/480}
+.stage{position:absolute;left:0;top:0;width:600px;height:480px;transform-origin:0 0;transform:scale(var(--k,1))}
+.stage .win{position:absolute;inset:0}
+.stage .glow{inset:-10%;z-index:-1}
+.layers{position:absolute;left:0;right:0;top:40px;bottom:0}
+.layer{position:absolute;inset:0;padding:18px;overflow:hidden;opacity:0;filter:blur(4px);transform:translateY(8px);transition:opacity 220ms ease-out,filter 220ms ease-out,transform 220ms ease-out;pointer-events:none}
+.layer.flush{padding:0}
+.layer.on{opacity:1;filter:none;transform:none;transition:opacity 520ms var(--ease-out) 140ms,filter 520ms var(--ease-out) 140ms,transform 520ms var(--ease-out) 140ms}
+.layer .e{opacity:0;transform:translateY(8px);transition:none}
+.layer.on .e{opacity:1;transform:none;transition:opacity 420ms var(--ease-out) calc(var(--i,0) * 110ms + 260ms),transform 520ms var(--ease-out) calc(var(--i,0) * 110ms + 260ms)}
+
+/* layer 1 */
+.log{display:grid;gap:8px;margin:0 0 16px;padding:0;list-style:none;color:var(--ink2);font-size:13.5px}
+.log li{display:flex;gap:10px;align-items:baseline}
+.log .t{color:var(--mute);font-variant-numeric:tabular-nums;font-size:12.5px;flex:none;width:38px}
+.variants{display:grid;grid-template-columns:repeat(3,1fr);gap:12px}
+.var{border:1px solid var(--line);border-radius:12px;padding:10px;background:var(--list)}
+.var .phone{height:190px}
+.var .lbl{font-size:13px;font-weight:500;margin:8px 0 0}
+.var .lbl small{display:block;font-weight:400;color:var(--mute);font-size:12px}
+/* app frame: queue rail + pane, as in the Mac app */
+.app{position:absolute;inset:0;display:grid;grid-template-columns:150px minmax(0,1fr)}
+.rail{background:var(--list);border-right:1px solid var(--line);padding:12px 8px;display:flex;flex-direction:column;gap:6px}
+.rh{margin:0 4px 2px;font-size:10px;letter-spacing:.07em;text-transform:uppercase;color:var(--mute);display:flex;justify-content:space-between;font-weight:500}
+.row{border-radius:10px;padding:8px;display:grid;gap:3px;line-height:1.3;font-size:11.5px}
+.row.sel{background:#fff;box-shadow:0 0 0 1px var(--line),0 2px 6px -2px rgba(0,0,0,.08)}
+.row .m{color:var(--mute);font-size:10.5px}
+.row b{font-weight:500;color:var(--ink);font-size:12px}
+.row .chip{justify-self:start;font-size:10.5px;padding:1px 8px;gap:5px}
+.row .chip .pulse{width:5px;height:5px}
+.row.quiet{opacity:.6}
+.pane{padding:14px 16px;display:flex;flex-direction:column;gap:10px;min-width:0;overflow:hidden;font-size:12px;color:var(--ink2)}
+.path{font-size:10.5px;color:var(--mute);display:flex;gap:6px;align-items:center;flex-wrap:wrap}
+.pane h3{font-size:16px;line-height:1.25;letter-spacing:-0.02em;margin:0;color:var(--ink)}
+.lab{font-size:9.5px;letter-spacing:.08em;text-transform:uppercase;color:var(--mute);margin:0 0 5px;font-weight:500}
+.recbox{background:var(--honey-soft);border-radius:10px;padding:8px 10px;line-height:1.4}
+.recbox b{display:block;color:var(--ink);font-weight:500;font-size:12.5px}
+.protos{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
+.pt{border:1px solid var(--line);border-radius:10px;padding:6px;background:var(--list);font-size:11px}
+.pt .phone{height:92px;padding:6px;gap:4px}
+.pt.rc{border-color:var(--honey);box-shadow:0 0 0 1px var(--honey)}
+.pt p{margin:5px 2px 0;display:flex;justify-content:space-between;align-items:center;gap:4px;color:var(--ink);font-weight:500}
+.pt p .chip{font-size:9.5px;padding:0 6px}
+.need{display:grid;gap:6px}
+.need div{display:flex;gap:8px;align-items:center}
+.need em{font-style:normal;color:var(--mute)}
+.av.s{width:18px;height:18px;font-size:9.5px}
+.meta-row{display:flex;gap:8px;align-items:center;font-size:11px;color:var(--mute);border-top:1px solid var(--line);padding-top:9px;margin-top:auto}
+/* step 3: publish sheet over the pane */
+.dim{position:absolute;inset:0;background:rgba(22,24,26,.16)}
+.sheet{position:absolute;left:78px;right:78px;top:12px;background:#fff;border-radius:14px;box-shadow:0 1px 2px rgba(0,0,0,.06),0 28px 56px -18px rgba(0,0,0,.35);padding:14px;display:grid;gap:9px;font-size:12px;color:var(--ink2)}
+.sheet h4{font-size:14px;font-weight:600;margin:0;color:var(--ink);letter-spacing:-0.01em}
+.sheet .sub0{margin:-6px 0 0;font-size:11.5px;color:var(--mute)}
+.preset{border:1px solid var(--line);border-radius:10px;padding:8px 10px;display:grid;grid-template-columns:12px 1fr auto;gap:2px 8px;align-items:center}
+.preset b{font-weight:500;color:var(--ink)}
+.preset.on{border-color:var(--honey);background:var(--honey-soft)}
+.radio{width:12px;height:12px;border-radius:50%;border:1.5px solid #BDBDBD;background:#fff}
+.preset.on .radio{border:4px solid var(--ink)}
+.preset .n{font-size:11px;color:var(--mute)}
+.preset .rv{grid-column:2/4;display:flex;gap:6px;align-items:center;font-size:11.5px;margin-top:4px}
+.preset .rv em{font-style:normal;color:var(--mute)}
+.lnk{display:flex;align-items:center;gap:8px;border:1px solid var(--line);border-radius:10px;padding:6px 8px;background:var(--list);font-size:11.5px;color:var(--ink)}
+.lnk span{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.foot{display:flex;align-items:center;gap:8px;border-top:1px solid var(--line);padding-top:10px}
+.foot small{color:var(--mute);font-size:10.5px;flex:1;line-height:1.35}
+.b2{display:inline-flex;align-items:center;gap:6px;border-radius:8px;padding:5px 10px;font-size:11.5px;font-weight:500;border:1px solid var(--line);background:#fff;color:var(--ink);white-space:nowrap}
+.b2.pri{background:var(--ink);color:#fff;border-color:var(--ink)}
+.b2 kbd{font:inherit;font-size:10px;opacity:.6}
+.slack{position:absolute;right:12px;bottom:8px;width:290px;background:#fff;border:1px solid var(--line);border-radius:14px;box-shadow:0 16px 36px -14px rgba(0,0,0,.28);padding:10px 12px;font-size:12px;line-height:1.4;color:var(--ink2);rotate:2.5deg}
+.slack .who{display:flex;gap:6px;align-items:center;color:var(--mute);margin-bottom:4px;font-size:11.5px}
+.slack .who b{color:var(--ink);font-weight:500}
+.hash{display:inline-grid;place-items:center;width:16px;height:16px;border-radius:4px;background:#4A154B;color:#fff;font-size:10px;font-weight:600;flex:none}
+.slack .appn{color:var(--ink);font-weight:600;margin-left:4px}
+.slack .apptag{font-size:9px;background:var(--side);border-radius:3px;padding:0 4px;color:var(--mute)}
+.slack .sm{margin:0 0 6px;font-size:11.5px}
+.slack .at{background:#E8F5FA;color:#1264A3;border-radius:3px;padding:0 2px}
+.slack .ok{color:var(--green);font-weight:600}
+.att{border-left:3px solid var(--honey);padding:2px 0 2px 9px;display:grid;gap:3px;font-size:11px}
+.att b{color:var(--ink);font-weight:600;font-size:11.5px;line-height:1.3}
+.att span{color:var(--mute)}
+.btns{display:flex;gap:6px;margin-top:3px}
+.btns i{font-style:normal;font-size:10.5px;font-weight:500;border:1px solid var(--line);border-radius:6px;padding:2px 8px;color:var(--ink)}
+.btns i.pri{background:#007A5A;border-color:#007A5A;color:#fff}
+.slack.s5{rotate:-1.5deg;width:226px;bottom:8px;right:14px}
+.via{display:inline-flex;gap:4px;align-items:center;margin-left:auto;font-size:10px;color:var(--mute)}
+.via .hash{width:13px;height:13px;font-size:8.5px}
+/* step 4: review canvas */
+.canvas{position:absolute;inset:0;display:grid;grid-template-columns:minmax(0,1fr) 220px}
+.cv{position:relative;background-color:var(--side);background-image:radial-gradient(#D9D9D9 1px,transparent 1px);background-size:14px 14px;display:grid;place-items:center}
+.cv .top{position:absolute;left:12px;top:10px;font-size:10.5px;color:var(--mute);display:flex;gap:6px;align-items:center}
+.dev{position:relative;width:176px;height:322px;background:#fff;border-radius:20px;border:1px solid var(--line);box-shadow:0 18px 36px -18px rgba(0,0,0,.3);padding:16px 12px 12px;display:flex;flex-direction:column;gap:7px;font-size:10.5px;color:var(--ink2);margin-top:-14px}
+.dev .ttl{font-size:12.5px;font-weight:600;color:var(--ink);letter-spacing:-0.01em}
+.dev .card{height:84px;border-radius:8px;background:linear-gradient(135deg,#FDF4DA,#F9E2A6)}
+.dev .l{height:6px;border-radius:3px;background:#E9E9E9}
+.dev .toast{margin-top:auto;border-radius:10px;background:var(--ink);color:#fff;padding:8px 9px;display:grid;gap:5px;line-height:1.3}
+.dev .toast b{font-weight:500;font-size:11px}
+.dev .toast span{display:flex;gap:5px}
+.dev .toast i{font-style:normal;font-size:9.5px;border-radius:6px;padding:2px 7px;background:#fff;color:var(--ink)}
+.dev .toast i+i{background:transparent;color:#cfcfcf;border:1px solid #555}
+.pinbox{position:absolute;left:4px;right:4px;bottom:6px;height:66px;border:1.5px solid var(--maya);border-radius:12px;background:rgba(179,91,214,.06)}
+.pin{position:absolute;width:22px;height:22px;border-radius:50% 50% 50% 0;background:var(--maya);color:#fff;font-size:10.5px;font-weight:600;display:grid;place-items:center;rotate:-45deg;box-shadow:0 2px 8px rgba(179,91,214,.4);right:-11px;top:-11px}
+.pin i{rotate:45deg;font-style:normal}
+.layer.on .pin,.layer.on .pinbox{animation:drop 520ms var(--ease-out) 1000ms both}
+@keyframes drop{from{opacity:0;transform:translateY(-12px) scale(.7)}to{opacity:1;transform:none}}
+.cbub{position:absolute;left:calc(50% - 36px);bottom:158px;width:168px;background:#fff;border-radius:12px;box-shadow:0 12px 28px -12px rgba(0,0,0,.3);border:1px solid var(--line);padding:8px 10px;font-size:11px;line-height:1.4;color:var(--ink2)}
+.cbub .who{display:flex;gap:6px;align-items:center;font-size:10.5px;color:var(--mute);margin-bottom:3px}
+.cbub .who b{color:var(--ink);font-weight:500}
+.tools{position:absolute;bottom:12px;left:50%;translate:-50% 0;background:var(--ink);color:#cfcfcf;border-radius:10px;padding:3px;display:flex;gap:2px;font-size:10.5px;white-space:nowrap}
+.tools span{padding:4px 9px;border-radius:7px;display:flex;gap:6px;align-items:center}
+.tools span.on{background:#fff;color:var(--ink)}
+.tools kbd{font:inherit;font-size:9.5px;opacity:.6}
+.sp{background:#fff;border-left:1px solid var(--line);padding:12px;display:flex;flex-direction:column;gap:8px;font-size:11.5px;color:var(--ink2);min-width:0}
+.sp>*{flex:none}
+.tabs{display:grid;grid-template-columns:1fr 1fr;background:var(--side);border-radius:8px;padding:2px;font-size:11px;text-align:center}
+.tabs span{padding:3px;border-radius:6px;color:var(--mute)}
+.tabs span.on{background:#fff;color:var(--ink);box-shadow:0 1px 2px rgba(0,0,0,.08)}
+.cm{border:1px solid var(--line);border-radius:10px;padding:7px 9px;line-height:1.4}
+.cm .who{display:flex;gap:6px;align-items:center;font-size:10.5px;color:var(--mute);margin-bottom:3px}
+.cm .who b{color:var(--ink);font-weight:500}
+.cm.ag{background:var(--honey-soft);border-color:transparent}
+.cm.ag .new{margin-left:auto;font-size:9.5px;padding:0 6px}
+.yr{margin-top:auto;border-top:1px solid var(--line);padding-top:9px;display:grid;gap:6px}
+.yr .two{display:grid;grid-template-columns:1fr 1fr;gap:6px}
+.yr .two span{border:1px solid var(--line);border-radius:8px;padding:5px;text-align:center;font-size:11px;color:var(--ink)}
+.yr .two span.on{border-color:var(--ink);box-shadow:0 0 0 1px var(--ink)}
+.yr .b2{justify-self:end}
+/* step 5: resolved */
+.revs{display:flex;gap:6px;flex-wrap:wrap}
+.rp{display:inline-flex;gap:6px;align-items:center;border:1px solid var(--line);border-radius:999px;padding:2px 9px 2px 2px;font-size:11px;color:var(--ink)}
+.rp em{font-style:normal;color:var(--green)}
+.decided{border:1.5px solid var(--green);border-radius:10px;padding:9px 11px;background:var(--green-soft);line-height:1.4}
+.decided b{display:block;font-weight:500;font-size:13px;color:var(--ink);letter-spacing:-0.01em}
+.tl{display:grid;gap:5px;margin:0;padding:0;list-style:none;font-size:11.5px}
+.tl li{display:grid;grid-template-columns:36px 1fr;gap:8px;align-items:baseline}
+.tl .t{color:var(--mute);font-variant-numeric:tabular-nums;font-size:10.5px}
+.tl b{font-weight:500;color:var(--ink)}
+.later{display:flex;align-items:center;gap:8px;border-top:1px solid var(--line);padding-top:9px;font-size:11.5px;flex-wrap:wrap;margin-top:auto}
+.later .chip{font-size:11px;padding:2px 9px}
+
+/* live cursors */
+.cur{position:absolute;left:0;top:0;z-index:5;transition:transform 1100ms var(--ease-in-out),opacity 400ms ease;will-change:transform;pointer-events:none}
+.cur svg{display:block}
+.cur span{position:absolute;left:14px;top:16px;color:#fff;font-size:12px;font-weight:500;padding:2px 8px;border-radius:999px;white-space:nowrap}
+.cur.maya span{background:var(--maya)} .cur.tom span{background:var(--tom)} .cur.agent span{background:var(--honey);color:var(--ink)}
+.cur.off{opacity:0}
+
+/* step dots on the stage */
+.prog{position:absolute;left:50%;bottom:-34px;translate:-50% 0;display:flex;gap:8px}
+.prog i{width:6px;height:6px;border-radius:50%;background:var(--faint);transition:background 300ms ease,width 300ms var(--ease-out)}
+.prog i.on{background:var(--honey);width:18px;border-radius:3px}
+
+/* closing */
+.closing{border-top:1px solid var(--faint);padding:clamp(64px,10vh,112px) 0 clamp(48px,8vh,80px);text-align:center}
+.closing .mark{width:32px;height:32px;display:block;margin:0 auto 28px}
+.closing .big{font-size:clamp(28px,3.4vw,44px);font-weight:500;line-height:1.1;letter-spacing:-0.035em;max-width:17em;margin:0 auto 32px;text-wrap:balance}
+.ctas{display:flex;gap:24px;justify-content:center;align-items:center;flex-wrap:wrap}
+.btn{display:inline-flex;align-items:center;gap:8px;background:var(--ink);color:#fff;text-decoration:none;border-radius:12px;padding:12px 18px;font-size:16px;font-weight:500;transition:transform 120ms var(--ease-out),background 150ms ease}
+.btn:active{transform:scale(.97)}
+@media (hover:hover) and (pointer:fine){.btn:hover{background:#2a2d30}}
+.read{display:inline-flex;align-items:baseline;gap:10px;color:var(--ink);text-decoration:none;font-size:16px;font-weight:500;border-bottom:1px solid rgba(0,0,0,.35);padding-bottom:2px;transition:border-color 150ms ease}
+.read span{display:inline-block;transition:transform 200ms var(--ease-out)}
+@media (hover:hover) and (pointer:fine){.read:hover{border-color:var(--ink)}.read:hover span{transform:translateX(3px)}}
+.btn:focus-visible,.read:focus-visible{outline:1.5px solid var(--blue);outline-offset:4px}
+footer{padding:0 0 48px;color:var(--mute);font-size:15px}
+
+/* phone and narrow: the stage pins on top, the text scrolls under it */
+@media (max-width:1180px){.float.f1{top:4%}.float.f2{top:62%}.float.f3{bottom:2%}}
+@media (max-width:900px){
+  .story{grid-template-columns:1fr;border-top:0}
+  .stage-col{order:-1;position:sticky;top:0;z-index:3;background:linear-gradient(#fff 88%,rgba(255,255,255,0));padding:12px 0 18px;margin:0 -4px}
+  .stage-pin{position:static;height:auto}
+  .stage-box{max-width:460px;margin:0 auto}
+  .prog{bottom:-14px}
+  .steps{padding:4vh 0 20vh}
+  .step{min-height:62vh;justify-content:flex-start;padding-top:8vh}
+  .float{display:none}
+}
+@media (prefers-reduced-motion:reduce){
+  .reveal,.layer,.layer .e{transform:none!important;filter:none!important;transition:opacity 200ms ease!important}
+  .cur{transition:opacity 200ms ease}
+  .float{animation:none}
+  .pulse::after{animation:none}
+  .layer.on .pin{animation:none}
+}
+</style>
+</head>
+<body>
+<div class="page">
+<div class="wrap">
+
+<div class="by reveal"><a class="logo" href="/" aria-label="Waggle home"><svg viewBox="0 0 100 100" width="22" height="22" aria-hidden="true"><defs><linearGradient id="lg-honey" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#F9C846"/><stop offset="1" stop-color="#E89A0C"/></linearGradient></defs><path d="M50 0 L93.3 25 L93.3 75 L50 100 L6.7 75 L6.7 25 Z" fill="url(#lg-honey)"/><path d="M27 40 L38 63 L50 43 L62 63 L73 40" fill="none" stroke="#fff" stroke-width="9" stroke-linejoin="round" stroke-linecap="round"/></svg><span>waggle</span></a><a class="back" href="/decision-requests/">From the essay: Decision requests</a></div>
+
+<header class="hero">
+  <h1 class="reveal d1">From three prototypes to one team decision</h1>
+  <p class="sub reveal d1">Your agent builds the options. Each teammate answers what they know best, in Waggle or in Slack. You decide, and the reasons stay on record.</p>
+
+  <div class="scene reveal d3" aria-hidden="true">
+    <div class="glow"></div>
+    <div class="win">
+      <div class="bar"><span class="dots"><i></i><i></i><i></i></span>Waggle · First run<span class="faces"><span class="av you">S</span><span class="av maya">M</span><span class="av tom">T</span><span class="av agent">✦</span></span></div>
+      <div style="padding:18px">
+        <span class="chip open">Needs a decision</span>
+        <h3 style="font-size:20px;letter-spacing:-0.02em;line-height:1.25;margin:10px 0 14px">Should new users create an account before or after they first try the product?</h3>
+        <div style="display:grid;gap:8px">
+          <div class="opt"><span class="k">A</span><div><b>Account first</b><span class="d">Simple data model, but most people leave at the form</span></div></div>
+          <div class="opt"><span class="k">B</span><div><b>Try first</b><span class="d">People see value first, but many never sign up</span></div></div>
+          <div class="opt recd"><span class="k">C</span><div><b>Try first, then a soft save prompt</b><span class="d">Keeps the value of B and asks at a natural moment</span></div><span class="chip rec">Recommended</span></div>
+        </div>
+      </div>
+    </div>
+    <div class="float f1"><div class="who"><span class="av maya">M</span><b>Maya</b> on option C</div>The prompt comes too early. Ask after the first project.</div>
+    <div class="float f2"><div class="who"><span class="av tom">T</span><b>Tom</b> on the data model</div>Guest work can merge on sign-up. About 2 days.</div>
+    <div class="float f3"><div class="who"><span class="av agent">✦</span><b>Agent</b></div>Built C2. Added the 2 days to C and C2.</div>
+  </div>
+</header>
+
+<div class="story">
+  <div class="steps">
+    <section class="step" data-s="1">
+      <p class="num"><i></i>Step 1 · Explore</p>
+      <h2>The agent builds three options</h2>
+      <p>The question: <strong>should new users make an account before or after they try the product?</strong></p>
+      <p>You ask Claude Code. In 20 minutes it builds three clickable versions of the first run, so nobody has to imagine them.</p>
+    </section>
+    <section class="step" data-s="2">
+      <p class="num"><i></i>Step 2 · Prepare</p>
+      <h2>You make it one clear ask</h2>
+      <p>Before anyone else sees it, you cut what is weak and say what you recommend.</p>
+      <p>The request holds <strong>one question, options you can click, your pick and why the others lost,</strong> the questions for each reviewer, and a date to check the result.</p>
+    </section>
+    <section class="step" data-s="3">
+      <p class="num"><i></i>Step 3 · Share</p>
+      <h2>Each person gets their own questions</h2>
+      <p>Maya owns design, so she gets: <strong>is the save prompt at the right moment?</strong> Tom owns accounts, so he gets: <strong>can guest work merge into an account?</strong></p>
+      <p>Waggle posts the request in #growth and tags them both. They open it from Slack or from the link. No account to make, nothing to install.</p>
+    </section>
+    <section class="step" data-s="4">
+      <p class="num"><i></i>Step 4 · Feedback</p>
+      <h2>Feedback changes the work</h2>
+      <p>Maya clicks through option C and pins a comment on the exact screen. Tom replies in the Slack thread, and his answer shows up on the request.</p>
+      <p>The agent reads both. No meeting needed: <strong>it builds C2, the version Maya asked for, and adds Tom's 2-day estimate to the option.</strong></p>
+      <p class="diff">Not only design feedback. Each person answers the part they know best, and the options improve while the team talks.</p>
+    </section>
+    <section class="step" data-s="5">
+      <p class="num"><i></i>Step 5 · Decide</p>
+      <h2>The team decides, the reasons stay</h2>
+      <p>Maya and Tom approve v4, and you pick C2. Waggle keeps the question, the options, who said what and why the others lost. The Slack thread gets the result.</p>
+      <p>The agent starts to build. On Nov 20, Waggle brings the decision back with the sign-up numbers, so the team learns if it was right.</p>
+    </section>
+  </div>
+
+  <div class="stage-col" aria-hidden="true">
+    <div class="stage-pin">
+      <div class="stage-box" id="box">
+        <div class="stage" id="stage" data-s="1">
+          <div class="glow"></div>
+          <div class="win">
+            <div class="bar"><span class="dots"><i></i><i></i><i></i></span><span id="bartitle">Claude Code · onboarding</span><span class="faces" id="faces"><span class="av you">S</span></span></div>
+            <div class="layers">
+
+              <div class="layer l1" data-l="1">
+                <ul class="log">
+                  <li class="e" style="--i:0"><span class="t">10:02</span><span>Read the sign-up flow and 3 months of drop-off notes</span></li>
+                  <li class="e" style="--i:1"><span class="t">10:19</span><span>Built 3 versions of the first run, each one clickable</span></li>
+                  <li class="e" style="--i:2"><span class="t">10:24</span><span><span class="chip work"><span class="pulse"></span>Preparing a decision for you</span></span></li>
+                </ul>
+                <div class="variants">
+                  <div class="var e" style="--i:3"><div class="phone"><div class="l" style="width:60%"></div><div class="l" style="width:40%"></div><div class="field"></div><div class="field"></div><div class="field"></div><div class="btn"></div></div><p class="lbl">A · Account first<small>Sign up, then try</small></p></div>
+                  <div class="var e" style="--i:4"><div class="phone"><div class="l" style="width:45%"></div><div class="card"></div><div class="l" style="width:70%"></div><div class="btn"></div></div><p class="lbl">B · Try first<small>Sign up to keep work</small></p></div>
+                  <div class="var e" style="--i:5"><div class="phone"><div class="l" style="width:50%"></div><div class="card"></div><div class="toast"></div><div class="btn" style="opacity:.15"></div></div><p class="lbl">C · Try, then save<small>A soft prompt to save</small></p></div>
+                </div>
+              </div>
+
+              <div class="layer flush" data-l="2">
+                <div class="app">
+                  <div class="rail">
+                    <p class="rh">Needs you <span>1</span></p>
+                    <div class="row sel"><span class="m">onboarding · Claude Code</span><b>Account before or after the first try?</b><span class="chip open">Decide, then share</span></div>
+                    <p class="rh" style="margin-top:8px">Answered</p>
+                    <div class="row quiet"><span class="m">billing · Claude Code</span><b>Annual plan: 15% or 20% off?</b></div>
+                    <div class="row quiet"><span class="m">docs · Claude Code</span><b>Rename "Basket" to "Cart"?</b></div>
+                  </div>
+                  <div class="pane">
+                    <span class="path e" style="--i:0">onboarding / main · arrived 10:24 · v3</span>
+                    <h3 class="e" style="--i:1">Should new users create an account before or after they first try the product?</h3>
+                    <div class="recbox e" style="--i:2"><p class="lab">Recommended</p><b>C · Try first, then a soft save prompt</b>Keeps the value of B, and asks at a natural moment.</div>
+                    <div class="e" style="--i:3"><p class="lab">Prototypes from the agent · v3</p>
+                      <div class="protos">
+                        <div class="pt"><div class="phone"><div class="l" style="width:60%"></div><div class="field"></div><div class="field"></div><div class="field"></div><div class="btn"></div></div><p>A · Account first</p></div>
+                        <div class="pt"><div class="phone"><div class="l" style="width:45%"></div><div class="card"></div><div class="l" style="width:70%"></div><div class="btn"></div></div><p>B · Try first</p></div>
+                        <div class="pt rc"><div class="phone"><div class="l" style="width:50%"></div><div class="card"></div><div class="toast"></div></div><p>C · Try, then save <span class="chip rec">Rec</span></p></div>
+                      </div>
+                    </div>
+                    <div class="need e" style="--i:4"><p class="lab" style="margin:0">What you need from each person</p>
+                      <div><span class="av s maya">M</span><span><em>Maya, design:</em> is the save prompt at the right moment?</span></div>
+                      <div><span class="av s tom">T</span><span><em>Tom, engineering:</em> can guest work merge into an account?</span></div>
+                    </div>
+                    <div class="meta-row e" style="--i:5"><svg width="13" height="13" viewBox="0 0 16 16"><rect x="2" y="3" width="12" height="11" rx="2" fill="none" stroke="currentColor"/><path d="M2 6.5h12M5 1.5v3M11 1.5v3" stroke="currentColor"/></svg>Check on Nov 20: did sign-ups hold?</div>
+                  </div>
+                </div>
+              </div>
+
+              <div class="layer flush" data-l="3">
+                <div class="app">
+                  <div class="rail">
+                    <p class="rh">Needs you <span>1</span></p>
+                    <div class="row sel"><span class="m">onboarding · Claude Code</span><b>Account before or after the first try?</b><span class="chip open">Decide, then share</span></div>
+                    <p class="rh" style="margin-top:8px">Answered</p>
+                    <div class="row quiet"><span class="m">billing · Claude Code</span><b>Annual plan: 15% or 20% off?</b></div>
+                    <div class="row quiet"><span class="m">docs · Claude Code</span><b>Rename "Basket" to "Cart"?</b></div>
+                  </div>
+                  <div class="pane" style="opacity:.45">
+                    <span class="path">onboarding / main · arrived 10:24 · v3</span>
+                    <h3>Should new users create an account before or after they first try the product?</h3>
+                    <div class="recbox"><p class="lab">Recommended</p><b>C · Try first, then a soft save prompt</b>Keeps the value of B, and asks at a natural moment.</div>
+                  </div>
+                </div>
+                <div class="dim"></div>
+                <div class="sheet">
+                  <h4 class="e" style="--i:0">Publish for team review</h4>
+                  <p class="sub0 e" style="--i:0">You recommend C · Try first, then a soft save prompt</p>
+                  <div class="preset on e" style="--i:1"><span class="radio"></span><b>Recommended</b><span class="n">2 approvals</span>
+                    <div class="rv"><span class="av s maya">M</span>Maya <em>· is the prompt at the right moment?</em></div>
+                    <div class="rv"><span class="av s tom">T</span>Tom <em>· can guest work merge?</em></div>
+                  </div>
+                  <div class="lnk e" style="--i:3"><svg width="13" height="13" viewBox="0 0 16 16"><path d="M6.5 9.5l3-3M7 4.5l1.2-1.2a2.8 2.8 0 014 4L11 8.5M9 11.5l-1.2 1.2a2.8 2.8 0 01-4-4L5 7.5" fill="none" stroke="#6b6b6b" stroke-width="1.3" stroke-linecap="round"/></svg><span>waggle.so/d/first-run-sign-up</span><span class="chip mute" style="flex:none;font-size:10.5px;padding:1px 8px">Copy</span></div>
+                  <div class="foot e" style="--i:4"><small>Shares v3, the question and the recommendation. Your chat with the agent stays on this Mac.</small><span class="b2">Keep it local</span><span class="b2 pri">Publish <kbd>⌘↵</kbd></span></div>
+                </div>
+                <div class="slack e" style="--i:6"><div class="who"><span class="hash">#</span><b>growth</b><span class="appn">Waggle</span><span class="apptag">App</span>now</div><p class="sm"><span class="at">@Maya</span> <span class="at">@Tom</span> you have a decision to review by Friday.</p><div class="att"><b>Should new users create an account before or after they first try?</b><span>Recommended: C · Try first, then a soft save prompt</span><div class="btns"><i class="pri">Open review</i><i>Reply in thread</i></div></div></div>
+              </div>
+
+              <div class="layer flush" data-l="4">
+                <div class="canvas">
+                  <div class="cv">
+                    <span class="top"><span class="av s maya">M</span>Maya, reviewing for you · option C · v3 · screen 2 of 4</span>
+                    <div class="dev e" style="--i:0">
+                      <span class="ttl">Your first project</span>
+                      <div class="card"></div>
+                      <div class="l" style="width:80%"></div><div class="l" style="width:55%"></div><div class="l" style="width:68%"></div>
+                      <div class="toast"><b>Save your work? Make a free account.</b><span><i>Save</i><i>Later</i></span></div>
+                      <div class="pinbox"><span class="pin"><i>1</i></span></div>
+                    </div>
+                    <div class="cbub e" style="--i:4"><div class="who"><span class="av s maya">M</span><b>Maya</b>on the prompt</div>Too early. Ask after they finish their first project.</div>
+                    <div class="tools e" style="--i:1"><span>Interact <kbd>I</kbd></span><span class="on">Comment <kbd>C</kbd></span></div>
+                  </div>
+                  <div class="sp">
+                    <div class="tabs"><span>Overview</span><span class="on">Comments · 2</span></div>
+                    <div class="cm e" style="--i:4"><div class="who"><span class="av s maya">M</span><b>Maya</b>pin 1 · v3</div>Too early. Ask after they finish their first project.</div>
+                    <div class="cm e" style="--i:5"><div class="who"><span class="av s tom">T</span><b>Tom</b><span class="via"><span class="hash">#</span>from Slack</span></div>Guest work can merge on sign-up. One migration, about 2 days.</div>
+                    <div class="cm ag e" style="--i:7"><div class="who"><span class="av s agent">✦</span><b>Claude Code</b><span class="chip rec new">v4</span></div>Built C2: ask to save after the first project. Added Tom's 2 days to C and C2.</div>
+                    <div class="yr e" style="--i:8"><p class="lab" style="margin:0">Maya's review</p><div class="two"><span class="on">Approve v4</span><span>Request changes</span></div><span class="b2 pri">Send review <kbd>⌘↵</kbd></span></div>
+                  </div>
+                </div>
+              </div>
+
+              <div class="layer flush" data-l="5">
+                <div class="app">
+                  <div class="rail">
+                    <p class="rh">Needs you <span>0</span></p>
+                    <p class="rh" style="margin-top:4px">Answered</p>
+                    <div class="row sel"><span class="m">onboarding · decision request</span><b>Account before or after the first try?</b><span class="chip done">Resolved · C2</span></div>
+                    <div class="row quiet"><span class="m">billing · Claude Code</span><b>Annual plan: 15% or 20% off?</b></div>
+                  </div>
+                  <div class="pane">
+                    <span class="path e" style="--i:0">onboarding / dr-0412 · published by you Oct 18 · 2 of 2 approvals</span>
+                    <h3 class="e" style="--i:0">Should new users create an account before or after they first try the product?</h3>
+                    <div class="revs e" style="--i:1"><span class="rp"><span class="av s maya">M</span>Maya <em>approved v4</em></span><span class="rp"><span class="av s tom">T</span>Tom <em>approved v4</em></span></div>
+                    <div class="decided e" style="--i:2"><p class="lab" style="color:var(--green)">Resolved Oct 21</p><b>C2 · Try first, ask to save after the first project</b>People see the value first, and the prompt comes when they have something to lose. Not A: most people leave at the form. Not B: most guest work is lost.</div>
+                    <ul class="tl e" style="--i:3">
+                      <li><span class="t">Oct 18</span><span><b>Maya</b> pinned a comment on v3</span></li>
+                      <li><span class="t">Oct 19</span><span><b>Tom</b> priced the guest merge: 2 days</span></li>
+                      <li><span class="t">Oct 19</span><span><b>Claude Code</b> built C2 · v4</span></li>
+                      <li><span class="t">Oct 21</span><span><b>You</b> resolved it. Team rule saved: ask to save after the first project</span></li>
+                    </ul>
+                    <div class="slack s5 e" style="--i:5"><div class="who"><span class="hash">#</span><b>growth</b><span class="appn">Waggle</span><span class="apptag">App</span>Oct 21</div><p class="sm"><b class="ok">Resolved:</b> C2 · Try first, ask to save after the first project. Maya and Tom approved. Check on Nov 20.</p></div>
+                    <div class="later e" style="--i:4"><span class="chip work"><span class="pulse"></span>Claude Code is building C2</span></div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div class="cur agent" id="c-agent"><svg width="16" height="18" viewBox="0 0 16 18"><path d="M1 1l13 7-6 1.5L5 16z" fill="#F2B01E" stroke="#16181A" stroke-width="1.2" stroke-linejoin="round"/></svg><span>Agent</span></div>
+          <div class="cur maya off" id="c-maya"><svg width="16" height="18" viewBox="0 0 16 18"><path d="M1 1l13 7-6 1.5L5 16z" fill="#B35BD6" stroke="#fff" stroke-width="1.2" stroke-linejoin="round"/></svg><span>Maya · design</span></div>
+          <div class="cur tom off" id="c-tom"><svg width="16" height="18" viewBox="0 0 16 18"><path d="M1 1l13 7-6 1.5L5 16z" fill="#2F8F83" stroke="#fff" stroke-width="1.2" stroke-linejoin="round"/></svg><span>Tom · engineering</span></div>
+        </div>
+        <div class="prog" id="prog"><i class="on"></i><i></i><i></i><i></i><i></i></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<section class="closing">
+  <svg class="mark" viewBox="-16 -16 32 32" aria-hidden="true"><polygon points="0.0,-14.0 12.1,-7.0 12.1,7.0 0.0,14.0 -12.1,7.0 -12.1,-7.0" fill="#F2B01E"/></svg>
+  <p class="big">Your agent explores. The right people weigh in. The team decides.</p>
+  <div class="ctas">
+    <a class="btn" href="/install/">Try Waggle on your Mac</a>
+    <a class="read" href="/decision-requests/">Read the essay <span aria-hidden="true">→</span></a>
+  </div>
+</section>
+<footer>Waggle</footer>
+
+</div>
+</div>
+<script>
+requestAnimationFrame(()=>document.documentElement.classList.add('ready'));
+(function(){
+  const stage=document.getElementById('stage'),box=document.getElementById('box');
+  const layers=[...stage.querySelectorAll('.layer')],dots=[...document.querySelectorAll('#prog i')];
+  const steps=[...document.querySelectorAll('.step')];
+  const bar=document.getElementById('bartitle'),faces=document.getElementById('faces');
+  const cur={agent:document.getElementById('c-agent'),maya:document.getElementById('c-maya'),tom:document.getElementById('c-tom')};
+  /* cursor spots in stage units (600 x 480); null hides the cursor */
+  const SPOTS={
+    1:{agent:[420,330],maya:null,tom:null},
+    2:{agent:[540,236],maya:null,tom:null},
+    3:{agent:null,maya:null,tom:null},
+    4:{agent:[404,326],maya:[250,362],tom:null},
+    5:{agent:null,maya:null,tom:null}
+  };
+  const OFF={agent:[640,520],maya:[-60,260],tom:[660,420]};
+  const TITLES={1:'Claude Code · onboarding',2:'Waggle',3:'Waggle · Publish',4:'Waggle · Maya is reviewing',5:'Waggle'};
+  const FACES={1:'<span class="av you">S</span>',2:'<span class="av you">S</span><span class="av agent">✦</span>',3:'<span class="av you">S</span><span class="av maya">M</span><span class="av tom">T</span>',4:'<span class="av you">S</span><span class="av maya">M</span><span class="av tom">T</span><span class="av agent">✦</span>',5:'<span class="av you">S</span><span class="av maya">M</span><span class="av tom">T</span><span class="av agent">✦</span>'};
+  let cur1=0;
+  function fit(){stage.style.setProperty('--k',box.clientWidth/600)}
+  function show(n){
+    if(n===cur1)return;cur1=n;stage.dataset.s=n;
+    layers.forEach(l=>l.classList.toggle('on',+l.dataset.l===n));
+    dots.forEach((d,i)=>d.classList.toggle('on',i===n-1));
+    steps.forEach(s=>s.classList.toggle('active',+s.dataset.s===n));
+    bar.textContent=TITLES[n];faces.innerHTML=FACES[n];
+    for(const k in cur){const p=SPOTS[n][k];const q=p||OFF[k];cur[k].classList.toggle('off',!p);cur[k].style.transform=`translate(${q[0]}px,${q[1]}px)`}
+  }
+  fit();addEventListener('resize',fit);
+  for(const k in cur)cur[k].style.transform=`translate(${OFF[k][0]}px,${OFF[k][1]}px)`;
+  /* the step whose middle is nearest the reading line is the active one */
+  function pick(){
+    const line=innerHeight*(innerWidth<=900?0.7:0.5);let best=1,bd=1e9;
+    steps.forEach(s=>{const r=s.getBoundingClientRect();const d=Math.abs((r.top+r.bottom)/2-line);if(d<bd){bd=d;best=+s.dataset.s}});
+    show(best);
+  }
+  let raf=0;addEventListener('scroll',()=>{if(!raf)raf=requestAnimationFrame(()=>{raf=0;pick()})},{passive:true});
+  requestAnimationFrame(()=>requestAnimationFrame(pick));
+})();
+</script>
+</body>
+</html>

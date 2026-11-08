@@ -1,0 +1,17 @@
+{
+  "name": "waggle-relay",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "wrangler dev",
+    "test": "vitest run",
+    "types": "wrangler types"
+  },
+  "devDependencies": {
+    "@cloudflare/vitest-plugin": "^1.4.4",
+    "typescript": "^5.9.0",
+    "vitest": "latest",
+    "wrangler": "^4.151.1"
+  },
+  "license": "Apache-2.0"
+}

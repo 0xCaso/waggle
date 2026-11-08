@@ -1,0 +1,9 @@
+node_modules/
+dist/
+.build/
+*.db
+.DS_Store
+.fleet/
+.knock-review/
+.claude/settings.local.json
+.claude/scheduled_tasks.lock

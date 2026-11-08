@@ -1,0 +1,20 @@
+{
+  "description": "Waggle: live session state for the Waggle app, and no ending a turn while a Waggle ask is open.",
+  "hooks": {
+    "SessionStart": [
+      { "hooks": [{ "type": "command", "command": "sh \"${PLUGIN_ROOT}/bin/waggle-launcher\" mod codex-hook SessionStart", "timeout": 3 }] }
+    ],
+    "UserPromptSubmit": [
+      { "hooks": [{ "type": "command", "command": "sh \"${PLUGIN_ROOT}/bin/waggle-launcher\" mod codex-hook UserPromptSubmit", "timeout": 2 }] }
+    ],
+    "PreToolUse": [
+      { "hooks": [{ "type": "command", "command": "sh \"${PLUGIN_ROOT}/bin/waggle-launcher\" mod codex-hook PreToolUse", "timeout": 2 }] }
+    ],
+    "Stop": [
+      { "hooks": [{ "type": "command", "command": "sh \"${PLUGIN_ROOT}/bin/waggle-launcher\" mod codex-hook Stop", "timeout": 3 }] }
+    ],
+    "SessionEnd": [
+      { "hooks": [{ "type": "command", "command": "sh \"${PLUGIN_ROOT}/bin/waggle-launcher\" mod codex-hook SessionEnd", "timeout": 2 }] }
+    ]
+  }
+}

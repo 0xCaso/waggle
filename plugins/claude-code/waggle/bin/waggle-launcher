@@ -1,0 +1,45 @@
+#!/bin/sh
+# Runs the installed Waggle's `waggle` binary with the arguments given. The plugin
+# starts its MCP server through this (`waggle mcp`) and its mod runs `waggle mod ...`
+# through it, so the plugin never holds a path to one user's Mac.
+#
+# Where Waggle lives, in order:
+# 1. KNOCK_BIN names a binary directly (tests and dev builds).
+# 2. The binary of the SAME app bundle, when this plugin runs in place inside it
+#    (Contents/Resources/claude-plugin/waggle/bin -> Contents/Resources/waggle).
+# 3. The path `waggle install claude` recorded in the data root (Claude Code runs a
+#    plugin from its own cache copy, so step 2 only fits an in-place run).
+# 4. The app in /Applications or ~/Applications (Waggle.app, or Knock.app when an update kept
+#    the old folder name), else the ~/.local/bin/waggle link.
+# HAIL-176: the old `knock` binary names stay as a last resort while the transition lasts.
+
+if [ -n "$KNOCK_BIN" ] && [ -x "$KNOCK_BIN" ]; then
+  exec "$KNOCK_BIN" "$@"
+fi
+
+here="$(cd "$(dirname "$0")" 2>/dev/null && pwd)"
+recorded=""
+data_root="${KNOCK_HOME:-$HOME/Library/Application Support/Knock}"
+if [ -r "$data_root/knock-path" ]; then
+  recorded="$(head -n 1 "$data_root/knock-path")"
+fi
+
+for candidate in \
+  "$here/../../../waggle" \
+  "$recorded" \
+  "/Applications/Waggle.app/Contents/Resources/waggle" \
+  "$HOME/Applications/Waggle.app/Contents/Resources/waggle" \
+  "/Applications/Knock.app/Contents/Resources/waggle" \
+  "$HOME/Applications/Knock.app/Contents/Resources/waggle" \
+  "$HOME/.local/bin/waggle" \
+  "$here/../../../knock" \
+  "/Applications/Knock.app/Contents/Resources/knock" \
+  "$HOME/Applications/Knock.app/Contents/Resources/knock" \
+  "$HOME/.local/bin/knock"; do
+  if [ -n "$candidate" ] && [ -f "$candidate" ] && [ -x "$candidate" ]; then
+    exec "$candidate" "$@"
+  fi
+done
+
+echo "Waggle is not installed. Install the Waggle app in /Applications or ~/Applications, then restart Claude Code." >&2
+exit 127

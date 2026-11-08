@@ -1,0 +1,603 @@
+{
+  "_about": "Golden cases for protocol/items.ts (WAG-312). Expected values are written by hand from spec 2.3, 2.4 and 2.6, not generated. `row` names the spec 2.3 row. `legacy` is what projectLegacy gives back (the old columns). \"$input.questions\" means the same value as the input.",
+  "asks": [
+    {
+      "name": "question-options",
+      "row": "kind question; options + recommendation",
+      "input": {
+        "kind": "question", "title": "Layout?", "need": "Pick the checkout layout.", "why": "Both work.",
+        "options": [{ "id": "a", "label": "Compact", "title": "Compact" }, { "id": "b", "label": "Detailed" }],
+        "recommendation": "a", "recommendation_why": "It fits the app."
+      },
+      "expect": {
+        "kind": "question", "artifacts": 0,
+        "items": [{
+          "id": "main", "select": "one",
+          "options": [{ "id": "a", "label": "Compact", "title": "Compact" }, { "id": "b", "label": "Detailed" }],
+          "recommendation": "a", "recommendation_why": "It fits the app."
+        }],
+        "legacy": {
+          "kind": "question",
+          "options": [{ "id": "a", "label": "Compact", "title": "Compact" }, { "id": "b", "label": "Detailed" }],
+          "select": "one", "max": null, "recommendation": "a", "recommendation_why": "It fits the app.",
+          "recommendations": ["a"], "questions": []
+        }
+      }
+    },
+    {
+      "name": "options-many",
+      "row": "select many + max + recommendation list",
+      "input": {
+        "kind": "question", "title": "Areas?", "need": "Pick the areas.", "why": "Several fit.",
+        "select": "many", "max": 2,
+        "options": [{ "id": "a", "label": "Cart" }, { "id": "b", "label": "Search" }, { "id": "c", "label": "Profile" }],
+        "recommendation": ["a", "c"], "recommendation_why": "Most used."
+      },
+      "expect": {
+        "kind": "question", "artifacts": 0,
+        "items": [{
+          "id": "main", "select": "many", "max": 2,
+          "options": [{ "id": "a", "label": "Cart" }, { "id": "b", "label": "Search" }, { "id": "c", "label": "Profile" }],
+          "recommendation": ["a", "c"], "recommendation_why": "Most used."
+        }],
+        "legacy": {
+          "kind": "question",
+          "options": [{ "id": "a", "label": "Cart" }, { "id": "b", "label": "Search" }, { "id": "c", "label": "Profile" }],
+          "select": "many", "max": 2, "recommendation": "a", "recommendation_why": "Most used.",
+          "recommendations": ["a", "c"], "questions": []
+        }
+      }
+    },
+    {
+      "name": "options-many-single-id",
+      "row": "select many + a single recommendation id",
+      "input": {
+        "title": "Areas?", "need": "Pick the areas.", "why": "Several fit.", "select": "many",
+        "options": [{ "id": "a", "label": "Cart" }, { "id": "b", "label": "Search" }],
+        "recommendation": "b", "recommendation_why": "Most used."
+      },
+      "expect": {
+        "kind": "question", "artifacts": 0,
+        "items": [{
+          "id": "main", "select": "many",
+          "options": [{ "id": "a", "label": "Cart" }, { "id": "b", "label": "Search" }],
+          "recommendation": ["b"], "recommendation_why": "Most used."
+        }],
+        "legacy": {
+          "kind": "question",
+          "options": [{ "id": "a", "label": "Cart" }, { "id": "b", "label": "Search" }],
+          "select": "many", "max": null, "recommendation": "b", "recommendation_why": "Most used.",
+          "recommendations": ["b"], "questions": []
+        }
+      }
+    },
+    {
+      "name": "review-approve",
+      "row": "kind review + artifact (recommendation names an option)",
+      "input": {
+        "kind": "review", "title": "Ship the page?", "need": "Review the pricing page.", "why": "It is ready.",
+        "artifact": { "type": "markdown", "content": "# Pricing" },
+        "recommendation": "Request changes", "recommendation_why": "The footer is wrong."
+      },
+      "expect": {
+        "kind": "review", "artifacts": 1,
+        "items": [{
+          "id": "decision", "select": "one",
+          "options": [
+            { "id": "approve", "title": "Approve", "label": "Approve: ship it as it is" },
+            { "id": "request_changes", "title": "Request changes", "label": "Request changes: use my comments" }
+          ],
+          "recommendation": "request_changes", "recommendation_why": "The footer is wrong."
+        }],
+        "legacy": {
+          "kind": "review",
+          "options": [
+            { "id": "approve", "title": "Approve", "label": "Approve: ship it as it is" },
+            { "id": "request_changes", "title": "Request changes", "label": "Request changes: use my comments" }
+          ],
+          "select": "one", "max": null, "recommendation": "request_changes", "recommendation_why": "The footer is wrong.",
+          "recommendations": ["request_changes"], "questions": []
+        }
+      }
+    },
+    {
+      "name": "review-free-text-recommendation",
+      "row": "kind review + free-text recommendation (shown as why, no option marked)",
+      "input": {
+        "kind": "review", "title": "Ship the page?", "need": "Review the pricing page.", "why": "It is ready.",
+        "artifact": { "type": "markdown", "content": "# Pricing" },
+        "recommendation": "Looks fine, but check the copy", "recommendation_why": "Two typos."
+      },
+      "expect": {
+        "kind": "review", "artifacts": 1,
+        "items": [{
+          "id": "decision", "select": "one",
+          "options": [
+            { "id": "approve", "title": "Approve", "label": "Approve: ship it as it is" },
+            { "id": "request_changes", "title": "Request changes", "label": "Request changes: use my comments" }
+          ],
+          "recommendation_why": "Looks fine, but check the copy. Two typos."
+        }],
+        "legacy": {
+          "kind": "review",
+          "options": [
+            { "id": "approve", "title": "Approve", "label": "Approve: ship it as it is" },
+            { "id": "request_changes", "title": "Request changes", "label": "Request changes: use my comments" }
+          ],
+          "select": "one", "max": null, "recommendation": "Looks fine, but check the copy", "recommendation_why": "Two typos.",
+          "recommendations": ["Looks fine, but check the copy"], "questions": []
+        }
+      }
+    },
+    {
+      "name": "review-own-options",
+      "row": "kind review with its own options (nothing injected)",
+      "input": {
+        "kind": "review", "title": "Which draft?", "need": "Review both drafts.", "why": "Two fit.",
+        "artifact": { "type": "markdown", "content": "# Drafts" },
+        "options": [{ "id": "d1", "label": "Draft one" }, { "id": "d2", "label": "Draft two" }],
+        "recommendation": "d1", "recommendation_why": "Shorter."
+      },
+      "expect": {
+        "kind": "review", "artifacts": 1,
+        "items": [{
+          "id": "main", "select": "one",
+          "options": [{ "id": "d1", "label": "Draft one" }, { "id": "d2", "label": "Draft two" }],
+          "recommendation": "d1", "recommendation_why": "Shorter."
+        }],
+        "legacy": {
+          "kind": "review",
+          "options": [{ "id": "d1", "label": "Draft one" }, { "id": "d2", "label": "Draft two" }],
+          "select": "one", "max": null, "recommendation": "d1", "recommendation_why": "Shorter.",
+          "recommendations": ["d1"], "questions": []
+        }
+      }
+    },
+    {
+      "name": "plan-stage",
+      "row": "kind plan + stage",
+      "input": {
+        "kind": "plan", "title": "Which approach?", "need": "Pick an approach.", "why": "Three fit.",
+        "stage": { "name": "approaches", "step": 1, "total": 3, "total_is_estimate": true },
+        "options": [{ "id": "x", "label": "Queue" }, { "id": "y", "label": "Cron" }],
+        "recommendation": "x", "recommendation_why": "Simpler."
+      },
+      "expect": {
+        "kind": "question", "artifacts": 0,
+        "stage": { "name": "approaches", "step": 1, "total": 3, "total_is_estimate": true },
+        "items": [{
+          "id": "main", "select": "one",
+          "options": [{ "id": "x", "label": "Queue" }, { "id": "y", "label": "Cron" }],
+          "recommendation": "x", "recommendation_why": "Simpler."
+        }],
+        "legacy": {
+          "kind": "question",
+          "options": [{ "id": "x", "label": "Queue" }, { "id": "y", "label": "Cron" }],
+          "select": "one", "max": null, "recommendation": "x", "recommendation_why": "Simpler.",
+          "recommendations": ["x"], "questions": []
+        }
+      }
+    },
+    {
+      "name": "stage-on-a-question",
+      "row": "stage on any ask (no kind plan)",
+      "input": {
+        "kind": "question", "title": "Which section?", "need": "Pick the design section.", "why": "One first.",
+        "stage": { "name": "design" },
+        "options": [{ "id": "x", "label": "Data model" }, { "id": "y", "label": "API" }],
+        "recommendation": "y", "recommendation_why": "It blocks the rest."
+      },
+      "expect": {
+        "kind": "question", "artifacts": 0, "stage": { "name": "design" },
+        "items": [{
+          "id": "main", "select": "one",
+          "options": [{ "id": "x", "label": "Data model" }, { "id": "y", "label": "API" }],
+          "recommendation": "y", "recommendation_why": "It blocks the rest."
+        }],
+        "legacy": {
+          "kind": "question",
+          "options": [{ "id": "x", "label": "Data model" }, { "id": "y", "label": "API" }],
+          "select": "one", "max": null, "recommendation": "y", "recommendation_why": "It blocks the rest.",
+          "recommendations": ["y"], "questions": []
+        }
+      }
+    },
+    {
+      "name": "reply-only",
+      "row": "no options, no questions (reply item, suggested reply)",
+      "input": {
+        "kind": "question", "title": "Name it?", "need": "What should we call the tool?", "why": "No repo hint.",
+        "recommendation": "Call it Hive.", "recommendation_why": "Short."
+      },
+      "expect": {
+        "kind": "question", "artifacts": 0,
+        "items": [{ "id": "main", "select": "reply", "options": [], "recommendation": "Call it Hive.", "recommendation_why": "Short." }],
+        "legacy": {
+          "kind": "question", "options": [], "select": "one", "max": null,
+          "recommendation": "Call it Hive.", "recommendation_why": "Short.", "recommendations": ["Call it Hive."], "questions": []
+        }
+      }
+    },
+    {
+      "name": "no-kind-canonical-with-stage",
+      "row": "kind left out (default question); canonical items; stage",
+      "input": {
+        "title": "Layout?", "need": "Pick the layout.", "why": "Product call.",
+        "stage": { "name": "approaches", "step": 1, "total": 3 },
+        "items": [{
+          "id": "layout", "select": "one",
+          "options": [{ "id": "a", "label": "Compact", "title": "Compact", "pros": ["Fast"] }, { "id": "b", "label": "Detailed" }],
+          "recommendation": "a", "recommendation_why": "It fits."
+        }]
+      },
+      "expect": {
+        "kind": "question", "artifacts": 0, "stage": { "name": "approaches", "step": 1, "total": 3 },
+        "items": [{
+          "id": "layout", "select": "one",
+          "options": [{ "id": "a", "label": "Compact", "title": "Compact", "pros": ["Fast"] }, { "id": "b", "label": "Detailed" }],
+          "recommendation": "a", "recommendation_why": "It fits."
+        }],
+        "legacy": {
+          "kind": "question",
+          "options": [{ "id": "a", "label": "Compact", "title": "Compact", "pros": ["Fast"] }, { "id": "b", "label": "Detailed" }],
+          "select": "one", "max": null, "recommendation": "a", "recommendation_why": "It fits.",
+          "recommendations": ["a"], "questions": []
+        }
+      }
+    },
+    {
+      "name": "questions-to-groups",
+      "row": "questions[].points[] (one item per point, group = the question; string options; default Yes/No/Talk)",
+      "input": {
+        "kind": "question", "title": "Checkout", "need": "Decide the checkout.", "why": "Several parts.",
+        "questions": [
+          {
+            "id": "q1", "title": "Layout", "now": ["One page today"],
+            "points": [
+              { "id": "p1", "text": "Which layout?", "options": ["Compact", { "label": "Detailed", "pros": ["Clear"], "cons": ["Long"] }] },
+              { "id": "p2", "text": "Allow guest checkout?" }
+            ]
+          },
+          {
+            "id": "q2", "title": "Payment", "variants": [{ "id": "v1", "label": "Card" }, { "id": "v2", "label": "Wallet" }], "variant_label": "Where",
+            "points": [{ "id": "p1", "text": "Take cards?", "options": ["Yes", "No"] }]
+          }
+        ],
+        "recommendation": "Start with q1", "recommendation_why": "It blocks the rest."
+      },
+      "expect": {
+        "kind": "question", "artifacts": 0,
+        "items": [
+          {
+            "id": "q1/p1", "question": "Which layout?", "select": "one",
+            "options": [{ "id": "o1", "label": "Compact" }, { "id": "o2", "label": "Detailed", "pros": ["Clear"], "cons": ["Long"] }],
+            "group": { "id": "q1", "title": "Layout", "now": ["One page today"] }
+          },
+          {
+            "id": "q1/p2", "question": "Allow guest checkout?", "select": "one",
+            "options": [{ "id": "o1", "label": "Yes" }, { "id": "o2", "label": "No" }, { "id": "o3", "label": "Talk with the team" }],
+            "group": { "id": "q1", "title": "Layout", "now": ["One page today"] }
+          },
+          {
+            "id": "q2/p1", "question": "Take cards?", "select": "one",
+            "options": [{ "id": "o1", "label": "Yes" }, { "id": "o2", "label": "No" }],
+            "group": { "id": "q2", "title": "Payment", "variants": [{ "id": "v1", "label": "Card" }, { "id": "v2", "label": "Wallet" }], "variant_label": "Where" }
+          }
+        ],
+        "legacy": {
+          "kind": "question", "options": [], "select": "one", "max": null,
+          "recommendation": "Start with q1", "recommendation_why": "It blocks the rest.", "recommendations": ["Start with q1"],
+          "questions": "$input.questions"
+        }
+      }
+    },
+    {
+      "name": "several-artifacts",
+      "row": "artifacts[] (several); artifact shortcut is a list of one",
+      "input": {
+        "title": "Layout?", "need": "Pick the layout.", "why": "Product call.",
+        "artifacts": [
+          { "type": "markdown", "name": "Write-up", "content": "# Notes" },
+          { "type": "html_bundle", "name": "Prototype", "dir": "./proto", "entry": "index.html" }
+        ],
+        "options": [{ "id": "a", "label": "Compact" }, { "id": "b", "label": "Detailed" }],
+        "recommendation": "a", "recommendation_why": "It fits."
+      },
+      "expect": {
+        "kind": "question", "artifacts": 2,
+        "items": [{
+          "id": "main", "select": "one",
+          "options": [{ "id": "a", "label": "Compact" }, { "id": "b", "label": "Detailed" }],
+          "recommendation": "a", "recommendation_why": "It fits."
+        }],
+        "legacy": {
+          "kind": "question", "options": [{ "id": "a", "label": "Compact" }, { "id": "b", "label": "Detailed" }],
+          "select": "one", "max": null, "recommendation": "a", "recommendation_why": "It fits.",
+          "recommendations": ["a"], "questions": []
+        }
+      }
+    },
+    {
+      "name": "multi-item-degrades-for-old-app",
+      "row": "canonical items, three kinds (one, many, reply): legacy questions degrade (spec 2.6)",
+      "input": {
+        "title": "Checkout", "need": "Decide the checkout.", "why": "Three parts.",
+        "items": [
+          { "id": "a", "question": "Which layout?", "options": [{ "id": "a1", "label": "Compact" }, { "id": "a2", "label": "Detailed" }], "recommendation": "a1", "recommendation_why": "Fits." },
+          { "id": "b", "question": "Which areas?", "select": "many", "max": 2, "options": [{ "id": "b1", "label": "Cart" }, { "id": "b2", "label": "Search" }, { "id": "b3", "label": "Profile" }], "recommendation": ["b1"] },
+          { "id": "c", "question": "Anything else?", "select": "reply" }
+        ]
+      },
+      "expect": {
+        "kind": "question", "artifacts": 0,
+        "items": [
+          { "id": "a", "question": "Which layout?", "select": "one", "options": [{ "id": "a1", "label": "Compact" }, { "id": "a2", "label": "Detailed" }], "recommendation": "a1", "recommendation_why": "Fits." },
+          { "id": "b", "question": "Which areas?", "select": "many", "max": 2, "options": [{ "id": "b1", "label": "Cart" }, { "id": "b2", "label": "Search" }, { "id": "b3", "label": "Profile" }], "recommendation": ["b1"] },
+          { "id": "c", "question": "Anything else?", "select": "reply", "options": [] }
+        ],
+        "legacy": {
+          "kind": "question", "options": [], "select": "one", "max": null, "recommendation": "", "recommendation_why": "", "recommendations": [],
+          "questions": [
+            { "id": "a", "title": "Which layout?", "points": [{ "id": "a", "text": "Which layout?", "options": ["Compact", "Detailed"] }] },
+            { "id": "b", "title": "Which areas?", "points": [{ "id": "b", "text": "Which areas?", "options": ["Cart", "Search", "Profile"] }] },
+            { "id": "c", "title": "Anything else?", "points": [{ "id": "c", "text": "Anything else?" }] }
+          ]
+        }
+      }
+    },
+    {
+      "name": "canonical-review",
+      "row": "no kind, artifact, Approve and Request changes item (a review without the shortcut)",
+      "input": {
+        "title": "Ship the page?", "need": "Review the pricing page.", "why": "It is ready.",
+        "artifact": { "type": "markdown", "content": "# Pricing" },
+        "items": [{
+          "id": "decision",
+          "options": [
+            { "id": "approve", "title": "Approve", "label": "Approve: ship it as it is" },
+            { "id": "request_changes", "title": "Request changes", "label": "Request changes: use my comments" }
+          ],
+          "recommendation": "request_changes", "recommendation_why": "The footer is wrong."
+        }]
+      },
+      "expect": {
+        "kind": "review", "artifacts": 1,
+        "items": [{
+          "id": "decision", "select": "one",
+          "options": [
+            { "id": "approve", "title": "Approve", "label": "Approve: ship it as it is" },
+            { "id": "request_changes", "title": "Request changes", "label": "Request changes: use my comments" }
+          ],
+          "recommendation": "request_changes", "recommendation_why": "The footer is wrong."
+        }],
+        "legacy": {
+          "kind": "review",
+          "options": [
+            { "id": "approve", "title": "Approve", "label": "Approve: ship it as it is" },
+            { "id": "request_changes", "title": "Request changes", "label": "Request changes: use my comments" }
+          ],
+          "select": "one", "max": null, "recommendation": "request_changes", "recommendation_why": "The footer is wrong.",
+          "recommendations": ["request_changes"], "questions": []
+        }
+      }
+    }
+  ],
+  "twins": [
+    {
+      "shortcut": "question-options",
+      "canonical": {
+        "title": "Layout?", "need": "Pick the checkout layout.", "why": "Both work.",
+        "items": [{
+          "id": "main", "select": "one",
+          "options": [{ "id": "a", "label": "Compact", "title": "Compact" }, { "id": "b", "label": "Detailed" }],
+          "recommendation": "a", "recommendation_why": "It fits the app."
+        }]
+      }
+    },
+    {
+      "shortcut": "question-options",
+      "canonical": {
+        "title": "Layout?", "need": "Pick the checkout layout.", "why": "Both work.",
+        "recommendation": "a", "recommendation_why": "It fits the app.",
+        "items": [{ "id": "main", "options": [{ "id": "a", "label": "Compact", "title": "Compact" }, { "id": "b", "label": "Detailed" }] }]
+      }
+    },
+    {
+      "shortcut": "review-approve",
+      "canonical": {
+        "title": "Ship the page?", "need": "Review the pricing page.", "why": "It is ready.",
+        "artifacts": [{ "type": "markdown", "content": "# Pricing" }],
+        "items": [{
+          "id": "decision",
+          "options": [
+            { "id": "approve", "title": "Approve", "label": "Approve: ship it as it is" },
+            { "id": "request_changes", "title": "Request changes", "label": "Request changes: use my comments" }
+          ],
+          "recommendation": "request_changes", "recommendation_why": "The footer is wrong."
+        }]
+      }
+    },
+    {
+      "shortcut": "plan-stage",
+      "canonical": {
+        "title": "Which approach?", "need": "Pick an approach.", "why": "Three fit.",
+        "stage": { "name": "approaches", "step": 1, "total": 3, "total_is_estimate": true },
+        "items": [{
+          "id": "main", "options": [{ "id": "x", "label": "Queue" }, { "id": "y", "label": "Cron" }],
+          "recommendation": "x", "recommendation_why": "Simpler."
+        }]
+      }
+    },
+    {
+      "shortcut": "reply-only",
+      "canonical": {
+        "title": "Name it?", "need": "What should we call the tool?", "why": "No repo hint.",
+        "items": [{ "id": "main", "select": "reply", "recommendation": "Call it Hive.", "recommendation_why": "Short." }]
+      }
+    },
+    {
+      "shortcut": "options-many",
+      "canonical": {
+        "title": "Areas?", "need": "Pick the areas.", "why": "Several fit.",
+        "items": [{
+          "id": "main", "select": "many", "max": 2,
+          "options": [{ "id": "a", "label": "Cart" }, { "id": "b", "label": "Search" }, { "id": "c", "label": "Profile" }],
+          "recommendation": ["a", "c"], "recommendation_why": "Most used."
+        }]
+      }
+    }
+  ],
+  "updates": [
+    {
+      "name": "update-options",
+      "row": "waggle_update with options",
+      "input": { "case_id": "c1", "message": "New take.", "options": [{ "id": "a", "label": "Compact" }, { "id": "b", "label": "Detailed" }], "recommendation": "b", "recommendation_why": "Clearer." },
+      "expect": {
+        "case_id": "c1", "message": "New take.",
+        "items": [{ "id": "main", "select": "one", "options": [{ "id": "a", "label": "Compact" }, { "id": "b", "label": "Detailed" }], "recommendation": "b", "recommendation_why": "Clearer." }]
+      }
+    },
+    {
+      "name": "update-stage-and-options",
+      "row": "waggle_update with stage + options",
+      "input": { "case_id": "c1", "message": "Next.", "stage": { "name": "design", "step": 1 }, "options": [{ "id": "a", "label": "One" }, { "id": "b", "label": "Two" }], "recommendation": "a", "recommendation_why": "Fits." },
+      "expect": {
+        "case_id": "c1", "message": "Next.", "stage": { "name": "design", "step": 1 },
+        "items": [{ "id": "main", "select": "one", "options": [{ "id": "a", "label": "One" }, { "id": "b", "label": "Two" }], "recommendation": "a", "recommendation_why": "Fits." }]
+      }
+    },
+    {
+      "name": "update-stage-alone",
+      "row": "waggle_update with a stage only (relabel)",
+      "input": { "case_id": "c1", "message": "Moving on.", "stage": { "name": "spec" } },
+      "expect": { "case_id": "c1", "message": "Moving on.", "stage": { "name": "spec" } }
+    },
+    {
+      "name": "update-message-only",
+      "row": "waggle_update with message only (an answer)",
+      "input": { "case_id": "c1", "message": "Here is the answer." },
+      "expect": { "case_id": "c1", "message": "Here is the answer." }
+    },
+    {
+      "name": "update-artifact",
+      "row": "waggle_update with artifact (a revised artifact)",
+      "input": { "case_id": "c1", "message": "Revised.", "artifact": { "type": "markdown", "content": "# v2" } },
+      "expect": { "case_id": "c1", "message": "Revised.", "artifact": { "type": "markdown", "content": "# v2" } }
+    },
+    {
+      "name": "update-done",
+      "row": "waggle_update with done: true",
+      "input": { "case_id": "c1", "message": "All finished.", "done": true },
+      "expect": { "case_id": "c1", "message": "All finished.", "done": true }
+    },
+    {
+      "name": "update-items",
+      "row": "waggle_update with items (canonical)",
+      "input": { "case_id": "c1", "message": "Two more.", "items": [{ "id": "i1", "question": "First?", "options": [{ "id": "a", "label": "Yes" }, { "id": "b", "label": "No" }] }, { "id": "i2", "question": "Second?", "select": "reply" }] },
+      "expect": {
+        "case_id": "c1", "message": "Two more.",
+        "items": [
+          { "id": "i1", "question": "First?", "select": "one", "options": [{ "id": "a", "label": "Yes" }, { "id": "b", "label": "No" }] },
+          { "id": "i2", "question": "Second?", "select": "reply", "options": [] }
+        ]
+      }
+    }
+  ],
+  "replies": [
+    {
+      "name": "decision-choice", "row": "reply intent decision + choice", "ask": "question-options",
+      "reply": { "intent": "decision", "choice": "a" },
+      "expect": { "outcome": "decide", "item_answers": [{ "item_id": "main", "choice": "a" }], "back": { "choice": "a" } }
+    },
+    {
+      "name": "decision-choice-with-message", "row": "reply intent decision + choice + message", "ask": "question-options",
+      "reply": { "intent": "decision", "choice": "b", "message": "Because." },
+      "expect": { "outcome": "decide", "item_answers": [{ "item_id": "main", "choice": "b" }], "back": { "choice": "b" } }
+    },
+    {
+      "name": "decision-choices", "row": "reply intent decision + choices", "ask": "options-many",
+      "reply": { "intent": "decision", "choices": ["a", "c"] },
+      "expect": { "outcome": "decide", "item_answers": [{ "item_id": "main", "choices": ["a", "c"] }], "back": { "choices": ["a", "c"] } }
+    },
+    {
+      "name": "decision-no-choice-with-message", "row": "none of these: choices [] + message", "ask": "options-many",
+      "reply": { "intent": "decision", "choices": [], "message": "None of these." },
+      "expect": { "outcome": "decide", "item_answers": [{ "item_id": "main", "choices": [] }], "back": { "choices": [] } }
+    },
+    {
+      "name": "decision-answers", "row": "reply intent decision + answers[]", "ask": "questions-to-groups",
+      "reply": {
+        "intent": "decision",
+        "answers": [
+          { "question_id": "q1", "point_id": "p1", "choice": "Detailed", "note": "Keep it clear" },
+          { "question_id": "q1", "point_id": "p2", "choice": "Yes" },
+          { "question_id": "q2", "point_id": "p1", "choice": "No" }
+        ]
+      },
+      "expect": {
+        "outcome": "decide",
+        "item_answers": [
+          { "item_id": "q1/p1", "choice": "o2", "note": "Keep it clear" },
+          { "item_id": "q1/p2", "choice": "o1" },
+          { "item_id": "q2/p1", "choice": "o2" }
+        ],
+        "back": {
+          "answers": [
+            { "question_id": "q1", "point_id": "p1", "choice": "Detailed", "note": "Keep it clear" },
+            { "question_id": "q1", "point_id": "p2", "choice": "Yes" },
+            { "question_id": "q2", "point_id": "p1", "choice": "No" }
+          ]
+        }
+      }
+    },
+    {
+      "name": "decision-item-answers", "row": "canonical item_answers (passed through)", "ask": "multi-item-degrades-for-old-app",
+      "reply": {
+        "intent": "decision",
+        "item_answers": [
+          { "item_id": "a", "choice": "a2" },
+          { "item_id": "b", "choices": ["b1", "b3"] },
+          { "item_id": "c", "text": "Ship in two steps" }
+        ]
+      },
+      "expect": {
+        "outcome": "decide",
+        "item_answers": [
+          { "item_id": "a", "choice": "a2" },
+          { "item_id": "b", "choices": ["b1", "b3"] },
+          { "item_id": "c", "text": "Ship in two steps" }
+        ]
+      }
+    },
+    {
+      "name": "decision-reply-only", "row": "decision with a written reply on a reply item", "ask": "reply-only",
+      "reply": { "intent": "decision", "message": "Call it Comb." },
+      "expect": { "outcome": "decide", "item_answers": [{ "item_id": "main", "text": "Call it Comb." }], "back": { "message": "Call it Comb." } }
+    },
+    {
+      "name": "comments-only-on-review", "row": "reply intent decision + message, no pick, ask has options (comments only)", "ask": "review-approve",
+      "reply": { "intent": "decision", "message": "Fix the footer." },
+      "expect": { "outcome": "talk", "item_answers": [], "back": {} }
+    },
+    {
+      "name": "comments-only-on-options", "row": "decision + message, no pick, ask has options", "ask": "question-options",
+      "reply": { "intent": "decision", "message": "Show me the page first." },
+      "expect": { "outcome": "talk", "item_answers": [], "back": {} }
+    },
+    {
+      "name": "message-only-on-questions", "row": "decision + message, no pick, ask has points", "ask": "questions-to-groups",
+      "reply": { "intent": "decision", "message": "Wait, what about mobile?" },
+      "expect": { "outcome": "talk", "item_answers": [], "back": { "answers": [] } }
+    },
+    {
+      "name": "discuss", "row": "reply intent discuss", "ask": "question-options",
+      "reply": { "intent": "discuss", "message": "I lean to a." },
+      "expect": { "outcome": "talk", "item_answers": [], "back": {} }
+    },
+    {
+      "name": "more-detail", "row": "reply intent more_detail", "ask": "question-options",
+      "reply": { "intent": "more_detail", "message": "Explain b." },
+      "expect": { "outcome": "talk", "item_answers": [], "back": {} }
+    }
+  ]
+}

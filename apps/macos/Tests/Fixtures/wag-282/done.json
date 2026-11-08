@@ -1,0 +1,114 @@
+{
+ "case": {
+  "id": "c_a47e2153-5fd1-4d96-91cb-e50200252613",
+  "task_id": "t_9f162951-8c7c-40c3-bca9-d4d214ddd426",
+  "task_name": "WAG-282",
+  "project": "app",
+  "linear_key": null,
+  "kind": "question",
+  "title": "Investor demo: is this the flow to build?",
+  "need": "Review the drawn flow of 25 screens.",
+  "questions": [],
+  "why": "It sets the demo scope.",
+  "recommendation": "a",
+  "recommendation_why": "Fits.",
+  "select": "one",
+  "max": null,
+  "recommendations": [
+   "a"
+  ],
+  "options": [
+   {
+    "id": "a",
+    "label": "Build the flow",
+    "title": "Flow"
+   },
+   {
+    "id": "b",
+    "label": "Build the intake",
+    "title": "Intake"
+   }
+  ],
+  "first_options": [
+   {
+    "id": "a",
+    "label": "Build the flow",
+    "title": "Flow"
+   },
+   {
+    "id": "b",
+    "label": "Build the intake",
+    "title": "Intake"
+   }
+  ],
+  "first_recommendation": "a",
+  "options_updated_at": null,
+  "options_seq": 0,
+  "round_question": null,
+  "latest_reply_from_first_options": false,
+  "status": "waiting_on_agent",
+  "has_artifact": false,
+  "artifact_kind": null,
+  "latest_reply_id": "reply_46410208-57dc-4a4c-a068-dfd3ab857ae6",
+  "latest_reply_state": "queued",
+  "latest_reply_at": "2026-10-07T16:07:39.139Z",
+  "latest_reply_delivered_at": null,
+  "latest_reply_apply_state": null,
+  "latest_reply_choice": "a",
+  "latest_reply_choices": [],
+  "latest_reply_answers": [],
+  "latest_reply_message": null,
+  "latest_reply_intent": "decision",
+  "latest_reply_format": null,
+  "latest_reply_source": "mac",
+  "first_reply_submitted_at": "2026-10-07T16:07:39.139Z",
+  "update_count": 1,
+  "latest_update_at": "2026-10-07T16:07:39.146Z",
+  "latest_update_message": "All shipped.",
+  "revision_count": 0,
+  "latest_revision_at": null,
+  "runtime": "claude",
+  "session_state": null,
+  "dismissed_at": null,
+  "follows_case_id": null,
+  "replaces_case_id": null,
+  "withdrawn_at": null,
+  "done_at": "2026-10-07T16:07:39.146Z",
+  "last_check_at": null,
+  "session_can_nudge": null,
+  "session_client_name": null,
+  "session_ended_at": null,
+  "created_at": "2026-10-07T16:07:39.139Z",
+  "updated_at": "2026-10-07T16:07:39.146Z"
+ },
+ "task": {
+  "id": "t_9f162951-8c7c-40c3-bca9-d4d214ddd426",
+  "name": "WAG-282",
+  "project": "app"
+ },
+ "messages": [
+  {
+   "id": "m_d9026b14-1302-4b01-b1d9-8cd0017e065c",
+   "case_id": "c_a47e2153-5fd1-4d96-91cb-e50200252613",
+   "role": "agent",
+   "text": "All shipped.",
+   "created_at": "2026-10-07T16:07:39.146Z"
+  }
+ ],
+ "revisions": [],
+ "comments": [],
+ "replies": [
+  {
+   "id": "reply_46410208-57dc-4a4c-a068-dfd3ab857ae6",
+   "case_id": "c_a47e2153-5fd1-4d96-91cb-e50200252613",
+   "idempotency_key": "k1",
+   "choice": "a",
+   "comments": [],
+   "captures": [],
+   "intent": "decision",
+   "source": "mac",
+   "state": "queued",
+   "created_at": "2026-10-07T16:07:39.139Z"
+  }
+ ]
+}

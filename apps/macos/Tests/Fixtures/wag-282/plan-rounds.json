@@ -1,0 +1,188 @@
+{
+ "case": {
+  "id": "c_5f0753f7-79a6-480b-9dbd-79f9f3c7eb4f",
+  "task_id": "t_e9f9365d-ef01-4658-8963-38caef4ac9b5",
+  "task_name": "WAG-282",
+  "project": "app",
+  "linear_key": null,
+  "kind": "question",
+  "title": "Investor demo: is this the flow to build?",
+  "need": "Review the drawn flow of 25 screens.",
+  "questions": [],
+  "why": "It sets the demo scope.",
+  "recommendation": "x",
+  "recommendation_why": "",
+  "select": "one",
+  "max": null,
+  "recommendations": [
+   "x"
+  ],
+  "options": [
+   {
+    "id": "x",
+    "label": "Approach X in full",
+    "title": "Approach X"
+   }
+  ],
+  "first_options": [
+   {
+    "id": "a",
+    "label": "Build the flow",
+    "title": "Flow"
+   },
+   {
+    "id": "b",
+    "label": "Build the intake",
+    "title": "Intake"
+   }
+  ],
+  "first_recommendation": "a",
+  "options_updated_at": "2026-10-07T16:07:39.130Z",
+  "options_seq": 1,
+  "round_question": "Where does the intake go in the demo?\n\nIt sits after the sign-in screen.\n\nPick one.",
+  "latest_reply_from_first_options": true,
+  "status": "needs_you",
+  "has_artifact": true,
+  "artifact_kind": "markdown",
+  "latest_reply_id": "reply_1118b033-4e92-43ea-995f-52d1edfaa775",
+  "latest_reply_state": "queued",
+  "latest_reply_at": "2026-10-07T16:07:39.124Z",
+  "latest_reply_delivered_at": null,
+  "latest_reply_apply_state": null,
+  "latest_reply_choice": "a",
+  "latest_reply_choices": [],
+  "latest_reply_answers": [],
+  "latest_reply_message": null,
+  "latest_reply_intent": "decision",
+  "latest_reply_format": null,
+  "latest_reply_source": "mac",
+  "first_reply_submitted_at": "2026-10-07T16:07:39.124Z",
+  "update_count": 1,
+  "latest_update_at": "2026-10-07T16:07:39.130Z",
+  "latest_update_message": "Where does the intake go in the demo?\n\nIt sits after the sign-in screen.\n\nPick one.",
+  "revision_count": 2,
+  "latest_revision_at": "2026-10-07T16:07:39.131Z",
+  "runtime": "claude",
+  "session_state": null,
+  "dismissed_at": null,
+  "follows_case_id": null,
+  "replaces_case_id": null,
+  "withdrawn_at": null,
+  "done_at": null,
+  "last_check_at": null,
+  "session_can_nudge": null,
+  "session_client_name": null,
+  "session_ended_at": null,
+  "created_at": "2026-10-07T16:07:39.123Z",
+  "updated_at": "2026-10-07T16:07:39.130Z",
+  "plan": {
+   "stage": {
+    "name": "approaches"
+   },
+   "rounds": 2,
+   "answered": 1,
+   "artifact_kind": "markdown"
+  }
+ },
+ "task": {
+  "id": "t_e9f9365d-ef01-4658-8963-38caef4ac9b5",
+  "name": "WAG-282",
+  "project": "app"
+ },
+ "messages": [
+  {
+   "id": "m_15d3dac1-6193-4f97-823d-53ec15d7d849",
+   "case_id": "c_5f0753f7-79a6-480b-9dbd-79f9f3c7eb4f",
+   "role": "agent",
+   "text": "Where does the intake go in the demo?\n\nIt sits after the sign-in screen.\n\nPick one.",
+   "created_at": "2026-10-07T16:07:39.130Z"
+  }
+ ],
+ "revisions": [
+  {
+   "id": "r_ac8befa4-0198-4bdc-94f6-2bcc9a319588",
+   "case_id": "c_5f0753f7-79a6-480b-9dbd-79f9f3c7eb4f",
+   "n": 1,
+   "created_at": "2026-10-07T16:07:39.124Z",
+   "author": "agent",
+   "kind": "markdown"
+  },
+  {
+   "id": "r_694db8ad-97c3-4720-87fb-d290d20c3cea",
+   "case_id": "c_5f0753f7-79a6-480b-9dbd-79f9f3c7eb4f",
+   "n": 2,
+   "created_at": "2026-10-07T16:07:39.131Z",
+   "author": "agent",
+   "kind": "markdown"
+  }
+ ],
+ "comments": [],
+ "replies": [
+  {
+   "id": "reply_1118b033-4e92-43ea-995f-52d1edfaa775",
+   "case_id": "c_5f0753f7-79a6-480b-9dbd-79f9f3c7eb4f",
+   "idempotency_key": "k1",
+   "choice": "a",
+   "comments": [],
+   "captures": [],
+   "intent": "decision",
+   "source": "mac",
+   "state": "queued",
+   "created_at": "2026-10-07T16:07:39.124Z"
+  }
+ ],
+ "plan_rounds": [
+  {
+   "seq": 0,
+   "stage": {
+    "name": "questions",
+    "step": 1,
+    "total": 3
+   },
+   "question": "Review the drawn flow of 25 screens.",
+   "options": [
+    {
+     "id": "a",
+     "label": "Build the flow",
+     "title": "Flow"
+    },
+    {
+     "id": "b",
+     "label": "Build the intake",
+     "title": "Intake"
+    }
+   ],
+   "recommendation": "a",
+   "recommendation_why": "Fits.",
+   "created_at": "2026-10-07T16:07:39.123Z",
+   "revision": 1,
+   "own_artifact": true,
+   "artifact_kind": "markdown",
+   "answer": {
+    "choice": "a",
+    "created_at": "2026-10-07T16:07:39.124Z"
+   }
+  },
+  {
+   "seq": 1,
+   "stage": {
+    "name": "approaches"
+   },
+   "question": "Where does the intake go in the demo?\n\nIt sits after the sign-in screen.\n\nPick one.",
+   "options": [
+    {
+     "id": "x",
+     "label": "Approach X in full",
+     "title": "Approach X"
+    }
+   ],
+   "recommendation": "x",
+   "recommendation_why": "",
+   "created_at": "2026-10-07T16:07:39.130Z",
+   "revision": 2,
+   "own_artifact": true,
+   "artifact_kind": "markdown",
+   "answer": null
+  }
+ ]
+}

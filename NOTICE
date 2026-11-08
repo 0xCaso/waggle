@@ -1,0 +1,18 @@
+Waggle
+Copyright 2026 Simone Staffa and the Waggle contributors
+
+This product includes software developed as part of Waggle (https://waggle.so).
+
+This product bundles third-party software and fonts under their own licenses:
+
+- Mermaid (MIT), Copyright (c) 2014 - 2022 Knut Sveidqvist.
+  apps/macos/Sources/Knock/Resources/Mermaid/LICENSE.txt
+- Inter Tight (SIL Open Font License 1.1), Copyright 2022 The Inter Project Authors.
+  apps/macos/Sources/Knock/Resources/Fonts/InterTight/OFL.txt
+- JetBrains Mono (SIL Open Font License 1.1).
+  apps/macos/Sources/Knock/Resources/Fonts/JetBrainsMono/OFL.txt
+- diagram-design skill (MIT), Copyright (c) 2025 Cathryn Lavery.
+  plugins/claude-code/waggle/skills/waggle-diagram/LICENSE-diagram-design
+- make-interfaces-feel-better skill (MIT), Copyright (c) 2026 Jakub Krehel.
+  plugins/claude-code/waggle/skills/waggle-prototype/LICENSE-make-interfaces-feel-better
+- Sparkle (MIT), linked through Swift Package Manager.

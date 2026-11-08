@@ -1,0 +1,9 @@
+{
+  "mcpServers": {
+    "waggle": {
+      "command": "${CLAUDE_PLUGIN_ROOT}/bin/waggle-launcher",
+      "args": ["mcp"],
+      "env": { "KNOCK_RUNTIME": "claude" }
+    }
+  }
+}

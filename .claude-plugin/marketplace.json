@@ -1,0 +1,16 @@
+{
+  "name": "waggle",
+  "owner": { "name": "Waggle" },
+  "metadata": {
+    "description": "Waggle for Claude Code: ask the human for decisions and reviews in the Waggle Mac app."
+  },
+  "plugins": [
+    {
+      "name": "waggle",
+      "source": "./plugins/claude-code/waggle",
+      "description": "Waggle's MCP server and request guidance for Claude Code, plus a mod that shows Waggle status above the prompt and gives Waggle exact live session state and Nudge.",
+      "version": "0.4.0",
+      "category": "productivity"
+    }
+  ]
+}

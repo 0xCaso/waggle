@@ -1,0 +1,39 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Pricing card</title>
+    <link rel="stylesheet" href="style.css" />
+  </head>
+  <body>
+    <main class="layouts">
+      <section class="card" id="card-a" data-layout="a">
+        <div class="head">
+          <span class="label">A · Compact</span>
+          <span class="tag">Recommended</span>
+        </div>
+        <p class="plan">Pro</p>
+        <p class="price">$12<span>/mo</span></p>
+        <button type="button" class="cta">Choose Pro</button>
+      </section>
+
+      <section class="card wide" id="card-b" data-layout="b">
+        <div class="head">
+          <span class="label">B · Detailed</span>
+        </div>
+        <p class="plan">Pro</p>
+        <p class="price">$12<span>/mo</span></p>
+        <ul class="features">
+          <li>Unlimited projects</li>
+          <li>Priority support</li>
+        </ul>
+        <button type="button" class="cta">Choose Pro</button>
+      </section>
+    </main>
+
+    <p class="note" id="note">A local prototype for artifact staging tests.</p>
+
+    <script src="app.js"></script>
+  </body>
+</html>

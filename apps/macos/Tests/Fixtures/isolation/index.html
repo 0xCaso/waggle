@@ -1,0 +1,96 @@
+<!doctype html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>isolation-pending</title>
+</head>
+<body>
+<script>
+// Isolation self-check fixture. Tries every escape the isolation rules must
+// block, then reports the result
+// via the page title only - the app never adds a script message handler,
+// so the title is the one channel this page has back to the test.
+(async () => {
+  const results = {};
+
+  async function tryFetch(url, key) {
+    try {
+      await fetch(url, { mode: "no-cors" });
+      results[key] = "leaked";
+    } catch (e) {
+      results[key] = "blocked";
+    }
+  }
+
+  function tryImage(url, key) {
+    return new Promise((resolve) => {
+      const img = new Image();
+      const timer = setTimeout(() => { results[key] = "blocked"; resolve(); }, 2000);
+      img.onload = () => { clearTimeout(timer); results[key] = "leaked"; resolve(); };
+      img.onerror = () => { clearTimeout(timer); results[key] = "blocked"; resolve(); };
+      img.src = url;
+    });
+  }
+
+  function tryIframe(url, key) {
+    return new Promise((resolve) => {
+      let settled = false;
+      const frame = document.createElement("iframe");
+      frame.style.display = "none";
+      const timer = setTimeout(() => {
+        if (settled) return;
+        settled = true;
+        results[key] = "blocked";
+        resolve();
+      }, 2000);
+      frame.onload = () => {
+        if (settled) return;
+        settled = true;
+        clearTimeout(timer);
+        try {
+          const text = frame.contentDocument && frame.contentDocument.body
+            ? frame.contentDocument.body.textContent
+            : "";
+          results[key] = text && text.length > 0 ? "leaked" : "blocked";
+        } catch (e) {
+          results[key] = "blocked";
+        }
+        resolve();
+      };
+      frame.onerror = () => {
+        if (settled) return;
+        settled = true;
+        clearTimeout(timer);
+        results[key] = "blocked";
+        resolve();
+      };
+      frame.src = url;
+      document.body.appendChild(frame);
+    });
+  }
+
+  function tryBridge(key) {
+    try {
+      const handlers = window.webkit && window.webkit.messageHandlers
+        ? Object.keys(window.webkit.messageHandlers)
+        : [];
+      results[key] = handlers.length === 0 ? "blocked" : "leaked:" + handlers.join(",");
+    } catch (e) {
+      results[key] = "blocked";
+    }
+  }
+
+  await tryFetch("https://example.com/", "fetchRemoteHttps");
+  await tryImage("http://example.com/favicon.ico", "imageHttp");
+  await tryFetch("file:///etc/hosts", "fetchLocalFile");
+  await tryIframe("file:///etc/hosts", "iframeLocalFile");
+  tryBridge("scriptMessageBridge");
+
+  const leaked = Object.entries(results)
+    .filter(([, v]) => v.startsWith("leaked"))
+    .map(([k]) => k);
+  document.title = leaked.length === 0 ? "ISOLATION_OK" : "ISOLATION_FAIL:" + leaked.join(",");
+})();
+</script>
+</body>
+</html>

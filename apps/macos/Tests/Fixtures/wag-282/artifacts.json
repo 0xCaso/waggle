@@ -1,0 +1,149 @@
+{
+ "case": {
+  "id": "c_c261c94a-c932-4d44-9b4b-3d814582d605",
+  "task_id": "t_8024d56f-d9a8-495c-87f9-9b6e7096beff",
+  "task_name": "WAG-282",
+  "project": "app",
+  "linear_key": null,
+  "kind": "question",
+  "title": "Investor demo: is this the flow to build?",
+  "need": "Review the drawn flow of 25 screens.",
+  "questions": [],
+  "why": "It sets the demo scope.",
+  "recommendation": "a",
+  "recommendation_why": "Fits.",
+  "select": "one",
+  "max": null,
+  "recommendations": [
+   "a"
+  ],
+  "options": [
+   {
+    "id": "a",
+    "label": "Build the flow",
+    "title": "Flow"
+   },
+   {
+    "id": "b",
+    "label": "Build the intake",
+    "title": "Intake"
+   }
+  ],
+  "first_options": [
+   {
+    "id": "a",
+    "label": "Build the flow",
+    "title": "Flow"
+   },
+   {
+    "id": "b",
+    "label": "Build the intake",
+    "title": "Intake"
+   }
+  ],
+  "first_recommendation": "a",
+  "options_updated_at": null,
+  "options_seq": 0,
+  "round_question": null,
+  "latest_reply_from_first_options": false,
+  "status": "needs_you",
+  "has_artifact": true,
+  "artifact_kind": "markdown",
+  "latest_reply_id": "reply_ac33581a-b4fc-4d74-b17f-e9b961039807",
+  "latest_reply_state": "queued",
+  "latest_reply_at": "2026-10-07T16:07:39.089Z",
+  "latest_reply_delivered_at": null,
+  "latest_reply_apply_state": null,
+  "latest_reply_choice": "a",
+  "latest_reply_choices": [],
+  "latest_reply_answers": [],
+  "latest_reply_message": null,
+  "latest_reply_intent": "decision",
+  "latest_reply_format": null,
+  "latest_reply_source": "mac",
+  "first_reply_submitted_at": "2026-10-07T16:07:39.089Z",
+  "update_count": 2,
+  "latest_update_at": "2026-10-07T16:07:39.097Z",
+  "latest_update_message": "Plus a spec.",
+  "revision_count": 3,
+  "latest_revision_at": "2026-10-07T16:07:39.097Z",
+  "runtime": "claude",
+  "session_state": null,
+  "dismissed_at": null,
+  "follows_case_id": null,
+  "replaces_case_id": null,
+  "withdrawn_at": null,
+  "done_at": null,
+  "last_check_at": null,
+  "session_can_nudge": null,
+  "session_client_name": null,
+  "session_ended_at": null,
+  "created_at": "2026-10-07T16:07:39.088Z",
+  "updated_at": "2026-10-07T16:07:39.097Z"
+ },
+ "task": {
+  "id": "t_8024d56f-d9a8-495c-87f9-9b6e7096beff",
+  "name": "WAG-282",
+  "project": "app"
+ },
+ "messages": [
+  {
+   "id": "m_bf1001db-16f2-401e-a504-db0556f5fce1",
+   "case_id": "c_c261c94a-c932-4d44-9b4b-3d814582d605",
+   "role": "agent",
+   "text": "Flow v2.",
+   "created_at": "2026-10-07T16:07:39.096Z"
+  },
+  {
+   "id": "m_fca0810b-07ab-414a-8d14-29e8a0b2a02b",
+   "case_id": "c_c261c94a-c932-4d44-9b4b-3d814582d605",
+   "role": "agent",
+   "text": "Plus a spec.",
+   "created_at": "2026-10-07T16:07:39.097Z"
+  }
+ ],
+ "revisions": [
+  {
+   "id": "r_22afb373-cb64-43f7-911d-ebd180c9d33a",
+   "case_id": "c_c261c94a-c932-4d44-9b4b-3d814582d605",
+   "n": 1,
+   "created_at": "2026-10-07T16:07:39.089Z",
+   "author": "agent",
+   "kind": "markdown",
+   "name": "Flow"
+  },
+  {
+   "id": "r_fd1556fb-7246-440a-afae-0198006cb87f",
+   "case_id": "c_c261c94a-c932-4d44-9b4b-3d814582d605",
+   "n": 2,
+   "created_at": "2026-10-07T16:07:39.096Z",
+   "author": "agent",
+   "kind": "markdown",
+   "name": "Flow"
+  },
+  {
+   "id": "r_f4fed62d-a9db-478f-9d78-02c941db5a97",
+   "case_id": "c_c261c94a-c932-4d44-9b4b-3d814582d605",
+   "n": 3,
+   "created_at": "2026-10-07T16:07:39.097Z",
+   "author": "agent",
+   "kind": "markdown",
+   "name": "Spec"
+  }
+ ],
+ "comments": [],
+ "replies": [
+  {
+   "id": "reply_ac33581a-b4fc-4d74-b17f-e9b961039807",
+   "case_id": "c_c261c94a-c932-4d44-9b4b-3d814582d605",
+   "idempotency_key": "k1",
+   "choice": "a",
+   "comments": [],
+   "captures": [],
+   "intent": "decision",
+   "source": "mac",
+   "state": "queued",
+   "created_at": "2026-10-07T16:07:39.089Z"
+  }
+ ]
+}

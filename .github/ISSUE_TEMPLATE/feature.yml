@@ -1,0 +1,21 @@
+name: Idea
+description: Suggest a change or a new feature.
+labels: [idea]
+body:
+  - type: textarea
+    id: problem
+    attributes:
+      label: The problem
+      description: What do you want to do, and what stops you now?
+    validations:
+      required: true
+  - type: textarea
+    id: idea
+    attributes:
+      label: Your idea
+  - type: checkboxes
+    id: network
+    attributes:
+      label: Network
+      options:
+        - label: This idea needs a new network call (see SECURITY.md, Network).

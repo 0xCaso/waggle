@@ -1,0 +1,7 @@
+# Secret scan config (CI job "secrets"). The default rules, plus one allowlist for fake test tokens.
+[extend]
+useDefault = true
+
+[allowlist]
+description = "Fake tokens in tests"
+regexes = ['''tok[-_]SECRET[-_]0123456789''']

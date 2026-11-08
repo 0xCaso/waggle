@@ -1,0 +1,339 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Waggle</title>
+<link rel="icon" href="/favicon.svg" type="image/svg+xml">
+<link rel="icon" href="/favicon-32.png" sizes="32x32" type="image/png">
+<link rel="apple-touch-icon" href="/apple-touch-icon.png">
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="Waggle">
+<meta property="og:title" content="Waggle">
+<meta property="og:description" content="One inbox for every agent. Your agents ask, you decide, they keep going.">
+<meta property="og:url" content="https://waggle.so/">
+<meta property="og:image" content="https://waggle.so/og.png">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="Waggle">
+<meta name="twitter:description" content="One inbox for every agent. Your agents ask, you decide, they keep going.">
+<meta name="twitter:image" content="https://waggle.so/og.png">
+<meta name="description" content="One inbox for every agent. Your agents ask, you decide, they keep going.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter+Tight:ital,wght@0,400;0,500;0,600;1,400;1,500&display=swap" rel="stylesheet">
+<style>
+:root{--ink:#16181A;--ink2:#4A4C50;--mute:#6B6B6B;--line:#E6E6E6;--list:#FAFAFA;--side:#F3F3F3;--bg:#fff;
+--h3:#F9C846;--h5:#F2B01E;--h6:#E89A0C;--hsoft:#FDF4DA;--red:#E0352B;--green:#18A058;--gsoft:#E3F5EA;--blue:#2B59F0;--bsoft:#F2F5FE;
+--ease:cubic-bezier(0.23,1,0.32,1);--font:"Inter Tight",Inter,system-ui,-apple-system,"Helvetica Neue",sans-serif}
+*{box-sizing:border-box}
+html{-webkit-text-size-adjust:100%}
+body{margin:0;background:var(--bg);color:var(--ink);font:400 17px/1.6 var(--font);-webkit-font-smoothing:antialiased;overflow-x:hidden}
+a{color:inherit}
+.page{max-width:1120px;margin:0 auto;padding:0 24px}
+@media (max-width:600px){.page{padding:0 16px}}
+
+/* header */
+.top{display:flex;justify-content:space-between;align-items:center;padding:28px 0}
+.logo{display:inline-flex;align-items:center;gap:7px;color:var(--ink);text-decoration:none;font-size:19px;font-weight:500;letter-spacing:-0.035em;line-height:1}
+.gh{color:var(--mute);text-decoration:none;font-size:15px;display:inline-flex;align-items:center;gap:6px;transition:color 150ms ease;padding:8px 0}
+.gh svg{width:16px;height:16px}
+@media (hover:hover){.gh:hover{color:var(--ink)}}
+
+/* hero copy */
+.hero{text-align:center;padding:40px 0 44px}
+.eyebrow{display:inline-flex;align-items:center;gap:8px;font-size:13.5px;color:var(--ink2);background:var(--side);border-radius:999px;padding:5px 12px 5px 10px;margin-bottom:22px}
+.eyebrow i{width:7px;height:7px;border-radius:50%;background:var(--red);display:block}
+h1{font-size:clamp(38px,5.6vw,64px);font-weight:500;line-height:1.03;letter-spacing:-0.04em;margin:0 auto 18px;max-width:12em;text-wrap:balance}
+.sub{font-size:clamp(18px,1.6vw,20px);line-height:1.45;letter-spacing:-0.01em;color:var(--mute);margin:0 auto 30px;max-width:30em;text-wrap:pretty}
+.cta{display:flex;gap:12px;justify-content:center;flex-wrap:wrap}
+.dl{display:inline-flex;align-items:center;height:50px;gap:10px;background:var(--ink);color:#fff;text-decoration:none;border-radius:12px;padding:0 20px 0 17px;font-weight:500;font-size:16px;transition:transform 150ms var(--ease),box-shadow 150ms var(--ease)}
+.dl svg{width:17px;height:17px;margin-top:-2px}
+.dl2{display:inline-flex;align-items:center;justify-content:center;height:50px;gap:9px;background:#fff;color:var(--ink);border:1px solid var(--line);border-radius:12px;padding:0 18px 0 15px;font:500 16px var(--font);cursor:pointer;transition:border-color 150ms ease,transform 150ms var(--ease)}
+.dl2 svg{width:16px;height:16px}
+@media (hover:hover){.dl:hover{transform:translateY(-1px);box-shadow:0 8px 24px rgba(22,24,26,.18)}.dl2:hover{border-color:var(--ink)}}
+.dl:active,.dl2:active{transform:scale(0.97)}
+.meta{font-size:14px;color:var(--mute);margin-top:14px}
+
+/* window mock */
+.stagewrap{position:relative;margin:0 auto 24px;max-width:1040px}
+.win{background:#fff;border-radius:14px;box-shadow:0 0 0 1px rgba(0,0,0,.08),0 30px 80px -30px rgba(22,24,26,.35),0 8px 20px -10px rgba(22,24,26,.12);overflow:hidden;position:relative}
+.bar{height:40px;display:flex;align-items:center;gap:8px;padding:0 14px;border-bottom:1px solid var(--line);background:#fcfcfc}
+.bar i{width:11px;height:11px;border-radius:50%;background:#e2e2e2;display:block}
+.bar span{margin-left:10px;font-size:13px;color:var(--mute);font-weight:500}
+.body{display:grid;grid-template-columns:300px 1fr;height:470px}
+.side{background:var(--side);border-right:1px solid var(--line);padding:14px 10px;display:flex;flex-direction:column;gap:2px;overflow:hidden}
+.sh{display:flex;align-items:center;justify-content:space-between;padding:4px 8px 8px;font-size:13px;font-weight:600;color:var(--ink)}
+.count{font-variant-numeric:tabular-nums;min-width:20px;height:20px;border-radius:999px;background:var(--red);color:#fff;font-size:11.5px;display:grid;place-items:center;padding:0 6px;transition:transform 200ms var(--ease)}
+.count.bump{transform:scale(1.15)}
+.rows{display:flex;flex-direction:column;gap:2px}
+.row{display:grid;grid-template-columns:10px 1fr;gap:10px;align-items:start;border-radius:10px;padding:9px 10px;cursor:pointer;transition:background 150ms ease;overflow:hidden}
+.row .d{width:8px;height:8px;border-radius:50%;background:var(--red);margin-top:6px;position:relative}
+.row .t{font-size:13.5px;font-weight:500;line-height:1.35;letter-spacing:-0.005em;color:var(--ink)}
+.row .m{font-size:12px;color:var(--mute);margin-top:2px}
+.row.sel{background:#fff;box-shadow:0 0 0 1px var(--line),0 1px 2px rgba(0,0,0,.04)}
+.row.new{animation:rowIn 360ms var(--ease) both}
+.row.out{transition:opacity 220ms ease-out,max-height 260ms var(--ease) 80ms,padding 260ms var(--ease) 80ms;opacity:0;max-height:0!important;padding-top:0;padding-bottom:0}
+.row .d.ring::after{content:"";position:absolute;inset:-4px;border-radius:50%;border:1.5px solid var(--red);animation:ring 1.4s ease-out infinite}
+@keyframes rowIn{from{opacity:0;transform:translateY(-8px)}to{opacity:1;transform:none}}
+@keyframes ring{from{transform:scale(.6);opacity:.9}to{transform:scale(1.8);opacity:0}}
+.quiet{margin-top:auto;padding:10px 10px 4px;font-size:12.5px;color:var(--mute);border-top:1px solid var(--line);display:flex;gap:6px;align-items:center}
+.quiet b{font-weight:500;color:var(--ink2);font-variant-numeric:tabular-nums}
+.quiet .gd{width:7px;height:7px;border-radius:50%;background:var(--green)}
+
+.pane{position:relative;background:var(--list);overflow:hidden}
+.req{position:absolute;inset:0;padding:26px 30px;transition:opacity 220ms ease-out,transform 220ms var(--ease)}
+.req.hide{opacity:0;transform:translateY(6px);pointer-events:none}
+.who{display:flex;align-items:center;gap:8px;font-size:12.5px;color:var(--mute);margin-bottom:8px}
+.av{width:20px;height:20px;border-radius:6px;display:grid;place-items:center;font-size:10.5px;font-weight:600;color:#fff;background:#d97757}
+.av.cx{background:var(--ink)}
+.req h2{font-size:24px;font-weight:600;letter-spacing:-0.03em;line-height:1.2;margin:0 0 14px;text-wrap:balance}
+.need{display:grid;grid-template-columns:auto 1fr;gap:4px 14px;font-size:13.5px;line-height:1.5;color:var(--ink2);margin-bottom:16px}
+.need dt{font-weight:600;color:var(--ink);font-size:12.5px;padding-top:1px}
+.need dd{margin:0}
+.opts{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.opt{position:relative;background:#fff;border-radius:16px;padding:14px 14px 12px;box-shadow:0 0 0 1px var(--line);cursor:pointer;transition:box-shadow 150ms ease,background 150ms ease}
+.opt .ot{font-size:14.5px;font-weight:600;letter-spacing:-0.01em;margin-bottom:6px;padding-right:22px}
+.opt ul{list-style:none;margin:0;padding:0;font-size:12.5px;line-height:1.5;color:var(--ink2)}
+.opt li::before{content:"+ ";color:var(--green);font-weight:600}
+.opt li.c::before{content:"− ";color:var(--red)}
+.rec{display:inline-flex;align-items:center;gap:4px;font-size:11px;font-weight:600;color:#9a6a00;background:var(--hsoft);border-radius:999px;padding:2px 8px;margin-bottom:8px}
+.rec::before{content:"";width:6px;height:6px;background:var(--h5);transform:rotate(45deg)}
+.opt .ck{position:absolute;right:12px;top:12px;width:18px;height:18px;border-radius:50%;box-shadow:inset 0 0 0 1.5px #d6d6d6;display:grid;place-items:center;transition:background 150ms ease,box-shadow 150ms ease}
+.opt .ck svg{width:10px;height:10px;opacity:0;transform:scale(.25);filter:blur(4px);transition:opacity 200ms cubic-bezier(0.2,0,0,1),transform 200ms cubic-bezier(0.2,0,0,1),filter 200ms cubic-bezier(0.2,0,0,1)}
+.opt.on{background:var(--hsoft);box-shadow:0 0 0 2px var(--h5)}
+.opt.on .ck{background:var(--h5);box-shadow:none}
+.opt.on .ck svg{opacity:1;transform:none;filter:none}
+.answer{display:flex;gap:10px;align-items:center;margin-top:14px}
+.note{flex:1;height:40px;border-radius:12px;background:#fff;box-shadow:0 0 0 1px var(--line);display:flex;align-items:center;padding:0 12px;font-size:13px;color:#9a9a9a;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0}
+.send{height:40px;border-radius:12px;background:var(--ink);color:#fff;font-size:13.5px;font-weight:500;padding:0 16px;display:flex;align-items:center;white-space:nowrap;transition:transform 120ms var(--ease),opacity 150ms ease;opacity:.4}
+.send.ready{opacity:1}
+.send.press{transform:scale(0.97)}
+.proto{height:118px;border-radius:12px;background:#fff;box-shadow:0 0 0 1px var(--line);margin-bottom:12px;display:grid;grid-template-columns:1fr 1fr;gap:10px;padding:10px;position:relative}
+.proto div{border-radius:8px;background:var(--side);padding:10px;display:flex;flex-direction:column;gap:6px}
+.proto div b{display:block;height:8px;border-radius:4px;background:#e1e1e1}
+.proto div b:nth-child(1){width:50%;height:10px;background:#d4d4d4}
+.proto div b:nth-child(3){width:70%}
+.proto div.h{background:var(--hsoft)}
+.pin{position:absolute;width:20px;height:20px;border-radius:50% 50% 50% 0;background:var(--red);color:#fff;font-size:10.5px;font-weight:600;display:grid;place-items:center;box-shadow:0 2px 6px rgba(224,53,43,.35)}
+.sent{position:absolute;inset:0;display:grid;place-items:center;text-align:center;padding:30px}
+.sent .ok{width:44px;height:44px;border-radius:50%;background:var(--gsoft);display:grid;place-items:center;margin:0 auto 12px}
+.sent .ok svg{width:20px;height:20px}
+.sent b{display:block;font-size:17px;font-weight:600;letter-spacing:-0.02em}
+.sent span{font-size:13.5px;color:var(--mute)}
+
+/* agent session card */
+.agent{position:absolute;right:-28px;bottom:-44px;width:330px;background:#1b1d20;color:#e8e8e8;border-radius:14px;padding:12px 14px 14px;box-shadow:0 24px 50px -20px rgba(0,0,0,.45);font-size:13px;line-height:1.5;z-index:3}
+.agent .ah{display:flex;align-items:center;gap:7px;font-size:12px;color:#9a9ca0;margin-bottom:8px}
+.agent .ah i{width:8px;height:8px;border-radius:50%;background:#d97757;display:block}
+.line{display:flex;gap:9px;align-items:flex-start;min-height:20px;transition:opacity 200ms ease-out}
+.st{flex:none;width:8px;height:8px;border-radius:50%;margin-top:7px;position:relative;background:var(--blue)}
+.st.work::after{content:"";position:absolute;inset:-4px;border-radius:50%;border:1.5px solid var(--blue);animation:ring 1.4s ease-out infinite}
+.st.wait{background:var(--h5)}
+.st.wait::after{content:"";position:absolute;inset:-4px;border-radius:50%;border:1.5px solid var(--h5);animation:ring 1.4s ease-out infinite}
+.st.done{background:var(--green)}
+.agent .you{color:#9a9ca0;margin-bottom:6px}
+.agent .you b{color:#e8e8e8;font-weight:500}
+
+.cursor{position:absolute;width:18px;height:22px;z-index:5;pointer-events:none;opacity:0;transition:left 700ms var(--ease),top 700ms var(--ease),opacity 200ms ease}
+.cursor svg{width:18px;height:22px;display:block}
+
+/* sections */
+section{padding:96px 0 0}
+.lab{font-size:13px;font-weight:600;color:var(--h6);letter-spacing:.02em;margin:0 0 10px}
+h3.big{font-size:clamp(28px,3.2vw,38px);font-weight:500;letter-spacing:-0.035em;line-height:1.1;margin:0 0 36px;max-width:18em;text-wrap:balance}
+.steps{display:grid;grid-template-columns:repeat(3,1fr);gap:16px}
+.step{background:var(--list);border-radius:16px;padding:22px 22px 24px}
+.step .n{width:30px;height:33px;position:relative;display:grid;place-items:center;font-weight:600;font-size:14px;margin-bottom:14px}
+.step .n svg{position:absolute;inset:0}
+.step .n span{position:relative}
+.step h4{font-size:18px;font-weight:600;letter-spacing:-0.02em;margin:0 0 6px}
+.step p{margin:0;font-size:15px;line-height:1.55;color:var(--ink2);text-wrap:pretty}
+.agents{display:flex;gap:8px;flex-wrap:wrap;margin-top:22px;align-items:center;font-size:14px;color:var(--mute)}
+.agents span{font-size:13.5px;border:1px solid var(--line);border-radius:999px;padding:4px 11px;color:var(--ink2)}
+
+.trust{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+.card{border-radius:16px;padding:24px;box-shadow:0 0 0 1px var(--line)}
+.card .ic{width:36px;height:36px;border-radius:10px;background:var(--hsoft);display:grid;place-items:center;margin-bottom:14px}
+.card .ic svg{width:18px;height:18px}
+.card h4{font-size:18px;font-weight:600;letter-spacing:-0.02em;margin:0 0 6px}
+.card p{margin:0;font-size:15px;line-height:1.55;color:var(--ink2);text-wrap:pretty}
+.card a{font-weight:500}
+
+.essay{display:flex;justify-content:space-between;align-items:center;gap:24px;background:var(--hsoft);border-radius:20px;padding:30px 32px;text-decoration:none;color:var(--ink);transition:background 150ms ease}
+.essay q{quotes:none;font-size:clamp(20px,2vw,26px);font-weight:500;letter-spacing:-0.03em;line-height:1.2;max-width:24em;display:block;text-wrap:balance}
+.essay q .dim{color:#8f8a7a}
+.essay .go{flex:none;font-weight:500;font-size:15.5px;display:inline-flex;gap:8px;align-items:center;border-bottom:1px solid rgba(0,0,0,.35);padding-bottom:2px}
+.essay .go span{display:inline-block;transition:transform 200ms var(--ease)}
+@media (hover:hover){.essay:hover{background:#FBEEC6}.essay:hover .go span{transform:translateX(3px)}}
+
+.final{text-align:center;padding:110px 0 90px}
+.final h3{font-size:clamp(28px,3.2vw,38px);font-weight:500;letter-spacing:-0.035em;line-height:1.15;margin:0 0 24px;text-wrap:balance}
+
+footer{display:flex;justify-content:space-between;gap:16px;flex-wrap:wrap;font-size:15px;color:var(--mute);padding:24px 0 40px;border-top:1px solid var(--line)}
+
+/* responsive */
+@media (max-width:900px){
+  .agent{right:12px;bottom:-56px;width:300px}
+  .body{grid-template-columns:240px 1fr}
+}
+@media (max-width:760px){
+  .hero{padding:24px 0 36px}
+  .body{grid-template-columns:1fr;height:auto}
+  .side{border-right:0;border-bottom:1px solid var(--line);padding:10px 8px}
+  .quiet{display:none}
+  .pane{height:auto;min-height:340px}
+  .req{position:relative;padding:18px 16px}
+  .req.hide{display:none}
+  .sent{position:absolute}
+  .req h2{font-size:20px}
+  .need{grid-template-columns:1fr;gap:0}
+  .need dd{margin-bottom:6px}
+  .opts{grid-template-columns:1fr}
+  .opt ul li:nth-child(2){display:none}
+  .proto{height:90px}
+  .agent{position:relative;left:auto;right:auto;bottom:auto;width:auto;margin:12px 0 0}
+  .stagewrap{margin-bottom:0}
+  .steps,.trust{grid-template-columns:1fr}
+  section{padding-top:72px}
+  .essay{flex-direction:column;align-items:flex-start;padding:24px}
+  .dl,.dl2{width:100%;justify-content:center}
+  .bar span{display:none}
+}
+@media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
+.still *{transition:none!important}
+</style>
+</head>
+<body>
+<div class="page">
+  <header class="top">
+    <a class="logo" href="/" aria-label="Waggle home"><svg viewBox="0 0 100 100" width="22" height="22" aria-hidden="true"><defs><linearGradient id="lg" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#F9C846"/><stop offset="1" stop-color="#E89A0C"/></linearGradient></defs><path d="M50 0 L93.3 25 L93.3 75 L50 100 L6.7 75 L6.7 25 Z" fill="url(#lg)"/><path d="M27 40 L38 63 L50 43 L62 63 L73 40" fill="none" stroke="#fff" stroke-width="9" stroke-linejoin="round" stroke-linecap="round"/></svg><span>waggle</span></a>
+    <a class="gh" href="https://github.com/waggle-so/waggle"><svg viewBox="0 0 16 16" aria-hidden="true"><path fill="currentColor" d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0016 8c0-4.42-3.58-8-8-8z"/></svg>GitHub</a>
+  </header>
+
+  <div class="hero">
+    <div class="eyebrow"><i></i>A Mac inbox for your coding agents</div>
+    <h1>Your agents ask.<br> You decide in <span style="white-space:nowrap">one place.</span></h1>
+    <p class="sub">Claude Code, Codex, the Claude app and Cowork send their questions and reviews to Waggle. Answer in a click, and the agent picks up where it stopped.</p>
+    <div class="cta">
+      <a class="dl" href="https://github.com/limone-eth/waggle-releases/releases/latest/download/Waggle.dmg"><svg viewBox="0 0 384 512" aria-hidden="true"><path fill="currentColor" d="M318.7 268.7c-.2-36.7 16.4-64.4 50-84.8-18.8-26.9-47.2-41.7-84.7-44.6-35.5-2.8-74.3 20.7-88.5 20.7-15 0-49.4-19.7-76.4-19.7C63.3 141.2 4 184.8 4 273.5q0 39.3 14.4 81.2c12.8 36.7 59 126.7 107.2 125.2 25.2-.6 43-17.9 75.8-17.9 31.8 0 48.3 17.9 76.4 17.9 48.6-.7 90.4-82.5 102.6-119.3-65.2-30.7-61.7-90-61.7-91.9zm-56.6-164.2c27.3-32.4 24.8-61.9 24-72.5-24.1 1.4-52 16.4-67.9 34.9-17.5 19.8-27.8 44.3-25.6 71.9 26.1 2 49.9-11.4 69.5-34.3z"/></svg>Download for Mac</a>
+      <button class="dl2" type="button" data-copy="Install the Waggle Mac app: download https://github.com/limone-eth/waggle-releases/releases/latest/download/Waggle.zip, unzip it into ~/Applications, and open it."><svg viewBox="0 0 16 16" aria-hidden="true"><rect x="5" y="5" width="9" height="9" rx="2" fill="none" stroke="currentColor" stroke-width="1.5"/><path d="M11 3.5V3a1 1 0 0 0-1-1H3a1 1 0 0 0-1 1v7a1 1 0 0 0 1 1h.5" fill="none" stroke="currentColor" stroke-width="1.5"/></svg><span>Install with your agent</span></button>
+    </div>
+    <div class="meta">Free and open source · macOS 14 or later</div>
+  </div>
+
+  <div class="stagewrap" id="stage" aria-label="Waggle window: a request arrives in Needs you, you pick an option and send it back to the agent">
+    <div class="win">
+      <div class="bar"><i></i><i></i><i></i><span>Waggle</span></div>
+      <div class="body">
+        <aside class="side">
+          <div class="sh">Needs you <span class="count" id="count">2</span></div>
+          <div class="rows" id="rows">
+            <div class="row" data-k="pricing"><span class="d"></span><div><div class="t">Which pricing layout should we ship?</div><div class="m">Claude app · Pricing page · 14 min</div></div></div>
+            <div class="row" data-k="subject"><span class="d"></span><div><div class="t">Which subject line for the launch email?</div><div class="m">Cowork · Launch email · 1 h</div></div></div>
+          </div>
+          <div class="quiet"><span class="gd"></span>Answered today · <b id="answered">6</b></div>
+        </aside>
+        <div class="pane">
+          <div class="req" id="r-pricing">
+            <div class="who"><span class="av">C</span>Claude app · Pricing page · Review</div>
+            <h2>Which pricing layout should we ship?</h2>
+            <div class="proto"><div class="h"><b></b><b></b><b></b></div><div><b></b><b></b><b></b></div><span class="pin" style="left:38%;top:24%">1</span><span class="pin" style="left:82%;top:58%">2</span></div>
+            <dl class="need"><dt>Need</dt><dd>Click through both layouts and pick one. Pin a comment on anything to change.</dd></dl>
+            <div class="opts"><div class="opt"><span class="ck"><svg viewBox="0 0 10 10"><path d="M2 5.2 4.2 7.4 8 3" fill="none" stroke="#16181A" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg></span><div class="rec">Recommended</div><div class="ot">Compact, one column</div></div><div class="opt"><span class="ck"><svg viewBox="0 0 10 10"><path d="M2 5.2 4.2 7.4 8 3" fill="none" stroke="#16181A" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg></span><div class="ot" style="margin-top:28px">Detailed, with a comparison</div></div></div>
+          </div>
+          <div class="req hide" id="r-migr">
+            <div class="who"><span class="av cx">&gt;_</span>Claude Code · Billing service · just now</div>
+            <h2>Run the invoices migration in one step or two?</h2>
+            <dl class="need"><dt>Need</dt><dd>Pick how I run the migration on the invoices table.</dd><dt>Why</dt><dd>The table has 4.1 million rows. One step locks writes for about 5 minutes.</dd></dl>
+            <div class="opts">
+              <div class="opt" id="o1"><span class="ck"><svg viewBox="0 0 10 10"><path d="M2 5.2 4.2 7.4 8 3" fill="none" stroke="#16181A" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg></span><div class="rec">Recommended</div><div class="ot">Two steps, no downtime</div><ul><li>Easy to roll back</li><li class="c">Takes one more day</li></ul></div>
+              <div class="opt"><span class="ck"><svg viewBox="0 0 10 10"><path d="M2 5.2 4.2 7.4 8 3" fill="none" stroke="#16181A" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg></span><div class="ot" style="margin-top:28px">One step, tonight</div><ul><li>Done by tomorrow</li><li class="c">5 minutes of failed checkouts</li></ul></div>
+            </div>
+            <div class="answer"><div class="note">Add a note (optional)</div><div class="send" id="send">Send to Claude Code</div></div>
+          </div>
+          <div class="req hide sent" id="r-sent"><div><div class="ok"><svg viewBox="0 0 20 20"><path d="M5 10.5 8.5 14 15 6.5" fill="none" stroke="#18A058" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg></div><b>Sent to Claude Code</b><span>Two steps, no downtime</span></div></div>
+        </div>
+      </div>
+    </div>
+    <div class="agent" aria-hidden="true">
+      <div class="ah"><i></i>Claude Code · Billing service</div>
+      <div class="you">You: <b>Plan the invoices migration. Check with me before you run it.</b></div>
+      <div class="line" id="al"><span class="st work" id="as"></span><span id="at">Reading the schema and planning the migration…</span></div>
+    </div>
+    <div class="cursor" id="cur" aria-hidden="true"><svg viewBox="0 0 18 22"><path d="M1 1l15 11-7 1-3 7z" fill="#16181A" stroke="#fff" stroke-width="1.2"/></svg></div>
+  </div>
+
+  <section>
+    <p class="lab">How it works</p>
+    <h3 class="big">Keep your agents moving without watching every terminal.</h3>
+    <div class="steps">
+      <div class="step"><div class="n"><svg viewBox="0 0 44 48"><path d="M22 1 L42.8 13 L42.8 35 L22 47 L1.2 35 L1.2 13 Z" fill="#FDF4DA" stroke="#F2B01E" stroke-width="2"/></svg><span>1</span></div><h4>Your agent asks</h4><p>When it hits a real choice, it sends a request: what it needs, why, the options and its pick.</p></div>
+      <div class="step"><div class="n"><svg viewBox="0 0 44 48"><path d="M22 1 L42.8 13 L42.8 35 L22 47 L1.2 35 L1.2 13 Z" fill="#FDF4DA" stroke="#F2B01E" stroke-width="2"/></svg><span>2</span></div><h4>It lands in Needs you</h4><p>One list for every agent and project. For a review, click through the prototype and pin comments on it.</p></div>
+      <div class="step"><div class="n"><svg viewBox="0 0 44 48"><path d="M22 1 L42.8 13 L42.8 35 L22 47 L1.2 35 L1.2 13 Z" fill="#FDF4DA" stroke="#F2B01E" stroke-width="2"/></svg><span>3</span></div><h4>You answer, it keeps going</h4><p>Your answer goes back to the same session. No copy and paste, no hunting for the right tab.</p></div>
+    </div>
+    <div class="agents">Works with <span>Claude Code</span><span>Codex</span><span>Claude app</span><span>Cowork</span></div>
+  </section>
+
+  <section>
+    <div class="trust">
+      <div class="card"><div class="ic"><svg viewBox="0 0 18 18"><rect x="3" y="8" width="12" height="8" rx="2" fill="none" stroke="#16181A" stroke-width="1.5"/><path d="M6 8V6a3 3 0 0 1 6 0v2" fill="none" stroke="#16181A" stroke-width="1.5"/></svg></div><h4>Stays on your Mac</h4><p>Requests, answers and prototypes live on your Mac. No account and no cloud needed to use it.</p></div>
+      <div class="card"><div class="ic"><svg viewBox="0 0 18 18"><path d="M6 5 2.5 9 6 13M12 5l3.5 4L12 13" fill="none" stroke="#16181A" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg></div><h4>Open source</h4><p>Apache 2.0. Read the code, file an issue or send a fix on <a href="https://github.com/waggle-so/waggle">GitHub</a>.</p></div>
+    </div>
+  </section>
+
+  <section>
+    <a class="essay" href="/decision-requests/"><q><span class="dim">Product teams were built around handoffs.</span> What comes next is built around decisions.</q><span class="go">Read the essay <span aria-hidden="true">→</span></span></a>
+  </section>
+
+  <div class="final">
+    <h3>Give your agents somewhere to ask.</h3>
+    <div class="cta"><a class="dl" href="https://github.com/limone-eth/waggle-releases/releases/latest/download/Waggle.dmg"><svg viewBox="0 0 384 512" aria-hidden="true"><path fill="currentColor" d="M318.7 268.7c-.2-36.7 16.4-64.4 50-84.8-18.8-26.9-47.2-41.7-84.7-44.6-35.5-2.8-74.3 20.7-88.5 20.7-15 0-49.4-19.7-76.4-19.7C63.3 141.2 4 184.8 4 273.5q0 39.3 14.4 81.2c12.8 36.7 59 126.7 107.2 125.2 25.2-.6 43-17.9 75.8-17.9 31.8 0 48.3 17.9 76.4 17.9 48.6-.7 90.4-82.5 102.6-119.3-65.2-30.7-61.7-90-61.7-91.9zm-56.6-164.2c27.3-32.4 24.8-61.9 24-72.5-24.1 1.4-52 16.4-67.9 34.9-17.5 19.8-27.8 44.3-25.6 71.9 26.1 2 49.9-11.4 69.5-34.3z"/></svg>Download for Mac</a></div>
+    <div class="meta">macOS 14 or later · <a href="/install/">Setup guide</a></div>
+  </div>
+
+  <footer><span>Waggle · <a href="https://github.com/waggle-so/waggle">Open source</a> · Apache 2.0</span><span><a href="/privacy/">Privacy</a> · <a href="/terms/">Terms</a></span></footer>
+</div>
+<script>
+document.querySelectorAll('.dl2').forEach(b=>b.addEventListener('click',()=>{const l=b.querySelector('span'),o=l.textContent;b.style.width=b.offsetWidth+'px';navigator.clipboard.writeText(b.dataset.copy).then(()=>{l.textContent='Copied';setTimeout(()=>l.textContent=o,2200)}).catch(()=>{});}));
+
+(()=>{
+  const $=id=>document.getElementById(id),stage=$('stage'),rows=$('rows'),cur=$('cur');
+  const still=location.hash==='#still';if(still)document.documentElement.classList.add('still');
+  const reduce=still||matchMedia('(prefers-reduced-motion: reduce)').matches;
+  const sleep=ms=>new Promise(r=>setTimeout(r,ms));
+  const show=id=>['r-pricing','r-migr','r-sent'].forEach(k=>$(k).classList.toggle('hide',k!==id));
+  const agent=(cls,txt)=>{$('as').className='st '+cls;$('at').textContent=txt};
+  const count=n=>{const c=$('count');c.textContent=n;c.classList.add('bump');setTimeout(()=>c.classList.remove('bump'),200)};
+  const moveTo=(el,dx,dy)=>{const s=stage.getBoundingClientRect(),r=el.getBoundingClientRect();cur.style.left=(r.left-s.left+(dx??r.width*.5))+'px';cur.style.top=(r.top-s.top+(dy??r.height*.5))+'px'};
+  const newRow=()=>{const r=document.createElement('div');r.className='row new';r.dataset.k='migr';r.innerHTML='<span class="d ring"></span><div><div class="t">Run the invoices migration in one step or two?</div><div class="m">Claude Code · Billing service · now</div></div>';return r};
+  function reset(){rows.querySelectorAll('[data-k="migr"]').forEach(r=>r.remove());rows.querySelectorAll('.row').forEach(r=>r.classList.remove('sel'));rows.querySelector('[data-k="pricing"]').classList.add('sel');
+    $('o1').classList.remove('on');$('send').classList.remove('ready');show('r-pricing');$('count').textContent='2';$('answered').textContent='6';cur.style.opacity=0;
+    agent('work','Reading the schema and planning the migration…')}
+  if(reduce){reset();const r=newRow();r.classList.remove('new');rows.prepend(r);rows.querySelectorAll('.row').forEach(x=>x.classList.toggle('sel',x===r));$('count').textContent='3';show('r-migr');$('o1').classList.add('on');$('send').classList.add('ready');agent('wait','Asked you in Waggle. Waiting for your answer.');return}
+  let vis=true;new IntersectionObserver(e=>vis=e[0].isIntersecting).observe(stage);
+  async function run(){
+    for(;;){
+      while(!vis||document.hidden)await sleep(300);
+      reset();await sleep(1600);
+      agent('wait','Asked you in Waggle. Waiting for your answer.');
+      const r=newRow();rows.prepend(r);count(3);await sleep(1100);
+      cur.style.transition='none';moveTo(r,r.offsetWidth*.8,r.offsetHeight*1.4);cur.offsetWidth;cur.style.transition='';cur.style.opacity=1;await sleep(60);
+      moveTo(r,r.offsetWidth*.55,r.offsetHeight*.55);await sleep(750);
+      rows.querySelectorAll('.row').forEach(x=>x.classList.toggle('sel',x===r));show('r-migr');await sleep(1100);
+      moveTo($('o1'),$('o1').offsetWidth*.6,$('o1').offsetHeight*.45);await sleep(800);
+      $('o1').classList.add('on');$('send').classList.add('ready');await sleep(900);
+      moveTo($('send'),$('send').offsetWidth*.55,$('send').offsetHeight*.6);await sleep(800);
+      $('send').classList.add('press');await sleep(130);$('send').classList.remove('press');
+      r.style.maxHeight=r.offsetHeight+'px';r.offsetWidth;r.classList.add('out');count(2);$('answered').textContent='7';
+      show('r-sent');cur.style.opacity=0;await sleep(700);
+      agent('done','Got it: two steps. Starting step one.');
+      await sleep(3200);
+    }
+  }
+  run();
+})();
+</script>
+</body>
+</html>

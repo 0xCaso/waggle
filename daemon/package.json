@@ -1,0 +1,20 @@
+{
+  "name": "waggle",
+  "version": "0.2.65",
+  "private": true,
+  "type": "module",
+  "description": "Waggle daemon: local inbox where coding agents ask a human for decisions.",
+  "scripts": {
+    "build": "mkdir -p dist && bun build src/index.ts --compile --define KNOCK_DEV_BUILD=true --outfile dist/waggle",
+    "build:release": "mkdir -p dist && bun build src/index.ts --compile --outfile dist/waggle",
+    "test": "bun test"
+  },
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.30.1",
+    "zod": "^4.6.5"
+  },
+  "devDependencies": {
+    "@types/bun": "^1.4.2"
+  },
+  "license": "Apache-2.0"
+}

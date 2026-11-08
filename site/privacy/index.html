@@ -1,0 +1,92 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Privacy policy · Waggle</title>
+<link rel="icon" href="/favicon.svg" type="image/svg+xml">
+<link rel="icon" href="/favicon-32.png" sizes="32x32" type="image/png">
+<link rel="apple-touch-icon" href="/apple-touch-icon.png">
+<meta name="description" content="What Waggle collects, why, and where it is kept.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter+Tight:ital,wght@0,400;0,500;0,600;1,400&display=swap" rel="stylesheet">
+<style>
+:root{--ink:#16181A;--ink2:#4A4C50;--mute:#6b6b6b;--faint:#e6e6e6;--bg:#fff;--blue:#2B59F0}
+*{box-sizing:border-box}
+html{-webkit-text-size-adjust:100%}
+body{margin:0;background:var(--bg);color:var(--ink);font:400 17px/1.65 "Inter Tight",system-ui,-apple-system,sans-serif;-webkit-font-smoothing:antialiased}
+.page{max-width:720px;margin:0 auto;padding:0 20px 96px}
+.by{display:flex;justify-content:space-between;align-items:center;padding:32px 0 48px;font-size:14px;color:var(--mute)}
+.logo{display:inline-flex;align-items:center;gap:7px;color:var(--ink);text-decoration:none;font-size:19px;font-weight:500;letter-spacing:-0.035em;line-height:1}
+.logo:focus-visible,a:focus-visible{outline:1.5px solid var(--blue);outline-offset:4px;border-radius:4px}
+a{color:inherit}
+h1{font-size:clamp(34px,5vw,44px);font-weight:500;line-height:1.05;letter-spacing:-0.035em;margin:0 0 8px}
+.date{color:var(--mute);font-size:15px;margin:0 0 40px}
+h2{font-size:20px;font-weight:600;letter-spacing:-0.02em;margin:40px 0 8px}
+p,li{color:var(--ink2);text-wrap:pretty}
+ul{padding-left:1.2em}
+li{margin:4px 0}
+strong{font-weight:600;color:var(--ink)}
+footer{display:flex;gap:20px;flex-wrap:wrap;margin-top:64px;padding-top:24px;border-top:1px solid var(--faint);font-size:15px;color:var(--mute)}
+</style>
+</head>
+<body>
+<div class="page">
+<div class="by"><a class="logo" href="/" aria-label="Waggle home"><svg viewBox="0 0 100 100" width="22" height="22" aria-hidden="true"><defs><linearGradient id="lg-honey" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#F9C846"/><stop offset="1" stop-color="#E89A0C"/></linearGradient></defs><path d="M50 0 L93.3 25 L93.3 75 L50 100 L6.7 75 L6.7 25 Z" fill="url(#lg-honey)"/><path d="M27 40 L38 63 L50 43 L62 63 L73 40" fill="none" stroke="#fff" stroke-width="9" stroke-linejoin="round" stroke-linecap="round"/></svg><span>waggle</span></a></div>
+<main>
+<h1>Privacy policy</h1>
+<p class="date">Last updated 8 November 2026</p>
+
+<p>Waggle is a Mac app where coding agents ask you for decisions and reviews, and an optional web page where you can share one of those cases with your team. This page says what data that involves. The short version: <strong>the Mac app keeps your data on your Mac</strong>, and we only store what you choose to share.</p>
+
+<h2>The Mac app</h2>
+<p>The code of the app is <a href="https://github.com/waggle-so/waggle">open source</a>, so you can check what this page says.</p>
+<p>Cases, answers, artifacts and settings are stored on your Mac, in Waggle's own data folder. They are not sent to us. The app has no analytics and no tracking.</p>
+<p>The app makes no network calls of its own except these:</p>
+<ul>
+<li><strong>Sharing</strong>. Not available in this version of the app. See below.</li>
+<li><strong>Chat connectors</strong> (off by default). If you connect Telegram or Slack, Waggle sends your cases to that service and reads your replies from it. Their own privacy policies apply. Connector tokens stay in your Mac's Keychain.</li>
+<li><strong>Updates</strong>. The app checks GitHub for a new version of Waggle. The check sends no data about your cases.</li>
+</ul>
+<p>The coding agents you use with Waggle (for example Claude Code or Codex) are separate products with their own policies. Waggle does not send your data to them. They send their questions to Waggle on your Mac.</p>
+
+<h2>Sharing a case</h2>
+<p>Sharing is not available in this version of the app. Pages you shared with an earlier version stay online. To remove them, write to <a href="mailto:hello@waggle.so">hello@waggle.so</a>.</p>
+<p>When you share a case, we store on our servers:</p>
+<ul>
+<li>The case you shared: its title, the question, the options, and the files of each round (for example a prototype, a document or a screenshot).</li>
+<li>Comments people write on the shared page, with the name or email they comment under.</li>
+<li>Who can see it: the link mode, or the list of email addresses you allow.</li>
+</ul>
+<p>Stopping a share deletes the case, its files and its comments from our servers. Comments already copied to your Mac stay on your Mac.</p>
+
+<h2>Accounts</h2>
+<p>To share, you sign in with an email link or with Google. We store your email address, and if you use Google, your Google account id. We ask Google only for your email address. We do not get your Google password, contacts or any other Google data.</p>
+<p>People you share with sign in the same way, or, for a link anyone can open, comment as a guest with a name they type.</p>
+<p>We store sign-in sessions and the devices you connected, so you can sign out of them. To limit abuse we keep short-lived counters of requests per email address and per IP address, and we delete them after a day.</p>
+
+<h2>Emails</h2>
+<p>We send emails only for sign-in links and to tell someone that a case was shared with them. No newsletters, no marketing.</p>
+
+<h2>Who processes the data</h2>
+<ul>
+<li><strong>Cloudflare</strong> runs the sharing service, stores shared cases and comments, and sends our emails.</li>
+<li><strong>Vercel</strong> hosts waggle.so.</li>
+<li><strong>Google</strong>, only if you choose to sign in with Google.</li>
+</ul>
+<p>We do not sell your data and we do not use it for advertising. We do not use your shared cases or comments to train AI models.</p>
+
+<h2>How long we keep it</h2>
+<p>A shared case stays until you stop sharing it or delete your account. Expired sessions and sign-in links are deleted automatically. You can ask us to delete your account and everything in it at any time.</p>
+
+<h2>Your rights</h2>
+<p>You can ask to see, correct, export or delete your data. Write to <a href="mailto:hello@waggle.so">hello@waggle.so</a> and we will answer within 30 days.</p>
+
+<h2>Changes</h2>
+<p>If we change this policy, we update the date at the top. For a big change we tell signed-in users by email first.</p>
+</main>
+<footer><a href="/">Home</a><a href="/privacy/">Privacy</a><a href="/terms/">Terms</a><a href="mailto:hello@waggle.so">hello@waggle.so</a><a href="https://github.com/waggle-so/waggle">Open source · Apache 2.0</a></footer>
+</div>
+</body>
+</html>

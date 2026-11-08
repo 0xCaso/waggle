@@ -1,0 +1,15 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 480 220" role="img" aria-labelledby="ten-title ten-desc">
+  <title id="ten-title">Ask flow</title>
+  <desc id="ten-desc">An agent sends an ask, the daemon stores it, and the app shows it.</desc>
+  <rect width="100%" height="100%" fill="var(--color-paper)"/>
+  <rect x="20" y="40" width="80" height="40" rx="6" fill="var(--color-paper)" stroke="var(--color-ink)" stroke-width="1"/>
+  <rect x="110" y="40" width="80" height="40" rx="6" fill="var(--color-paper)" stroke="var(--color-ink)" stroke-width="1"/>
+  <rect x="200" y="40" width="80" height="40" rx="6" fill="var(--color-paper)" stroke="var(--color-ink)" stroke-width="1"/>
+  <rect x="290" y="40" width="80" height="40" rx="6" fill="var(--color-paper)" stroke="var(--color-ink)" stroke-width="1"/>
+  <rect x="380" y="40" width="80" height="40" rx="6" fill="var(--color-paper)" stroke="var(--color-ink)" stroke-width="1"/>
+  <rect x="20" y="120" width="80" height="40" rx="6" fill="var(--color-paper)" stroke="var(--color-ink)" stroke-width="1"/>
+  <rect x="110" y="120" width="80" height="40" rx="6" fill="var(--color-paper)" stroke="var(--color-ink)" stroke-width="1"/>
+  <rect x="200" y="120" width="80" height="40" rx="6" fill="var(--color-paper)" stroke="var(--color-ink)" stroke-width="1"/>
+  <rect x="290" y="120" width="80" height="40" rx="6" fill="var(--color-paper)" stroke="var(--color-ink)" stroke-width="1"/>
+  <rect x="380" y="120" width="80" height="40" rx="6" fill="var(--color-paper)" stroke="var(--color-ink)" stroke-width="1"/>
+</svg>

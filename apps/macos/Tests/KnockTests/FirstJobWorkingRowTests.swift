@@ -1,0 +1,116 @@
+import Foundation
+import Testing
+@testable import Knock
+
+/// WAG-344: "Your agent is on it" joins the Working list. One section, never the same session twice.
+@MainActor
+struct FirstJobWorkingRowTests {
+    private let sent = FirstRun.now
+    private func at(_ offset: TimeInterval) -> String {
+        let f = ISO8601DateFormatter()
+        f.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
+        return f.string(from: sent.addingTimeInterval(offset))
+    }
+
+    private func busy(_ id: String, project: String, activeAt offset: TimeInterval, title: String? = nil) -> SessionInfo {
+        FirstRun.session(
+            id, project: project, title: title,
+            context: SessionContext(lastAction: "Editing", lastActionAt: at(offset), growing: true))
+    }
+
+    private func job(project: String = "Rumbling tray", agent: String = "Claude Code") -> AgentOnIt {
+        AgentOnIt(projectName: project, since: sent, agent: agent, summary: AgentOnIt.defaultSummary)
+    }
+
+    private func rows(_ sessions: [SessionInfo], job: AgentOnIt?) -> [SidebarSections.WorkingRow] {
+        let overview = HomeCards.build(allCases: [], activeCases: [], sessions: sessions, now: sent.addingTimeInterval(120))
+        return SidebarSections.workingRows(overview, firstJob: job, now: sent.addingTimeInterval(120))
+    }
+
+    @Test func jobToAnExistingSessionTagsItsRowAndAddsNoSecondRow() {
+        let result = rows([busy("a", project: "rumbling-tray", activeAt: 30, title: "Design lessons from Mobbin")], job: job())
+        #expect(result.count == 1)
+        #expect(result[0].name == "Design lessons from Mobbin")
+        #expect(result[0].isFirstJob)
+        #expect(!result[0].isOnboarding)
+    }
+
+    @Test func jobToAnExistingSessionWithOtherWorkingSessionsTagsOnlyThatRow() {
+        let result = rows([
+            busy("a", project: "alpha", activeAt: 40, title: "Alpha work"),
+            busy("b", project: "rumbling-tray", activeAt: 30, title: "Design lessons"),
+            busy("c", project: "gamma", activeAt: 50, title: "Gamma work"),
+        ], job: job())
+        #expect(result.count == 3)
+        #expect(result.filter(\.isFirstJob).map(\.name) == ["Design lessons"])
+        #expect(result.map(\.isOnboarding).contains(true) == false)
+    }
+
+    @Test func jobToANewSessionShowsTheStandaloneRowFirstInsideWorking() {
+        let result = rows([busy("a", project: "alpha", activeAt: 40, title: "Alpha work")], job: job())
+        #expect(result.map(\.name) == ["Your agent is on it", "Alpha work"])
+        #expect(result[0].isOnboarding)
+        #expect(result[0].openCaseId == nil)
+        #expect(result[0].meta.hasPrefix("Rumbling tray · finding a real decision"))
+        #expect(result.map(\.isFirstJob).contains(true) == false)
+    }
+
+    @Test func aSessionThatWasQuietBeforeTheJobIsNotTheFirstJobSession() {
+        let result = rows([busy("a", project: "rumbling-tray", activeAt: -600)], job: job())
+        #expect(result.filter(\.isOnboarding).count == 1)
+        #expect(result.map(\.isFirstJob).contains(true) == false)
+    }
+
+    @Test func anotherAgentInTheSameProjectIsNotTheFirstJobSession() {
+        let desktop = SessionInfo(
+            id: "d", runtime: .claude, taskName: "task-d", project: "rumbling-tray", branch: nil, cwd: "/Users/me/rumbling-tray",
+            canNudge: false, clientName: "claude-ai", state: .live, connectedAt: at(-3600), lastSeenAt: at(60),
+            context: SessionContext(lastAction: "Editing", lastActionAt: at(30), growing: true))
+        let result = rows([desktop], job: job(agent: "Claude Code"))
+        #expect(result.map(\.isOnboarding).contains(true))
+        #expect(result.map(\.isFirstJob).contains(true) == false)
+    }
+
+    @Test func aCopiedJobWithNoKnownAgentMatchesAnySessionOfTheProject() {
+        let result = rows([busy("a", project: "rumbling-tray", activeAt: 30)], job: job(agent: AgentOnIt.unknownAgent))
+        #expect(result.count == 1)
+        #expect(result[0].isFirstJob)
+    }
+
+    @Test func noJobAddsNothing() {
+        let result = rows([busy("a", project: "alpha", activeAt: 40)], job: nil)
+        #expect(result.count == 1)
+        #expect(!result[0].isFirstJob && !result[0].isOnboarding)
+    }
+
+    // MARK: Flags
+
+    private func model() -> (GettingStartedModel, URL) {
+        let root = FileManager.default.temporaryDirectory.appendingPathComponent("waggle-gs-\(UUID().uuidString)")
+        let store = GettingStartedStore(environment: ["KNOCK_HOME": root.path], isOnboarded: { false }, now: { FirstRun.now })
+        return (GettingStartedModel(store: store), root)
+    }
+
+    @Test func hiddenAndOverFlagsRemoveTheSidebarRow() {
+        let (gs, root) = model()
+        defer { try? FileManager.default.removeItem(at: root) }
+        gs.markJobSent(project: "Rumbling tray", agent: "Claude Code", summary: AgentOnIt.defaultSummary, at: sent)
+        #expect(gs.sidebarAgentOnIt != nil)
+        gs.hide()
+        #expect(gs.sidebarAgentOnIt == nil)
+        gs.show()
+        #expect(gs.sidebarAgentOnIt != nil)
+        gs.apply(cases: [FirstRun.ask("first", at: at(30))])
+        #expect(gs.sidebarAgentOnIt == nil)
+    }
+
+    @Test func aNewJobAfterAnEarlierOneRestartsTheRow() {
+        let (gs, root) = model()
+        defer { try? FileManager.default.removeItem(at: root) }
+        gs.markJobSent(project: "Rumbling tray", agent: "Claude Code", summary: AgentOnIt.defaultSummary, at: sent)
+        gs.apply(cases: [FirstRun.ask("first", at: at(30))])
+        #expect(gs.sidebarAgentOnIt == nil)
+        gs.markJobSent(project: "Rumbling tray", agent: "Claude Code", summary: AgentOnIt.defaultSummary, at: sent.addingTimeInterval(600))
+        #expect(gs.sidebarAgentOnIt != nil)
+    }
+}

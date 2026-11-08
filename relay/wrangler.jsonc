@@ -1,0 +1,61 @@
+{
+  "$schema": "./node_modules/wrangler/config-schema.json",
+  // One Worker, two origins: APP_ORIGIN serves the page and the API, CONTENT_ORIGIN serves the
+  // untrusted artifact files. Locally they are localhost and 127.0.0.1: two different sites.
+  "name": "waggle-relay",
+  "main": "src/index.ts",
+  "compatibility_date": "2026-10-17",
+  "compatibility_flags": ["nodejs_compat"],
+  "observability": { "enabled": true },
+  "vars": {
+    // "d1" for local dev: Artifacts has no local simulator.
+    "ROUND_STORE": "d1",
+    "APP_ORIGIN": "http://localhost:8787",
+    "CONTENT_ORIGIN": "http://127.0.0.1:8787",
+    // Local dev and tests only: the dev outbox route and the Google endpoint overrides. The production
+    // environment does not set it. No EMAIL binding here, so sign-in mail goes to the dev outbox.
+    "DEV_MODE": "1"
+  },
+  "d1_databases": [
+    { "binding": "DB", "database_name": "waggle-relay", "database_id": "local", "migrations_dir": "migrations" }
+  ],
+  "env": {
+    // Deploy config. Placeholders: copy this file to wrangler.deploy.jsonc (git-ignored), put in your own
+    // values, then run scripts/deploy.sh. See README.md, "Run your own relay".
+    // Two Workers with the same code, D1 and Artifacts namespace; each serves only its own host. TICKET_SECRET
+    // is the same on both. The page Worker is a Cloudflare custom domain (APP_ORIGIN), so the client address
+    // in cf-connecting-ip is real. The files Worker stays on workers.dev: a separate site (CONTENT_ORIGIN).
+    "production": {
+      "name": "waggle-relay",
+      "routes": [{ "pattern": "relay.example.com", "custom_domain": true }],
+      // The page Worker answers on its custom domain only. The files Worker keeps workers.dev.
+      "workers_dev": false,
+      "vars": {
+        "ROUND_STORE": "artifacts",
+        "APP_ORIGIN": "https://relay.example.com",
+        "CONTENT_ORIGIN": "https://waggle-relay-files.YOUR-SUBDOMAIN.workers.dev",
+        "MAIL_FROM": "signin@example.com"
+      },
+      "artifacts": [{ "binding": "ARTIFACTS", "namespace": "waggle" }],
+      // Sign-in and invite mail. Optional secrets: GOOGLE_CLIENT_ID, GOOGLE_CLIENT_SECRET.
+      "send_email": [{ "name": "EMAIL" }],
+      // Daily cleanup of sessions, links, device codes and old limit rows.
+      "triggers": { "crons": ["17 3 * * *"] },
+      "d1_databases": [
+        { "binding": "DB", "database_name": "waggle-relay", "database_id": "YOUR-D1-DATABASE-ID", "migrations_dir": "migrations" }
+      ]
+    },
+    "files": {
+      "name": "waggle-relay-files",
+      "vars": {
+        "ROUND_STORE": "artifacts",
+        "APP_ORIGIN": "https://relay.example.com",
+        "CONTENT_ORIGIN": "https://waggle-relay-files.YOUR-SUBDOMAIN.workers.dev"
+      },
+      "artifacts": [{ "binding": "ARTIFACTS", "namespace": "waggle" }],
+      "d1_databases": [
+        { "binding": "DB", "database_name": "waggle-relay", "database_id": "YOUR-D1-DATABASE-ID", "migrations_dir": "migrations" }
+      ]
+    }
+  }
+}

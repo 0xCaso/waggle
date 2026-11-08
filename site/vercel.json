@@ -1,0 +1,19 @@
+{
+  "redirects": [
+    {
+      "source": "/the-product-team-after-ai/",
+      "destination": "/decision-requests/",
+      "permanent": true
+    },
+    {
+      "source": "/the-product-team-after-ai",
+      "destination": "/decision-requests/",
+      "permanent": true
+    },
+    {
+      "source": "/the-product-team-after-ai/:path+",
+      "destination": "/decision-requests/:path+",
+      "permanent": true
+    }
+  ]
+}

@@ -1,0 +1,37 @@
+name: Bug
+description: Something does not work as it should.
+labels: [bug]
+body:
+  - type: textarea
+    id: what
+    attributes:
+      label: What happened
+      description: What you did, what you expected, and what you saw.
+    validations:
+      required: true
+  - type: textarea
+    id: steps
+    attributes:
+      label: Steps to reproduce
+      placeholder: "1. ...\n2. ...\n3. ..."
+  - type: input
+    id: version
+    attributes:
+      label: Waggle version
+      description: Waggle > About Waggle, or a commit if you built from source.
+    validations:
+      required: true
+  - type: input
+    id: macos
+    attributes:
+      label: macOS version
+  - type: input
+    id: agent
+    attributes:
+      label: Agent and client
+      description: For example Claude Code 2.x, Codex, the Claude app.
+  - type: textarea
+    id: logs
+    attributes:
+      label: Logs or screenshot
+      description: A window screenshot only. Remove tokens and private text first.

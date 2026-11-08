@@ -1,0 +1,12 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 480 220" role="img" aria-labelledby="good-title good-desc">
+  <title id="good-title">Ask flow</title>
+  <desc id="good-desc">An agent sends an ask, the daemon stores it, and the app shows it.</desc>
+  <rect width="100%" height="100%" fill="var(--color-paper)"/>
+  <path d="M 120 60 L 180 100" fill="none" stroke="var(--color-muted)" stroke-width="1" marker-end="url(#arrow)"/>
+  <path d="M 300 60 H 360" fill="none" stroke="var(--color-muted)" stroke-width="1" marker-end="url(#arrow)"/>
+  <rect x="136" y="38" width="28" height="12" rx="2" fill="var(--color-paper)"/>
+  <text x="150" y="47" font-size="8" text-anchor="middle" fill="var(--color-muted)">SEND</text>
+  <rect x="20" y="40" width="100" height="40" rx="6" fill="var(--color-paper)" stroke="var(--color-ink)" stroke-width="1"/>
+  <rect x="180" y="40" width="120" height="40" rx="6" fill="var(--color-accent-tint)" stroke="var(--color-accent)" stroke-width="1"/>
+  <rect x="360" y="40" width="100" height="40" rx="6" fill="var(--color-paper)" stroke="var(--color-ink)" stroke-width="1"/>
+</svg>

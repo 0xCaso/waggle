@@ -1,0 +1,29 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Checkout</title>
+    <link rel="stylesheet" href="style.css" />
+  </head>
+  <body>
+    <main class="checkout">
+      <h1>Checkout</h1>
+      <p class="sub">A local prototype for artifact staging tests.</p>
+
+      <div class="toggle" role="group" aria-label="Billing period">
+        <button type="button" class="toggle-option is-active" data-period="monthly">
+          Monthly
+        </button>
+        <button type="button" class="toggle-option" data-period="annual">Annual</button>
+      </div>
+
+      <p class="price" id="price">$9<span>/mo</span></p>
+
+      <button type="button" class="pay" id="pay">Pay now</button>
+      <p class="note" id="note">This prototype takes no payment.</p>
+    </main>
+
+    <script src="app.js"></script>
+  </body>
+</html>
