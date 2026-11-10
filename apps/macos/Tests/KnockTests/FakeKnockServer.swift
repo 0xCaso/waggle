@@ -168,11 +168,22 @@ final class FakeKnockServer: @unchecked Sendable {
 
     /// Forcibly disconnects the current client, so `KnockClient` observes a
     /// closed connection and starts its reconnect loop.
+    ///
+    /// Waits (up to 10 s) for the accept loop to take the client first. The
+    /// client's connect() returns once the kernel queues the connection, so a
+    /// test can see `.connected` before accept() stores `clientFD`; on a loaded
+    /// runner the disconnect then closed nothing and the test timed out.
     func disconnectClient() {
-        lock.lock()
-        let fd = clientFD
-        clientFD = -1
-        lock.unlock()
+        let deadline = Date().addingTimeInterval(10)
+        var fd: Int32 = -1
+        while true {
+            lock.lock()
+            fd = clientFD
+            if fd >= 0 { clientFD = -1 }
+            lock.unlock()
+            if fd >= 0 || Date() >= deadline { break }
+            usleep(5_000)
+        }
         if fd >= 0 { close(fd) }
     }
 
