@@ -44,6 +44,10 @@ A merge to main makes a release (docs/decisions/2026-11-10-release-on-merge.md).
 `.github/workflows/release.yml` starts when CI passes on the merge commit, and it runs `release.sh` on a
 GitHub macOS runner.
 
+The `release` environment has the maintainer as a required reviewer. Each release run waits for one
+approval (Actions, the run, Review deployments) before it loads a key. The workflow pins every action to a
+commit hash, so a changed tag cannot run with the keys.
+
 - Every merge bumps the patch (0.2.65 to 0.2.66). The PR label `release:minor` or `release:major`
   bumps more. The label `skip-release` makes no release. Create the three labels once.
 - Notes come from `docs/release-notes/<version>.md` when the PR adds it, else from the PR title.
