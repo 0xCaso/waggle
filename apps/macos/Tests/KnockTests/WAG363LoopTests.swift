@@ -58,7 +58,15 @@ struct WAG363LoopTests {
             window.setContentSize(NSSize(width: width, height: 600))
             try await pump(20)
         }
-        let before = views.map { $0.layoutPasses + $0.measures }
+        // Wait until the counts hold still over 30 turns (20 s deadline): a loaded runner lays out slower.
+        func total() -> [Int] { views.map { $0.layoutPasses + $0.measures } }
+        let deadline = ContinuousClock.now + .seconds(20)
+        var before = total()
+        while ContinuousClock.now < deadline {
+            try await pump(30)
+            if total() == before { break }
+            before = total()
+        }
         try await pump(60)
         let after = views.map { $0.layoutPasses + $0.measures }
         #expect(before == after, "layout passes + measures kept growing: \(before) -> \(after)")
