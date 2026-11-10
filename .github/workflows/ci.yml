@@ -24,7 +24,15 @@ jobs:
         with:
           bun-version: 1.3.8
       - run: bun install --frozen-lockfile
-      - run: bun test
+      # A pull request runs the fast tests. A push to main runs every test, with a longer limit per
+      # test; the release starts only after that run passes. test/slow-files.txt lists the slow files.
+      - name: bun test
+        run: |
+          if [ "$GITHUB_EVENT_NAME" = "pull_request" ]; then
+            bun test --timeout 20000 $(find ./test -name '*.test.ts' | sort | grep -vxF -f test/slow-files.txt)
+          else
+            bun test --timeout 30000
+          fi
       - run: bun run build
 
   app:
@@ -42,8 +50,15 @@ jobs:
       - run: swift --version
       - run: swift build
       # One test at a time: in parallel, the WebKit and child-process tests miss
-      # their own time limits on a small runner.
-      - run: swift test --no-parallel
+      # their own time limits on a small runner. A pull request skips those suites;
+      # a push to main runs them all.
+      - name: swift test
+        run: |
+          if [ "$GITHUB_EVENT_NAME" = "pull_request" ]; then
+            swift test --no-parallel --skip 'PageElementPickTests|PageElementPageCoordinateTests|CommentSurfacesTests|WAG363LoopTests|WAG365LoopTests|CommandRunnerOrderingTests|WebViewCaptureControllerTests'
+          else
+            swift test --no-parallel
+          fi
 
   relay:
     runs-on: ubuntu-latest
