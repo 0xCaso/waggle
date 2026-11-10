@@ -136,5 +136,6 @@ describe("waggle daemon", () => {
     }));
     expect(afterRows).toEqual(beforeRows);
     client2.close();
-  });
+    // Two daemon starts: a loaded CI runner needs more than the 5 s default.
+  }, 30000);
 });

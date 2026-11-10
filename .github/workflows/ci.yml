@@ -41,7 +41,9 @@ jobs:
           xcode-version: latest-stable
       - run: swift --version
       - run: swift build
-      - run: swift test
+      # One test at a time: in parallel, the WebKit and child-process tests miss
+      # their own time limits on a small runner.
+      - run: swift test --no-parallel
 
   relay:
     runs-on: ubuntu-latest
