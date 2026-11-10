@@ -77,6 +77,8 @@ struct Option: Codable, Equatable, Sendable, Identifiable {
 struct ScreenshotItem: Codable, Equatable, Sendable {
     let path: String
     let caption: String?
+    /// The decision item this image belongs to, in a request with several decisions. `nil`: every decision.
+    var item: String? = nil
 }
 
 // An artifact the agent submits with a case. A screenshot is one image path.

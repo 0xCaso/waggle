@@ -22,7 +22,7 @@ struct ScreenSetBoxView: View {
     static let thumbnailWidth: CGFloat = 600
     private static let thumbHeight: CGFloat = 40
 
-    private var screens: [CaptureRecord] { store.screens }
+    private var screens: [CaptureRecord] { store.galleryScreens }
 
     private var index: ScreenSetIndex {
         ScreenSetIndex(count: screens.count, current: screens.firstIndex { $0.id == capture.id } ?? 0)

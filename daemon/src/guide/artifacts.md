@@ -337,6 +337,20 @@ Pass the images in the order the human should flip through them, each with an op
 2 to 12 items. Each path is staged and validated exactly like a single screenshot (PNG or JPEG,
 max 20 MB). A caption is optional per item; skip it when the image speaks for itself.
 
+In a request with several decisions, give each image `item`: the id of the decision item it belongs
+to. While that decision is on screen, Waggle shows only its images, counted inside the decision
+("1 / 3"), and opens its first image. An image with no `item` shows with every decision:
+
+    items: [
+      { path: "./shots/a1.png", caption: "Ring, idle", item: "ring" },
+      { path: "./shots/a2.png", caption: "Ring, tapped", item: "ring" },
+      { path: "./shots/b1.png", caption: "Badge", item: "badge" },
+      { path: "./shots/legend.png", caption: "Legend" },
+    ]
+
+With no `item`, Waggle reads a caption that starts with a letter or number ("b · Badge", "2. Badge",
+"b1 Badge") as the decision (a or 1 is the first decision, b or 2 the second). Prefer `item`.
+
 ## Variants of an html_bundle in a multi-question ask
 
 A waggle_ask can carry items with a group (see waggle_guide topic "writing-an-ask"). Give one html_bundle as the

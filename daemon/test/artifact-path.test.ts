@@ -79,6 +79,22 @@ beforeAll(() => {
     }),
   );
 
+  // Revision 5: a screenshots set whose images name their decision with `item`.
+  write(join(cwd, "set", "1.png"), Buffer.concat([PNG_SIG, Buffer.from("set one")]));
+  write(join(cwd, "set", "2.png"), Buffer.concat([PNG_SIG, Buffer.from("set two")]));
+  write(join(cwd, "set", "3.png"), Buffer.concat([PNG_SIG, Buffer.from("set three")]));
+  store.createRevision(
+    caseId,
+    stageIncoming(home, cwd, {
+      type: "screenshots",
+      items: [
+        { path: "./set/1.png", caption: "Ring", item: "ring" },
+        { path: "./set/2.png", item: "badge" },
+        { path: "./set/3.png", caption: "Legend" },
+      ],
+    }),
+  );
+
   server = startRpcServer({ socketPath, store, bus, version: "0.1.0" });
 });
 
@@ -143,6 +159,16 @@ describe("artifact.path RPC", () => {
     const result = res.result as { viewport?: unknown; preview?: unknown };
     expect(result.viewport).toBeUndefined();
     expect(result.preview).toBeUndefined();
+    client.close();
+  });
+
+  test("returns the decision item of each screenshots image, and none where it was not given", async () => {
+    const client = await rpcConnect(socketPath);
+    const res = await client.request("artifact.path", { case_id: caseId, revision: 5 });
+    const result = res.result as { kind: string; items: { caption?: string; item?: string }[] };
+    expect(result.kind).toBe("screenshots");
+    expect(result.items.map((i) => i.item)).toEqual(["ring", "badge", undefined]);
+    expect(result.items.map((i) => i.caption)).toEqual(["Ring", undefined, "Legend"]);
     client.close();
   });
 

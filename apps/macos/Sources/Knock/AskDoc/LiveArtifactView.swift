@@ -107,11 +107,14 @@ final class LiveArtifactModel: ObservableObject {
         guard let target = await DecisionArtifactRule.resolve(
                   for: focus, tabs: tabs, current: { [weak self] in self?.selectedTab?.id },
                   prepare: { [weak self] in await self?.loadStills(for: $0) },
-                  captions: { [weak self] in self?.captions(ofTab: $0) }),
+                  captions: { [weak self] in self?.captions(ofTab: $0) },
+                  items: { [weak self] in self?.items(ofTab: $0) }),
               token == decisionToken
         else { return }
         if let id = target.tabId { select(id) }
         if let anchor = target.anchor { scroll(toAnchor: anchor) }
+        // The strip shows only the decision's images; its first image (or the anchored one) opens.
+        commentsStore?.showDecisionGroup(target.group)
         if let image = target.image { showScreen(image) }
     }
 
@@ -119,6 +122,12 @@ final class LiveArtifactModel: ObservableObject {
     private func captions(ofTab id: String) -> [String?]? {
         guard let tab = tabs.first(where: { $0.id == id }), tab.kind == .screenshots else { return nil }
         return commentsStore?.captions(ofSet: tab.revision)
+    }
+
+    /// The `item` of a set tab's images, once they are loaded; `nil` for any other tab.
+    private func items(ofTab id: String) -> [String?]? {
+        guard let tab = tabs.first(where: { $0.id == id }), tab.kind == .screenshots else { return nil }
+        return commentsStore?.items(ofSet: tab.revision)
     }
 
     /// An option's anchor on a set: the image it names.
@@ -274,7 +283,10 @@ final class LiveArtifactModel: ObservableObject {
             }
         } else if let items = result.items, !items.isEmpty {
             let images = items.compactMap { item in NSImage(contentsOfFile: item.path).map { (image: $0, caption: item.caption) } }
-            if images.count == items.count { store.replaceScreenshotsCaptures(images: images, revision: tab.revision) }
+            if images.count == items.count {
+                store.replaceScreenshotsCaptures(images: images, revision: tab.revision)
+                store.setScreenItems(items.map(\.item))
+            }
         }
     }
 
@@ -307,15 +319,16 @@ final class LiveArtifactModel: ObservableObject {
     /// The arrows, the dots and the filmstrip: the previous or next screen of the set on show. No wrap.
     func stepScreen(by delta: Int) {
         guard let store = commentsStore, let tab = selectedTab, let current = store.shownStill(revision: tab.revision) else { return }
-        var index = ScreenSetIndex(count: store.screens.count, current: store.screens.firstIndex { $0.id == current.id } ?? 0)
+        let screens = store.galleryScreens
+        var index = ScreenSetIndex(count: screens.count, current: screens.firstIndex { $0.id == current.id } ?? 0)
         guard index.step(by: delta) else { return }
-        store.selectCapture(id: store.screens[index.current].id)
+        store.selectCapture(id: screens[index.current].id)
     }
 
     /// The set on show has more than one screen to flip through.
     func isFlippable(_ tab: ArtifactTab?) -> Bool {
         guard let tab, tab.kind == .screenshots, let store = commentsStore else { return false }
-        return store.screens.count > 1 && store.shownStill(revision: tab.revision) != nil
+        return store.galleryScreens.count > 1 && store.shownStill(revision: tab.revision) != nil
     }
 
     /// Arrow keys flip the set, unless a note is being written.
@@ -639,7 +652,7 @@ struct LiveArtifactBoxView: View {
     private func toolbar(for tab: ArtifactTab) -> some View {
         let tools = model.tools(for: tab)
         if !tools.isEmpty {
-            let hasFilmstrip = model.showsCaptureStage(for: tab) && (model.commentsStore?.screens.count ?? 0) > 1
+            let hasFilmstrip = model.showsCaptureStage(for: tab) && (model.commentsStore?.galleryScreens.count ?? 0) > 1
             CanvasToolbarView(tools: tools, mode: model.mode, showsKeys: false) { target in
                 hasFocus = true
                 if target == .interact { model.enterInteractMode() } else { Task { await model.startComment(openFullSize: onOpen) } }
@@ -816,7 +829,7 @@ struct LiveArtifactBoxView: View {
                         .frame(height: fillsHeight ? nil : Self.commentStageHeight)
                         .frame(maxHeight: fillsHeight ? .infinity : nil)
                         .background(Theme.Colors.list)
-                    if store.screens.count > 1 {
+                    if store.galleryScreens.count > 1 {
                         ScreenshotFilmstrip(store: store, onSelect: { store.selectCapture(id: $0) }, onStep: { model.stepScreen(by: $0) })
                     }
                 }

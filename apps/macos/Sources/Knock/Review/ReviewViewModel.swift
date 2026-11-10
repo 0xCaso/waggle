@@ -340,6 +340,7 @@ final class ReviewViewModel: ObservableObject {
                 } else {
                     commentsStore.addScreenshotsCaptures(images: loaded, revision: revision)
                 }
+                commentsStore.setScreenItems(items.map(\.item))
                 artifactState = .screenshots(revision: revision)
                 // Every image is already frozen as its own capture up front
                 // (HAIL-40: "no interactive 'take a capture' step makes sense
@@ -675,7 +676,7 @@ final class ReviewViewModel: ObservableObject {
     /// a current capture to step from.
     func stepScreen(by delta: Int) {
         guard case .screenshots = artifactState else { return }
-        let captures = commentsStore.screens
+        let captures = commentsStore.galleryScreens
         guard let current = commentsStore.currentCapture,
               let index = captures.firstIndex(where: { $0.id == current.id }) else { return }
         let target = max(0, min(captures.count - 1, index + delta))
@@ -720,7 +721,8 @@ final class ReviewViewModel: ObservableObject {
         guard let target = await DecisionArtifactRule.resolve(
                   for: focus, tabs: tabs, current: { [weak self] in self?.shownTab?.id },
                   prepare: { [weak self] in await self?.show(revision: $0.revision) },
-                  captions: { [weak self] id in tabs.first { $0.id == id }.flatMap { self?.commentsStore.captions(ofSet: $0.revision) } }),
+                  captions: { [weak self] id in tabs.first { $0.id == id }.flatMap { self?.commentsStore.captions(ofSet: $0.revision) } },
+                  items: { [weak self] id in tabs.first { $0.id == id }.flatMap { self?.commentsStore.items(ofSet: $0.revision) } }),
               token == decisionToken
         else { return }
         if let id = target.tabId, let tab = tabs.first(where: { $0.id == id }) { await show(revision: tab.revision) }
@@ -729,6 +731,7 @@ final class ReviewViewModel: ObservableObject {
             anchorToken += 1
             anchorRequest = SandboxedHTMLView.AnchorRequest(token: anchorToken, anchor: anchor)
         }
+        commentsStore.showDecisionGroup(target.group)
         if let image = target.image, commentsStore.screens.indices.contains(image) {
             commentsStore.selectCapture(id: commentsStore.screens[image].id)
         }
