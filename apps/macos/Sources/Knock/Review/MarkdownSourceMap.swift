@@ -115,7 +115,6 @@ struct RenderedMarkdown: Equatable {
     private struct Builder {
         let s: [UInt16]
         var result = RenderedMarkdown()
-        var rowIndex = 0
 
         init(source: [UInt16]) {
             s = source

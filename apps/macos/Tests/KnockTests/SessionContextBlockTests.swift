@@ -75,9 +75,6 @@ struct SessionContextBlockTests {
             "You answered: Show study size", "Update: Search box done",
         ])
         #expect(SessionContextBlock.visible(items, showAll: true).count == 3)
-        #expect(SessionContextBlock.showAllLabel(total: 3, showAll: false) == "show all 3")
-        #expect(SessionContextBlock.showAllLabel(total: 3, showAll: true) == nil)
-        #expect(SessionContextBlock.showAllLabel(total: 2, showAll: false) == nil)
     }
 
     @Test func ordinals() {

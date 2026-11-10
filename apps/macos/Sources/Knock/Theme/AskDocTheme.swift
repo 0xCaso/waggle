@@ -18,8 +18,6 @@ extension Theme {
             static let watch = Color(hex: 0xC2410C)
             /// The soft fill of the "Watch n" chip in the bottom bar (WAG-293).
             static let watchSoft = Color(hex: 0xFFEDE3)
-            static let proSoft = Color(hex: 0xF6FCF8)
-            static let proBorder = Color(hex: 0xBFE6CF)
             /// The pill count text on the honey chip of the selected variant.
             static let variantOnText = Color(hex: 0x8A5A00)
         }
@@ -29,13 +27,10 @@ extension Theme {
             static let need: CGFloat = 14
             static let artifactCard: CGFloat = 14
             static let thumb: CGFloat = 10
-            static let pointCard: CGFloat = 14
-            static let optionCard: CGFloat = 10
         }
 
         enum Metrics {
             static let thumbWide = CGSize(width: 120, height: 84)
-            static let thumbShared = CGSize(width: 120, height: 84)
             static let panelWidth: CGFloat = 520
             static let panelSlide: Double = 0.22
             static let pageMaxWidth: CGFloat = 760
@@ -47,9 +42,6 @@ extension Theme {
             static let askTitle28 = TextStyle(
                 font: .custom(FontFamily.sans, size: 28).weight(.semibold),
                 size: 28, lineHeight: 1.15, letterSpacing: -0.84)
-            static let askTitle32 = TextStyle(
-                font: .custom(FontFamily.sans, size: 32).weight(.semibold),
-                size: 32, lineHeight: 1.12, letterSpacing: -0.96)
             static let crumbs12 = TextStyle(font: .custom(FontFamily.sans, size: 12), size: 12, lineHeight: nil, letterSpacing: nil)
             static let crumbs12_5 = TextStyle(font: .custom(FontFamily.sans, size: 12.5), size: 12.5, lineHeight: nil, letterSpacing: nil)
             static let earlierTitle13_5 = TextStyle(
@@ -66,8 +58,6 @@ extension Theme {
             static let pointText14_5 = TextStyle(
                 font: .custom(FontFamily.sans, size: 14.5).weight(.semibold), size: 14.5, lineHeight: 1.4, letterSpacing: nil)
             static let optionCard13 = TextStyle(font: .custom(FontFamily.sans, size: 13), size: 13, lineHeight: 1.4, letterSpacing: nil)
-            static let optionLabel13w600 = TextStyle(
-                font: .custom(FontFamily.sans, size: 13).weight(.semibold), size: 13, lineHeight: 1.4, letterSpacing: nil)
             static let chip12_5 = TextStyle(font: .custom(FontFamily.sans, size: 12.5), size: 12.5, lineHeight: nil, letterSpacing: nil)
             static let sidebarHeader15w650 = TextStyle(
                 font: .custom(FontFamily.sans, size: 15).weight(.semibold), size: 15, lineHeight: nil, letterSpacing: nil)

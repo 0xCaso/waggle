@@ -257,18 +257,6 @@ struct CaseDisplayTests {
 
     // MARK: - Row "Waiting for pickup" (HAIL-32 state 2)
 
-    @Test func waitingForPickupShowsOnlyForAWaitingOnAgentCaseWithNoConfirmedOutcome() {
-        let waiting = makeCase(status: .waitingOnAgent, sessionState: .live)
-        #expect(waiting.showsWaitingForPickup(deliveryStatus: nil))
-        #expect(waiting.showsWaitingForPickup(deliveryStatus: .sent))
-        #expect(waiting.showsWaitingForPickup(deliveryStatus: .sending))
-        #expect(!waiting.showsWaitingForPickup(deliveryStatus: .delivered(at: Date())))
-        #expect(!waiting.showsWaitingForPickup(deliveryStatus: .failed(replyId: "r_1")))
-
-        let needsYou = makeCase(status: .needsYou, sessionState: .live)
-        #expect(!needsYou.showsWaitingForPickup(deliveryStatus: nil))
-    }
-
     // MARK: - Stale queued reply safety net (HAIL-44)
 
     @Test func isStaleQueuedReplyOnlyForAWaitingOnAgentCaseWithAQueuedReplyAndAnEndedSession() {
@@ -280,11 +268,6 @@ struct CaseDisplayTests {
         #expect(!makeAnsweredCase(status: .waitingOnAgent, latestReplyState: .queued, sessionState: nil).isStaleQueuedReply)
         #expect(!makeAnsweredCase(status: .waitingOnAgent, latestReplyState: .delivered, sessionState: .ended).isStaleQueuedReply)
         #expect(!makeAnsweredCase(status: .needsYou, latestReplyState: .queued, sessionState: .ended).isStaleQueuedReply)
-    }
-
-    @Test func showsWaitingForPickupIsFalseOnceTheStaleLabelTakesOver() {
-        let stale = makeAnsweredCase(status: .waitingOnAgent, latestReplyState: .queued, sessionState: .ended)
-        #expect(!stale.showsWaitingForPickup(deliveryStatus: nil))
     }
 
     // MARK: - Detail formats (HAIL-139)

@@ -600,28 +600,6 @@ struct SendFlowControllerTests {
         await client.stop()
     }
 
-    @Test func cancellingChangeAnswerLeavesNoDraftBehind() async throws {
-        let (server, client, _) = try await startEchoServer()
-        defer { server.stop() }
-
-        let store = ComposerDraftStore()
-        let coordinator = SendCoordinator(client: client, store: PendingReplyStore(environment: ["KNOCK_HOME": tempHome()]))
-        let knockCase = answeredQuestionCase()
-        let flow = SendFlowController(
-            knockCase: knockCase, commentsStore: CommentsSessionStore(), coordinator: coordinator,
-            client: client, draftStore: store, onSent: {}
-        )
-        flow.beginChangingAnswer()
-        #expect(flow.composer.draftText == "an earlier note")
-
-        flow.cancelChangingAnswer()
-
-        #expect(!flow.isEditingLockedAnswer)
-        #expect(flow.composer.draftText == "")
-        #expect(ComposerViewModel(knockCase: knockCase, draftStore: store).draftText == "")
-        await client.stop()
-    }
-
     // MARK: - "Change answer" (HAIL-34)
 
     @Test func beginChangingAnswerPrefillsFromTheExistingReplyRatherThanTheSharedDraft() async throws {

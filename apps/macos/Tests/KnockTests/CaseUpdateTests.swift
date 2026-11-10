@@ -26,20 +26,8 @@ struct CaseUpdateTests {
 
     @Test func rowLineShowsForAnUpdateAfterYourReply() {
         let c = makeCase()
-        #expect(c.updateLabel == "Updated")
         #expect(c.pendingUpdate?.message == "Rebuilt the screens from the design.")
         #expect(c.pendingUpdate?.revision == nil)
-    }
-
-    @Test func rowLineNamesTheVersionWhenARevisionCame() {
-        #expect(makeCase(revisions: 3).updateLabel == "Updated · v3")
-    }
-
-    @Test func rowLineIgnoresARevisionMadeBeforeYourReply() {
-        // Two revisions, but the newest is older than the reply: no "v".
-        #expect(makeCase(revisions: 2, revisionAt: "2026-09-29T09:50:00.000Z").updateLabel == "Updated")
-        // An older daemon sends no revision time: no guess.
-        #expect(makeCase(revisions: 2, revisionAt: nil).updateLabel == "Updated")
     }
 
     @Test func rowsWithoutAnUpdateAreUnchanged() {

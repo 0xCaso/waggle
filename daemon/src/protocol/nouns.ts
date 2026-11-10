@@ -187,7 +187,6 @@ export type Artifact = z.infer<typeof Artifact>;
 // The stages of a plan ask (HAIL-151), in the order the brainstorming flow walks them.
 export const PlanStageName = z.enum(["questions", "approaches", "design", "spec"]);
 export type PlanStageName = z.infer<typeof PlanStageName>;
-export const PLAN_STAGES: PlanStageName[] = ["questions", "approaches", "design", "spec"];
 
 // Where one round of a plan ask sits. `step` counts from 1 inside the stage (question 3, design
 // section 2); `total` is how many the stage has, and `total_is_estimate` marks it as a guess.

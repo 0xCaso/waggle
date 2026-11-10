@@ -54,13 +54,4 @@ enum FontRegistration {
         return nil
     }
 
-    /// True when `family` resolves to itself through the same lookup
-    /// SwiftUI's `Font.custom(_:size:)` performs (CoreType's name-based
-    /// lookup, which falls back to a substitute family on no match). A
-    /// mismatch means the family fell back silently instead of failing
-    /// loudly, which is exactly what broke before the fonts were bundled.
-    static func familyResolves(_ family: String) -> Bool {
-        let font = CTFontCreateWithName(family as CFString, 13, nil)
-        return (CTFontCopyFamilyName(font) as String) == family
-    }
 }

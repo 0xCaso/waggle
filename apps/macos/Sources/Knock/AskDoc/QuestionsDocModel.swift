@@ -278,13 +278,6 @@ struct QuestionsDocModel: Equatable {
         drafts[key] = draft
     }
 
-    mutating func setNote(_ text: String, question: String, point: String) {
-        guard !isLocked else { return }
-        let key = Key(questionId: question, pointId: point)
-        guard let found = self.point(key), isAnswered(drafts[key] ?? Draft(), found) else { return }
-        drafts[key]?.note = text
-    }
-
     /// A point is answered when it has a pick, a tick or some written text.
     func isAnswered(_ draft: Draft, _ point: QuestionPoint) -> Bool {
         switch point.select {
@@ -458,9 +451,6 @@ struct QuestionsDocModel: Equatable {
     /// One bar per question, filled when all its points are decided.
     var progress: [Bool] { questions.map { answeredCount(in: $0) == $0.points.count } }
 
-    /// "3 of 7 points decided".
-    var progressText: String { "\(answeredCount) of \(totalPoints) points decided" }
-
     // MARK: Variants
 
     /// The variant the question shows now: the picked one, else the first.
@@ -499,12 +489,6 @@ struct QuestionsDocModel: Equatable {
     static func nowLabel(_ lines: [String]) -> String { "How it works now · \(lines.count) point\(lines.count == 1 ? "" : "s")" }
 
     // MARK: Bottom bar
-
-    /// "Nothing answered yet" / "3 answered".
-    var barText: String {
-        if isLocked { return answeredCount == 0 ? "Sent" : "\(answeredCount) answered" }
-        return answeredCount == 0 ? "Nothing answered yet" : "\(answeredCount) answered"
-    }
 
     var sendLabel: String { sendLabel(comments: 0) }
 

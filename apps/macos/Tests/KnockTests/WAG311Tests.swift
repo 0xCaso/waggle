@@ -105,17 +105,4 @@ struct WAG311Tests {
 
     // MARK: Recommended pill
 
-    @Test func thePillShowsTheWholeWordWhenItFitsAndOnlyTheMarkWhenItDoesNot() {
-        #expect(CalmOption.recommendedPillText(availableWidth: 100, fullWidth: 96) == "✦ Recommended")
-        #expect(CalmOption.recommendedPillText(availableWidth: 96, fullWidth: 96) == "✦ Recommended")
-        #expect(CalmOption.recommendedPillText(availableWidth: 95.5, fullWidth: 96) == "✦")
-        #expect(CalmOption.recommendedPillText(availableWidth: 0, fullWidth: 96) == "✦")
-    }
-
-    @Test func thePillNeverShowsACutWord() {
-        for width in stride(from: CGFloat(0), through: 140, by: 1) {
-            let text = CalmOption.recommendedPillText(availableWidth: width, fullWidth: 96)
-            #expect(text == "✦" || text == "✦ Recommended")
-        }
-    }
 }

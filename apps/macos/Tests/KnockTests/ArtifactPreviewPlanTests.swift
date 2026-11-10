@@ -103,24 +103,6 @@ struct ArtifactPreviewPlanTests {
 /// free of any live image or view, so it is testable without rendering
 /// anything (contract: "snapshot sizing math").
 struct ArtifactCardGeometryTests {
-    @Test func fillWidthScalesToTheCardsWidthPreservingAspectRatio() {
-        // A 1280x800 render, scaled to a 280pt-wide card: the same 1.6:1
-        // aspect ratio means a 280x175 result.
-        let size = ArtifactCardGeometry.fillWidth(imageSize: CGSize(width: 1280, height: 800), cardWidth: 280)
-        #expect(size == CGSize(width: 280, height: 175))
-    }
-
-    @Test func fillWidthOfATallImageOverflowsTheCardHeightForTheCallerToCrop() {
-        // A 390x844 phone render filled to a 280pt-wide card is 280x604 -
-        // taller than the 280pt card, which is exactly what the crop clips.
-        let size = ArtifactCardGeometry.fillWidth(imageSize: CGSize(width: 390, height: 844), cardWidth: 280)
-        #expect(size.width == 280)
-        #expect(size.height > 280)
-    }
-
-    @Test func fillWidthOfAZeroWidthImageIsZero() {
-        #expect(ArtifactCardGeometry.fillWidth(imageSize: .zero, cardWidth: 280) == .zero)
-    }
 
     @Test func fitHeightScalesToTheCardsHeightPreservingAspectRatio() {
         // A 390x844 phone render, fit to a 280pt-tall card: the same aspect

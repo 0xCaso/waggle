@@ -167,8 +167,4 @@ struct RevisionRefreshTests {
         #expect(SandboxedHTMLView.needsReload(loaded: a, entry: b))
     }
 
-    @Test func aMessageOnlyUpdateSaysPlainlyThereIsNoNewRevision() {
-        #expect(ThreadCopy.updatedMeta(revision: nil) == "no new revision")
-        #expect(ThreadCopy.updatedMeta(revision: .init(n: 3, isLatest: true, prior: 2)) == "v3 is new")
-    }
 }

@@ -4,13 +4,8 @@ import SwiftUI
 enum CalmOption {
     /// A closed row shows this many words of the description.
     static let shortWords = 8
-    /// Opening animates height over 220 ms ease-out. The panel swaps its text with a 200 ms fade.
-    static let openDuration = 0.22
-    static let swapDuration = 0.2
     static let cardRadius: CGFloat = 16
 
-    /// A row in the bottom bar never expands (WAG-293). The pick's details show in the page ("YOUR PICK").
-    static let rowsExpand = false
     static let rowRadius: CGFloat = 12
     /// A ruled-out row dims to this (WAG-301).
     static let ruledOutOpacity = 0.55
@@ -47,9 +42,6 @@ enum CalmOption {
     /// The pill in a tight row (WAG-311): the whole "✦ Recommended" when it fits, else "✦" alone with the word
     /// in its tooltip. It never shows a cut word.
     static let recommendedMark = "✦"
-    static func recommendedPillText(availableWidth: CGFloat, fullWidth: CGFloat) -> String {
-        availableWidth >= fullWidth ? "\(recommendedMark) \(recommendedPill)" : recommendedMark
-    }
     /// The tooltips of the two count marks (WAG-303): "3 good points", "2 things to watch".
     static func goodTip(_ count: Int) -> String { "\(count) good \(count == 1 ? "point" : "points")" }
     static func watchTip(_ count: Int) -> String { "\(count) \(count == 1 ? "thing" : "things") to watch" }
@@ -84,16 +76,6 @@ enum CalmOption {
     static func pointPick(_ point: QuestionPoint, choice: String?) -> (option: PointOption, position: Int)? {
         guard let choice, let index = point.choices.firstIndex(where: { $0.label == choice }) else { return nil }
         return (point.choices[index], index + 1)
-    }
-
-    /// The first words of the description for a closed row, with an ellipsis when it was cut.
-    static func shortLine(_ description: String?, words: Int = shortWords) -> String? {
-        guard let description else { return nil }
-        let line = AgentMarkdown.singleLine(description)
-        let parts = line.split(whereSeparator: \.isWhitespace)
-        guard !parts.isEmpty else { return nil }
-        if parts.count <= words { return parts.joined(separator: " ") }
-        return parts.prefix(words).joined(separator: " ") + "…"
     }
 
     /// The grey note: the recommendation's why on the recommended option; on the others only their own

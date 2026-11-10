@@ -18,11 +18,6 @@ enum CaughtUpStats {
         /// so that count only ever grew (operator, 29 Sep: "waiting on 76 agents?").
         let agentsRunning: Int
 
-        var answeredTodayLabel: String { "\(answeredToday)" }
-        var medianTimeToDecideTodayLabel: String {
-            medianTimeToDecideTodaySeconds.map { CaseTimes.compactDuration($0) } ?? "–"
-        }
-        var agentsRunningLabel: String { "\(agentsRunning)" }
     }
 
     /// `waitingOnAgentCases` (`firstReplySubmittedAtDate` falling on `now`'s

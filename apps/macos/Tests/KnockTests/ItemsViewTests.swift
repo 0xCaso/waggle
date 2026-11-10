@@ -179,14 +179,6 @@ struct ItemsViewTests {
         #expect(doc.reviewRows.allSatisfy { !$0.isDecided })
     }
 
-    @Test func aNoteOnAPickGoesWithItsAnswer() throws {
-        var doc = try mixed()
-        let point = doc.questions[0].points[0]
-        doc.choose(point.choiceLabels[0], question: doc.questions[0].id, point: point.id)
-        doc.setNote("  Keep it small ", question: doc.questions[0].id, point: point.id)
-        #expect(doc.itemAnswers() == [ItemAnswer(itemId: "a", choice: "a1", note: "Keep it small")])
-    }
-
     /// WAG-324: a step has one note field, the prompt bar's. Its text is the message, not an item note.
     @Test func theBarNoteIsTheOnlyNoteOfAStep() throws {
         var doc = try mixed()

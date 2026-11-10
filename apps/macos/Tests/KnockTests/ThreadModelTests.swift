@@ -147,25 +147,6 @@ struct ThreadModelTests {
         #expect(try #require(d.threadModel()).steps.count == 2)
     }
 
-    @Test func foldingKeepsYourLatestReplyOnward() throws {
-        let d = detail(
-            replies: [reply("r1", at: "09:14"), reply("r2", at: "09:40")],
-            messages: [agent("m1", at: "09:22", "First."), agent("m2", at: "09:50", "Second.")])
-        let model = try #require(d.threadModel())
-        #expect(model.steps.count == 5)
-        #expect(model.canFold)
-        #expect(model.visibleSteps(expanded: false).count == 2)
-        #expect(model.visibleSteps(expanded: true).count == 5)
-        guard case .replied(let first) = model.foldedSteps[0] else { Issue.record("not a reply"); return }
-        #expect(first.at == KnockDateFormat.date(from: iso("09:40")))
-    }
-
-    @Test func aThreadWithNothingToHideHasNoShowAll() throws {
-        let d = detail(replies: [reply("r1", at: "09:14")])
-        // asked + replied: folding hides only the asked step, so it can fold.
-        #expect(try #require(d.threadModel()).canFold)
-    }
-
     @Test func expansionIsRememberedPerAsk() async {
         await MainActor.run {
             let store = ThreadExpansionStore(environment: [:])

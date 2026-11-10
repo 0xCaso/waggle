@@ -31,12 +31,6 @@ enum ConnectorLinks {
         return URL(string: "https://t.me/\(username)?start=\(code)")
     }
 
-    /// `https://t.me/<bot>`, for when there is no code yet.
-    static func telegramBotPage(username: String?) -> URL? {
-        guard let username, matches(username, "^[A-Za-z0-9_]{3,64}$") else { return nil }
-        return URL(string: "https://t.me/\(username)")
-    }
-
     /// Opens Slack's "create an app" with the manifest already filled in.
     static func slackCreateApp(manifest: String) -> URL? {
         guard !manifest.isEmpty, let encoded = encode(manifest) else { return nil }

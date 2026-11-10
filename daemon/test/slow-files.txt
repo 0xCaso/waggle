@@ -1,0 +1,17 @@
+./test/mcp.test.ts
+./test/shim-reconnect.test.ts
+./test/desktop.test.ts
+./test/mcp-unreachable.test.ts
+./test/cli-install.test.ts
+./test/codex-plugin.test.ts
+./test/nudge.test.ts
+./test/ask-resume.test.ts
+./test/cli-plugin-install.test.ts
+./test/comment-wake.test.ts
+./test/auto-nudge.test.ts
+./test/e2e/parallel.test.ts
+./test/idle-exit.test.ts
+./test/e2e/on-demand.test.ts
+./test/large-response.test.ts
+./test/legacy-migration.test.ts
+./test/integration.test.ts

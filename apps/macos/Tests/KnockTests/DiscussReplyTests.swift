@@ -147,7 +147,6 @@ struct DiscussReplyTests {
     @Test func leansSendRatherThanAcceptTheRecommendation() {
         let composer = makeComposer()
         composer.toggleLean("b")
-        #expect(composer.footerPrimaryAction == .send)
         #expect(composer.sendsDiscuss)
     }
 

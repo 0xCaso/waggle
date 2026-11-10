@@ -61,17 +61,6 @@ struct ThreadModel: Equatable, Sendable {
     /// A text-only ask has no revisions, so the update step says nothing about one.
     var hasArtifact: Bool = true
 
-    /// Steps shown while folded: your latest reply onward.
-    var foldedSteps: [ThreadStep] {
-        guard let last = steps.lastIndex(where: { if case .replied = $0 { true } else { false } }) else { return steps }
-        return Array(steps[last...])
-    }
-
-    func visibleSteps(expanded: Bool) -> [ThreadStep] { expanded ? steps : foldedSteps }
-
-    /// True when folding hides at least one step, so "Show all" has a use.
-    var canFold: Bool { foldedSteps.count < steps.count }
-
     /// "3 steps" / "1 step".
     var countLabel: String { "\(steps.count) step\(steps.count == 1 ? "" : "s")" }
 
@@ -255,13 +244,6 @@ enum ThreadCopy {
         formatter.timeZone = timeZone
         formatter.dateFormat = "HH:mm"
         return formatter.string(from: date)
-    }
-
-    /// The update step's note: the new version, or plainly that the update brought none (HAIL-114).
-    /// Nil for an ask with no artifact: there is no revision to talk about (HAIL-115).
-    static func updatedMeta(revision: ThreadStep.Updated.NewRevision?, hasArtifact: Bool = true) -> String? {
-        if let revision { return "v\(revision.n) is new" }
-        return hasArtifact ? "no new revision" : nil
     }
 
     /// What you should do now, after "Your turn: ". `newRevision` is the version

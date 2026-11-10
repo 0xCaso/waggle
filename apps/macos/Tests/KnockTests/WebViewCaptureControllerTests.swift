@@ -37,7 +37,7 @@ struct WebViewCaptureControllerTests {
         #expect(Date().timeIntervalSince(start) < 20, "must settle at the injected bound, not wait out the page's own 60s busy-loop")
     }
 
-    @Test func takesASnapshotEvenWhenCalledBeforeNavigationFinishes() async {
+    @Test(.enabled(if: ProcessInfo.processInfo.environment["CI"] == nil, "needs a drawn window; not on CI runners")) func takesASnapshotEvenWhenCalledBeforeNavigationFinishes() async {
         let controller = WebViewCaptureController()
         let webView = WKWebView(frame: NSRect(x: 0, y: 0, width: 200, height: 200))
         controller.register(webView)
@@ -54,7 +54,7 @@ struct WebViewCaptureControllerTests {
 
     /// HAIL-35 contract: Comment mode must capture the FULL page, taller
     /// than the viewport, reading the document's own scroll size with JS.
-    @Test func takesAFullPageSnapshotTallerThanTheViewport() async {
+    @Test(.enabled(if: ProcessInfo.processInfo.environment["CI"] == nil, "needs a drawn window; not on CI runners")) func takesAFullPageSnapshotTallerThanTheViewport() async {
         let controller = WebViewCaptureController()
         let webView = WKWebView(frame: NSRect(x: 0, y: 0, width: 200, height: 100))
         controller.register(webView)
@@ -86,7 +86,7 @@ struct WebViewCaptureControllerTests {
     /// not just its reported size - a capture that pads the missing region
     /// blank instead of cropping it would still pass a size-only assertion.
     @MainActor
-    @Test func rendersRealOffscreenContentWhenAttachedToARealOnscreenWindow() async throws {
+    @Test(.enabled(if: ProcessInfo.processInfo.environment["CI"] == nil, "needs a drawn window; not on CI runners")) func rendersRealOffscreenContentWhenAttachedToARealOnscreenWindow() async throws {
         let controller = WebViewCaptureController()
         let viewportHeight: CGFloat = 100
         let window = NSWindow(
