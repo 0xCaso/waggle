@@ -99,19 +99,24 @@ export class RpcClient {
     private conn: ClientConn,
   ) {}
 
-  nextLine(timeoutMs = 5000): Promise<RpcLine> {
+  // 15 s: a loaded CI runner can take more than 5 s to answer a large reply.
+  nextLine(timeoutMs = 15000): Promise<RpcLine> {
     return new Promise((resolve, reject) => {
       if (this.conn.lines.length > 0) {
         resolve(JSON.parse(this.conn.lines.shift()!));
         return;
       }
-      const timer = setTimeout(() => {
-        reject(new Error("timed out waiting for a line"));
-      }, timeoutMs);
-      this.conn.waiters.push((line) => {
+      const waiter = (line: string) => {
         clearTimeout(timer);
         resolve(JSON.parse(line));
-      });
+      };
+      const timer = setTimeout(() => {
+        // Drop the waiter, so a late line goes to the next reader, not to this one.
+        const i = this.conn.waiters.indexOf(waiter);
+        if (i >= 0) this.conn.waiters.splice(i, 1);
+        reject(new Error("timed out waiting for a line"));
+      }, timeoutMs);
+      this.conn.waiters.push(waiter);
     });
   }
 
