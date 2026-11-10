@@ -152,6 +152,10 @@ export class Store {
     this.dataRoot = dataRoot;
     this.bus = bus;
     this.usage = usage;
+    // Wait for a lock instead of failing at once: a daemon that starts while
+    // another connection still closes the file (a restart, a test seed) got
+    // SQLITE_BUSY on the WAL pragma and crashed before it bound the socket.
+    this.db.exec("PRAGMA busy_timeout = 5000");
     this.db.exec("PRAGMA journal_mode = WAL");
     this.db.exec("PRAGMA foreign_keys = ON");
     migrate(db);
