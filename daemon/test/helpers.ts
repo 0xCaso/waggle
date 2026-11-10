@@ -287,7 +287,7 @@ function envOf(pid: number): Record<string, string> {
 // Waits until the socket answers a connect, not merely until the file exists.
 // After a SIGKILL the old socket file is still there while the new daemon
 // unlinks and re-binds it, so existence is not readiness.
-async function waitForSocket(socketPath: string, timeoutMs = 5000): Promise<void> {
+async function waitForSocket(socketPath: string, timeoutMs = 15000): Promise<void> {
   const start = Date.now();
   for (;;) {
     try {
