@@ -73,6 +73,7 @@ export interface StagedScreenshotsItem {
   sha256: string;
   ext: ScreenshotExt;
   caption?: string;
+  item?: string;
 }
 
 export interface StagedScreenshots {
@@ -93,7 +94,7 @@ export type IncomingArtifact =
     }
   | { type: "markdown"; path: string }
   | { type: "diagram"; path: string }
-  | { type: "screenshots"; items: { path: string; caption?: string }[] };
+  | { type: "screenshots"; items: { path: string; caption?: string; item?: string }[] };
 
 export const NOT_STAGED_BY_SHIM =
   "artifact must be staged by the shim; restart the session so the connector picks up the updated shim";
@@ -120,6 +121,7 @@ export function resolveIncoming(artifact: Artifact, dataRoot: string): IncomingA
       items: artifact.items.map((item) => ({
         path: realIncomingPath(item.path, root),
         ...(item.caption !== undefined ? { caption: item.caption } : {}),
+        ...(item.item !== undefined ? { item: item.item } : {}),
       })),
     };
   }
@@ -270,7 +272,7 @@ export function ingestDiagram(input: {
 // ingestScreenshot per item; a rejected item still removes the whole
 // incoming/<uuid> dir (nothing partial is left behind).
 export function ingestScreenshots(input: {
-  items: { path: string; caption?: string }[];
+  items: { path: string; caption?: string; item?: string }[];
   blobsDir: string;
 }): StagedScreenshots {
   const { items, blobsDir } = input;
@@ -302,7 +304,12 @@ export function ingestScreenshots(input: {
           if ((err as { code?: string }).code !== "EEXIST") throw err;
         }
       }
-      return { sha256, ext, ...(item.caption !== undefined ? { caption: item.caption } : {}) };
+      return {
+        sha256,
+        ext,
+        ...(item.caption !== undefined ? { caption: item.caption } : {}),
+        ...(item.item !== undefined ? { item: item.item } : {}),
+      };
     });
     return { kind: "screenshots", items: staged };
   } finally {

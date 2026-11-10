@@ -212,7 +212,7 @@ Input:
                  "viewport": { "width": 390, "height": 844 }, "preview": "preview.html" }
              | { "type": "markdown", "path": "./notes/explain.md" }
              | { "type": "diagram", "path": "./notes/flow.mmd" }
-             | { "type": "screenshots", "items": [{ "path": "./shots/1.png", "caption": "Home" }, ...] },
+             | { "type": "screenshots", "items": [{ "path": "./shots/1.png", "caption": "Home", "item": "it_1" }, ...] },
   "artifacts": "Artifact[], 1 to 8, optional: several named artifacts instead of artifact (WAG-312)",
   "topic": "string, 1..80 chars, optional, only outside git (HAIL-163)",
   "session_title": "string, 1..60 chars after trim, optional (WAG-279)",
@@ -2384,12 +2384,17 @@ moves it into storage, makes it read-only and removes the incoming directory.
   lists, code blocks, tables, links); no remote images, no scripts. A link opens in the default
   browser only after a confirmation. Queue rows show "Explanation".
 - Screenshots (HAIL-40): 2 to 12 images the operator flips through one at a time, each with an
-  optional caption: `{ "type": "screenshots", "items": [{ "path": "...", "caption": "..." }, ...] }`.
+  optional caption and optional `item`: `{ "type": "screenshots", "items": [{ "path": "...", "caption": "...", "item": "..." }, ...] }`.
+  `item` (trimmed, 1 to 40 characters, additive): the id of the decision item the image belongs to. The shim
+  stages it, the daemon stores it in `items_json` and `artifact.path` returns it per item. With several
+  decisions the app shows only the images of the decision on screen; an image with no `item` shows with every
+  decision. Without any `item` the app reads a caption prefix (a letter or number, then a space, `·`, `.`, `:`,
+  `)` or `-`, or a letter and number like `b1`), else the WAG-352 rule applies.
   Each item is staged and re-validated exactly like a single screenshot (PNG or JPEG, max 20 MB,
   copied into `KNOCK_HOME/incoming/<uuid>/` as `shot-1.<ext>` .. `shot-N.<ext>`, incoming rules
   above) and moved into `blobs/<sha256>.<ext>` individually, so identical images across items or
   across cases still share one blob. A revision of this kind stores no single `sha256`/`ext`/
-  `entry`: its ordered list of `{ sha256, ext, caption? }` lives in the revision's `items_json`
+  `entry`: its ordered list of `{ sha256, ext, caption?, item? }` lives in the revision's `items_json`
   column instead, the same JSON-column convention `options_json`/`rect_json` already use. The app
   shows one image at a time with a thumbnail strip; in Comment mode each image is its own capture
   (see "Reply payload" above and "Case fields" `artifact_kind`), so the friend's pins on screen 2

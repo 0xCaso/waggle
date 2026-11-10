@@ -54,6 +54,16 @@ export const ScreenshotsItem = z
     path: z.string().optional().describe("A path to a .png or .jpg file. Give this or data_base64."),
     data_base64: z.string().optional().describe(INLINE_PNG_DESCRIPTION),
     caption: z.string().optional(),
+    item: z
+      .string()
+      .trim()
+      .min(1)
+      .max(40)
+      .optional()
+      .describe(
+        "The id of the decision item this image belongs to, in a request with several decisions. " +
+          "Waggle shows only that decision's images while it is on screen. Skip it for an image every decision shares.",
+      ),
   })
   .refine((v) => (v.path === undefined) !== (v.data_base64 === undefined), {
     message: "give exactly one of path or data_base64",
@@ -933,7 +943,7 @@ export const ArtifactPathResult = z.object({
   kind: ArtifactKind,
   root: z.string(),
   entry: z.string(),
-  items: z.array(z.object({ path: z.string(), caption: z.string().optional() })).optional(),
+  items: z.array(z.object({ path: z.string(), caption: z.string().optional(), item: z.string().optional() })).optional(),
   viewport: Viewport.optional(),
   preview: z.object({ kind: z.enum(["html", "image"]), path: z.string() }).optional(),
 });

@@ -1182,6 +1182,7 @@ export class Store {
         items: items.map((item) => ({
           path: join(this.dataRoot, "blobs", `${item.sha256}.${item.ext}`),
           ...(item.caption !== undefined ? { caption: item.caption } : {}),
+          ...(item.item !== undefined ? { item: item.item } : {}),
         })),
       };
     }

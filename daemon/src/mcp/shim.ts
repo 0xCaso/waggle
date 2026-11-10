@@ -1265,7 +1265,7 @@ function stageArtifactFiles(
   }
   if (artifact.type === "screenshots") {
     const staged = stageScreenshots({
-      items: artifact.items as { path?: string; data_base64?: string; caption?: string }[],
+      items: artifact.items as { path?: string; data_base64?: string; caption?: string; item?: string }[],
       cwd: state.cwd,
       incomingDir,
     });

@@ -61,7 +61,7 @@ export interface StageMarkdownInput {
 }
 
 export interface StageScreenshotsInput {
-  items: { path?: string; data_base64?: string; caption?: string }[];
+  items: { path?: string; data_base64?: string; caption?: string; item?: string }[];
   cwd: string;
   incomingDir: string;
 }
@@ -88,6 +88,7 @@ export interface StagedIncomingMarkdown {
 export interface StagedIncomingScreenshotsItem {
   path: string;
   caption?: string;
+  item?: string;
 }
 
 export interface StagedIncomingScreenshots {
@@ -300,7 +301,7 @@ export function stageScreenshots(input: StageScreenshotsInput): StagedIncomingSc
     if (item.data_base64 !== undefined) {
       try {
         const { data, ext } = decodeScreenshotBase64(item.data_base64, `screenshot ${i + 1}`);
-        return { data, ext, caption: item.caption };
+        return { data, ext, caption: item.caption, item: item.item };
       } catch (err) {
         throw err instanceof ArtifactError ? err : itemError(i, err as ArtifactError);
       }
@@ -332,7 +333,7 @@ export function stageScreenshots(input: StageScreenshotsInput): StagedIncomingSc
     } catch (err) {
       throw itemError(i, err as ArtifactError);
     }
-    return { data, ext, caption: item.caption };
+    return { data, ext, caption: item.caption, item: item.item };
   });
 
   const dir = join(input.incomingDir, randomUUID());
@@ -340,7 +341,11 @@ export function stageScreenshots(input: StageScreenshotsInput): StagedIncomingSc
   const items: StagedIncomingScreenshotsItem[] = validated.map((v, i) => {
     const dest = join(dir, `shot-${i + 1}.${v.ext}`);
     writeFileSync(dest, v.data);
-    return { path: dest, ...(v.caption !== undefined ? { caption: v.caption } : {}) };
+    return {
+      path: dest,
+      ...(v.caption !== undefined ? { caption: v.caption } : {}),
+      ...(v.item !== undefined ? { item: v.item } : {}),
+    };
   });
   return { kind: "screenshots", items };
 }

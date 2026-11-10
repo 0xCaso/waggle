@@ -13,6 +13,8 @@ struct DecisionFocus: Equatable {
     var recommended: [String]
     /// WAG-364: the question of the decision. The artifact name rule reads it first.
     var question: String? = nil
+    /// The item ids of the decision's points. A screenshot of a set names its decision with one of them.
+    var itemIds: [String] = []
 
     /// The chosen option, else the recommended one.
     var pick: Option? {
@@ -28,6 +30,9 @@ struct DecisionArtifactTarget: Equatable {
     var tabId: String?
     var anchor: String?
     var image: Int?
+    /// The 0-based images of the set that belong to the decision, in order; `nil` when the set has no grouping
+    /// (the strip then shows every image).
+    var group: [Int]? = nil
 }
 
 /// WAG-352: which tab, anchor or image of the artifact belongs to a decision. Pure.
@@ -73,20 +78,84 @@ enum DecisionArtifactRule {
     ///    shows image K when the decisions are as many as the images.
     /// 5. Else: `nil`, nothing changes.
     static func target(
-        for focus: DecisionFocus, tabs: [ArtifactTab], current: String?, captions: (String) -> [String?]?
+        for focus: DecisionFocus, tabs: [ArtifactTab], current: String?, captions: (String) -> [String?]?,
+        items: (String) -> [String?]? = { _ in nil }
     ) -> DecisionArtifactTarget? {
         if let link = link(for: focus, tabs: tabs) ?? nameMatch(for: focus, tabs: tabs), let tabId = link.tabId, let tab = tabs.first(where: { $0.id == tabId }) {
             guard tab.kind == .screenshots else { return DecisionArtifactTarget(tabId: tabId, anchor: link.anchor) }
-            let image = link.anchor.flatMap { anchor in
-                captions(tabId).flatMap { imageIndex(anchor: anchor, captions: $0) }
-            }
-            return DecisionArtifactTarget(tabId: tabId, anchor: nil, image: image)
+            let names = captions(tabId)
+            let group = names.flatMap { imageGroup(for: focus, captions: $0, items: items(tabId)) }
+            let image = link.anchor.flatMap { anchor in names.flatMap { imageIndex(anchor: anchor, captions: $0) } }
+            return DecisionArtifactTarget(tabId: tabId, anchor: nil, image: within(image, group), group: group)
         }
         guard focus.count > 1, let tab = tabs.first(where: { $0.id == current }), tab.kind == .screenshots,
               let names = captions(tab.id) else { return nil }
+        // The images of the decision: its own, else today's rule (the anchor of the pick, else image K).
+        if let group = imageGroup(for: focus, captions: names, items: items(tab.id)) {
+            let anchored = imageIndex(anchor: decisionAnchor(focus), captions: names)
+            return DecisionArtifactTarget(tabId: nil, anchor: nil, image: within(anchored, group), group: group)
+        }
         let position = focus.index < names.count && focus.count <= names.count ? focus.index : nil
         guard let image = imageIndex(anchor: decisionAnchor(focus), captions: names) ?? position else { return nil }
         return DecisionArtifactTarget(tabId: nil, anchor: nil, image: image)
+    }
+
+    /// An image of a group: the anchor's when it is in the group, else the first of the group. With no group,
+    /// the image as it is.
+    private static func within(_ image: Int?, _ group: [Int]?) -> Int? {
+        guard let group else { return image }
+        if let image, group.contains(image) { return image }
+        return group.first
+    }
+
+    /// The images of the decision on screen in a `screenshots` set: the 0-based indexes, in order, or `nil` when
+    /// the set does not say (today's WAG-352 rule then applies unchanged). Pure.
+    /// - An image has an `item` (the id of a decision): when any image of the set has one, only `item` counts.
+    /// - Else a caption starts with a decision: a letter (`a`, `b`) or a number (`1`, `2`), then a space, `·`, `.`,
+    ///   `:`, `)` or `-`; or a letter and a number (`b1`). Letter `a` and number 1 are the first decision. The
+    ///   captions count only when they name at least two different decisions, all inside the request, so a lone
+    ///   caption like "A new ring" is not read as a decision.
+    /// An image that names no decision shows with every decision. A request with one decision has no group.
+    static func imageGroup(for focus: DecisionFocus, captions: [String?], items: [String?]? = nil) -> [Int]? {
+        guard focus.count > 1 else { return nil }
+        let ids = (items ?? []).map { clean($0) }
+        if ids.contains(where: { $0 != nil }) {
+            let mine = Set(focus.itemIds)
+            let group = ids.indices.filter { ids[$0] == nil || mine.contains(ids[$0]!) }
+            return group.isEmpty ? nil : group
+        }
+        let parsed = captions.map { captionDecision($0) }
+        let named = Set(parsed.compactMap { $0 })
+        guard named.count >= 2, named.allSatisfy({ $0 < focus.count }) else { return nil }
+        let group = parsed.indices.filter { parsed[$0] == nil || parsed[$0] == focus.index }
+        return group.isEmpty ? nil : group
+    }
+
+    /// The 0-based decision a caption starts with, else `nil`. Case is ignored.
+    static func captionDecision(_ caption: String?) -> Int? {
+        guard let text = clean(caption) else { return nil }
+        let chars = Array(text)
+        let separators: Set<Character> = [" ", "·", ".", ":", ")", "-"]
+        func isLetter(_ c: Character) -> Bool { c.isASCII && c.isLetter }
+        func isDigit(_ c: Character) -> Bool { c.isASCII && c.isNumber }
+        func ends(at i: Int) -> Bool { i >= chars.count || separators.contains(chars[i]) }
+        if isLetter(chars[0]) {
+            let letter = Int(chars[0].lowercased().unicodeScalars.first!.value) - 97
+            // A letter, then a separator: "b · Tap".
+            if chars.count > 1, separators.contains(chars[1]) { return letter }
+            // A letter and a number: "b1", "b2 Tap".
+            var end = 1
+            while end < chars.count, isDigit(chars[end]) { end += 1 }
+            return end > 1 && ends(at: end) ? letter : nil
+        }
+        if isDigit(chars[0]) {
+            var end = 0
+            while end < chars.count, isDigit(chars[end]) { end += 1 }
+            // A number is a decision only with a separator after it: "2. Tap", "2 Tap".
+            guard end < chars.count, separators.contains(chars[end]), let number = Int(String(chars[0..<end])), number >= 1 else { return nil }
+            return number - 1
+        }
+        return nil
     }
 
     /// WAG-381: the step the case box and full size share. The set a decision lands on is prepared first (`prepare`
@@ -95,11 +164,12 @@ enum DecisionArtifactRule {
     @MainActor
     static func resolve(
         for focus: DecisionFocus, tabs: [ArtifactTab], current: () -> String?,
-        prepare: (ArtifactTab) async -> Void, captions: (String) -> [String?]?
+        prepare: (ArtifactTab) async -> Void, captions: (String) -> [String?]?,
+        items: (String) -> [String?]? = { _ in nil }
     ) async -> DecisionArtifactTarget? {
         let tabId = link(for: focus, tabs: tabs)?.tabId ?? current()
         if let tab = tabs.first(where: { $0.id == tabId }), tab.kind == .screenshots { await prepare(tab) }
-        return target(for: focus, tabs: tabs, current: current(), captions: captions)
+        return target(for: focus, tabs: tabs, current: current(), captions: captions, items: items)
     }
 
     /// The anchor of the decision: its pick's, else the one anchor the options that have one share.
@@ -143,6 +213,7 @@ extension DecisionFocus {
             let draft = doc.draft(question.id, point.id)
             chosen += (point.select == .many ? draft.choices : draft.choice.map { [$0] } ?? []).map(point.optionId(forLabel:))
         }
-        return DecisionFocus(index: index, count: doc.questions.count, options: options, chosen: chosen, recommended: recommended, question: question.points.first?.text)
+        return DecisionFocus(index: index, count: doc.questions.count, options: options, chosen: chosen, recommended: recommended, question: question.points.first?.text,
+                             itemIds: question.points.compactMap(\.itemId))
     }
 }
