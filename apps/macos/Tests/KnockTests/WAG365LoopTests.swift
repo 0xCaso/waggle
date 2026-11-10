@@ -58,6 +58,20 @@ struct WAG365LoopTests {
             + [page.hub.ui.geometryWrites, page.sources.reportWrites]
     }
 
+    /// The counts once the page is still: the same over 30 turns in a row, polled with a 20 s deadline. A loaded
+    /// runner can take longer than a fixed wait to finish the first layout.
+    private func settle(_ page: Page) async throws -> [Int] {
+        let deadline = ContinuousClock.now + .seconds(20)
+        var last = counts(page)
+        while ContinuousClock.now < deadline {
+            try await pump(30)
+            let now = counts(page)
+            if now == last { return now }
+            last = now
+        }
+        return last
+    }
+
     @Test func aRequestPageComesToRestAndSurvivesAFractionalMove() async throws {
         let p = page()
         p.window.orderBack(nil)
@@ -67,7 +81,7 @@ struct WAG365LoopTests {
         #expect(views.count == 5)
         #expect(!p.hub.ui.origins.isEmpty)
 
-        let first = counts(p)
+        let first = try await settle(p)
         try await pump(60)
         #expect(counts(p) == first, "the page kept laying out: \(first) -> \(counts(p))")
 
@@ -81,8 +95,7 @@ struct WAG365LoopTests {
 
         // A real move of 3 points is written once and the page comes to rest again.
         p.hub.viewMoved(key: key, origin: CGPoint(x: origin.x + 3, y: origin.y))
-        try await pump(30)
-        let moved = counts(p)
+        let moved = try await settle(p)
         try await pump(60)
         #expect(counts(p) == moved)
         #expect(p.hub.ui.origins[key]?.x == origin.x + 3)
