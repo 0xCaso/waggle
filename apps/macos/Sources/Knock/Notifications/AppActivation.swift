@@ -70,7 +70,7 @@ enum AppActivation {
             )
         }
     ) {
-        NSApp.activate()
+        NSApplication.shared.activate()
         switch decide(hasMainWindow: hasMainWindow(), hasOpenWindowBridge: hasOpenWindowBridge()) {
         case .front:
             front()
