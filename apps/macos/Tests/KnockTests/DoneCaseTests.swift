@@ -34,13 +34,11 @@ struct DoneCaseTests {
 
     @Test func aDoneCaseNeverShowsPickUpNudgeOrANotPickedUpNotice() {
         let done = make(done: true, replyState: .queued, session: .ended)
-        #expect(!done.showsWaitingForPickup(deliveryStatus: nil))
         #expect(!done.isStaleQueuedReply)
         #expect(PickupFallback.mode(for: done, now: Self.now) == .none)
         #expect(AgentStatus.forCase(done) != .waitingForPickup)
         // Without the flag the same case still offers all of it.
         let real = make(done: false, replyState: .queued, session: .live)
-        #expect(real.showsWaitingForPickup(deliveryStatus: nil))
         #expect(PickupFallback.mode(for: real, now: Self.now) == .live)
         #expect(AgentStatus.forCase(real) == .waitingForPickup)
         #expect(make(done: false, replyState: .queued, session: .ended).isStaleQueuedReply)

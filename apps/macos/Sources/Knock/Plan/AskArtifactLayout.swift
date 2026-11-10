@@ -26,9 +26,6 @@ enum AskLayout {
         return width >= minSideBySideWidth && questionWidth >= minQuestionWidth ? .sideBySide : .stacked
     }
 
-    /// The stage label of the track: "QUESTION 2 OF ~5". It shows once, in the track, not in the honey box.
-    static func questionLabel(_ plan: PlanInfo) -> String { PlanText.progressLabel(plan.stage).uppercased() }
-
     /// "Background write-up", or the artifact's kind in words when it is not text.
     static func writeUpTitle(_ tab: ArtifactTab?) -> String {
         guard let tab, let kind = tab.kind, kind != .markdown else { return "Background write-up" }

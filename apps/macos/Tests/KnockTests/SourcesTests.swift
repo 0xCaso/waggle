@@ -88,12 +88,11 @@ struct SourcesTests {
         #expect(AgentMarkdown.blocks("Para [[s:a]]") == [.paragraph("Para")])
     }
 
-    @Test func titlesAndShortLinesAndNotesCarryNoRawMarker() {
+    @Test func titlesAndNotesCarryNoRawMarker() {
         let option = Option(id: "o", label: "Use the queue [[s:a]] because it is simple", title: nil)
         #expect(!option.displayTitle.contains("[[s:"))
         let titled = Option(id: "o2", label: "x", title: "Queue [[s:a]]")
         #expect(titled.displayTitle == "Queue")
-        #expect(!(CalmOption.shortLine("A long line about the queue [[s:a]] and more", words: 4) ?? "").contains("[[s:"))
         let note = CalmOption.note(for: option, isRecommended: true, recommendationWhy: "Simple. [[s:a]]")
         #expect(note == "Simple.[[s:a]]")
         #expect(AgentMarkdown.singleLine(note ?? "") == "Simple.")

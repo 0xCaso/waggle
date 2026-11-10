@@ -103,17 +103,6 @@ struct HomeCardsTests {
         #expect(empty.progress == nil)
     }
 
-    @Test func activeAndQuietCards() {
-        let needs = ask("n", project: "alpha")
-        let working = ask("w", project: "beta", status: .waitingOnAgent, replyAt: "2026-10-06T11:00:00Z")
-        let decidedToday = ask("d", project: "gamma", status: .waitingOnAgent, replyAt: "2026-10-06T08:00:00Z")
-        let older = ask("q", project: "delta", status: .waitingOnAgent, at: "2026-10-04T08:00:00Z", replyAt: "2026-10-04T09:00:00Z")
-        let overview = build([needs, working, decidedToday, older], active: [needs, working])
-        #expect(overview.activeCards.map(\.name) == ["Alpha", "Beta", "Gamma"])
-        #expect(overview.quietCards.map(\.name) == ["Delta"])
-        #expect(build([older], active: []).activeCards.isEmpty)
-    }
-
     @Test func agoPillTextAndLineWithoutTime() {
         let ctx = SessionContext(title: nil, goal: nil, said: nil, lastAction: "Ran swift test", lastActionAt: "2026-10-06T11:55:00Z", growing: true)
         let live = SessionInfo(

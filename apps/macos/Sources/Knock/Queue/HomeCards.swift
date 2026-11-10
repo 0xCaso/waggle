@@ -74,10 +74,6 @@ enum HomeCards {
     struct Overview: Equatable {
         let summary: Summary
         let cards: [Card]
-        /// The cards Home shows by default (HAIL-232).
-        var activeCards: [Card] { cards.filter(\.isActive) }
-        /// The cards behind the collapsed "Quiet" row.
-        var quietCards: [Card] { cards.filter { !$0.isActive } }
         static let empty = Overview(summary: Summary(waiting: 0, inProgress: 0, decidedToday: 0), cards: [])
     }
 

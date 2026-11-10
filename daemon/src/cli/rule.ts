@@ -1,6 +1,6 @@
 import { existsSync } from "node:fs";
 import { dirname } from "node:path";
-import { addRule, refreshRule, removeRule, RULE_AGENTS, RULE_LINES, rulePath, ruleState, type RuleAgent } from "../agent-rule";
+import { addRule, refreshRule, removeRule, RULE_AGENTS, RULE_LINES, rulePath, type RuleAgent } from "../agent-rule";
 
 // `waggle rule <status|add|remove> [claude] [codex]` (WAG-265). The app runs it to show, add and
 // remove the optional Waggle rule in ~/.claude/CLAUDE.md and ~/.codex/AGENTS.md. One line of JSON:

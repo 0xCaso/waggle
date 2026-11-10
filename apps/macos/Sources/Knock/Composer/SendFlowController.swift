@@ -471,16 +471,6 @@ final class SendFlowController: ObservableObject {
         }
     }
 
-    /// Leaves "Change answer" without sending (HAIL-74): the prefilled text
-    /// and restored comments go away, so they never carry into a later round.
-    func cancelChangingAnswer() {
-        guard isEditingLockedAnswer else { return }
-        isEditingLockedAnswer = false
-        replaceReplyId = nil
-        reopenSharedPage(false)
-        clearAfterSend()
-    }
-
     /// WAG-401: while the answer is being changed, the shared page shows the case as open (no Decided block). On
     /// cancel the page shows the old decision again. A new answer needs no call: the daemon sends it as the new
     /// decision. Quiet when it fails: the case works without the page.

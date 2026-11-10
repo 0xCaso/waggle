@@ -43,11 +43,6 @@ struct SessionContextBlock: Equatable {
         showAll ? items : Array(items.suffix(foldedCount))
     }
 
-    /// "show all N", or `nil` when everything already shows.
-    static func showAllLabel(total: Int, showAll: Bool) -> String? {
-        total > foldedCount && !showAll ? "show all \(total)" : nil
-    }
-
     // MARK: Selection
 
     /// The asks of the same task as `item`, other than itself: not dismissed, not withdrawn.

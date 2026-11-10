@@ -99,7 +99,6 @@ import type {
   SessionState,
   Task,
 } from "./protocol";
-import { recommendationIds } from "./protocol/mcp";
 import { AskCategory, AUTO_RULE_IDS, type UsageRuleId } from "./protocol/states";
 import {
   dropUnknownMarkers,
@@ -124,7 +123,6 @@ import {
   projectLegacyReply,
   replyOutcome as decideOrTalk,
   type ReplyLike,
-  type ReplyOutcome,
   type Round,
 } from "./protocol/items";
 import { POINT_DEFAULT_CHOICES, pointOptionLabel } from "./protocol/nouns";
@@ -3975,25 +3973,26 @@ const UPDATE_MESSAGE_PREVIEW_CHARS = 140;
 // denormalized task fields, the kind of the latest staged revision, and the
 // case's most recent reply (id, state, created_at) - so a queue row survives
 // an app relaunch without a per-row cases.get (KNOCK-13 fold, Amendment 1).
+// `lr` is the case's latest reply and `ls` the latest session of its task: each is found once per
+// row and joined, so every latest_reply_* and session_* column reads the same row.
 function caseSelectColumns(): string {
   return `SELECT c.*,
         EXISTS (SELECT 1 FROM revisions r WHERE r.case_id = c.id) AS has_artifact,
         (SELECT r.kind FROM revisions r WHERE r.case_id = c.id ORDER BY r.n DESC LIMIT 1) AS artifact_kind,
-        (SELECT r.id FROM replies r WHERE r.case_id = c.id ORDER BY r.created_at DESC, r.rowid DESC LIMIT 1) AS latest_reply_id,
-        (SELECT r.state FROM replies r WHERE r.case_id = c.id ORDER BY r.created_at DESC, r.rowid DESC LIMIT 1) AS latest_reply_state,
-        (SELECT r.created_at FROM replies r WHERE r.case_id = c.id ORDER BY r.created_at DESC, r.rowid DESC LIMIT 1) AS latest_reply_at,
-        (SELECT r.delivered_at FROM replies r WHERE r.case_id = c.id ORDER BY r.created_at DESC, r.rowid DESC LIMIT 1) AS latest_reply_delivered_at,
-        (SELECT r.applied_at FROM replies r WHERE r.case_id = c.id ORDER BY r.created_at DESC, r.rowid DESC LIMIT 1) AS latest_reply_applied_at,
-        (SELECT r.not_applied_at FROM replies r WHERE r.case_id = c.id ORDER BY r.created_at DESC, r.rowid DESC LIMIT 1) AS latest_reply_not_applied_at,
-        (SELECT r.choice FROM replies r WHERE r.case_id = c.id ORDER BY r.created_at DESC, r.rowid DESC LIMIT 1) AS latest_reply_choice,
-        (SELECT r.choices_json FROM replies r WHERE r.case_id = c.id ORDER BY r.created_at DESC, r.rowid DESC LIMIT 1) AS latest_reply_choices_json,
-        (SELECT r.answers_json FROM replies r WHERE r.case_id = c.id ORDER BY r.created_at DESC, r.rowid DESC LIMIT 1) AS latest_reply_answers_json,
-        (SELECT r.message FROM replies r WHERE r.case_id = c.id ORDER BY r.created_at DESC, r.rowid DESC LIMIT 1) AS latest_reply_message,
-        (SELECT r.intent FROM replies r WHERE r.case_id = c.id ORDER BY r.created_at DESC, r.rowid DESC LIMIT 1) AS latest_reply_intent,
-        (SELECT r.format FROM replies r WHERE r.case_id = c.id ORDER BY r.created_at DESC, r.rowid DESC LIMIT 1) AS latest_reply_format,
-        (SELECT r.source FROM replies r WHERE r.case_id = c.id ORDER BY r.created_at DESC, r.rowid DESC LIMIT 1) AS latest_reply_source,
-        (SELECT ros.seq FROM reply_option_sets ros WHERE ros.reply_id =
-           (SELECT r.id FROM replies r WHERE r.case_id = c.id ORDER BY r.created_at DESC, r.rowid DESC LIMIT 1)) AS latest_reply_option_set_seq,
+        lr.id AS latest_reply_id,
+        lr.state AS latest_reply_state,
+        lr.created_at AS latest_reply_at,
+        lr.delivered_at AS latest_reply_delivered_at,
+        lr.applied_at AS latest_reply_applied_at,
+        lr.not_applied_at AS latest_reply_not_applied_at,
+        lr.choice AS latest_reply_choice,
+        lr.choices_json AS latest_reply_choices_json,
+        lr.answers_json AS latest_reply_answers_json,
+        lr.message AS latest_reply_message,
+        lr.intent AS latest_reply_intent,
+        lr.format AS latest_reply_format,
+        lr.source AS latest_reply_source,
+        (SELECT ros.seq FROM reply_option_sets ros WHERE ros.reply_id = lr.id) AS latest_reply_option_set_seq,
         COALESCE((SELECT o.options_json FROM option_sets o WHERE o.case_id = c.id AND o.seq = 0), c.options_json) AS first_options_json,
         COALESCE((SELECT o.recommendation FROM option_sets o WHERE o.case_id = c.id AND o.seq = 0), c.recommendation) AS first_recommendation,
         (SELECT MAX(o.created_at) FROM option_sets o WHERE o.case_id = c.id AND o.seq > 0) AS options_updated_at,
@@ -4018,13 +4017,11 @@ function caseSelectColumns(): string {
            ORDER BY m.created_at DESC, m.rowid DESC LIMIT 1) AS latest_update_message,
         (SELECT COUNT(*) FROM revisions r WHERE r.case_id = c.id AND r.author = 'agent') AS revision_count,
         (SELECT MAX(r.created_at) FROM revisions r WHERE r.case_id = c.id AND r.author = 'agent') AS latest_revision_at,
-        (SELECT CASE WHEN s.state = 'disconnected' AND s.last_seen_at >= strftime('%Y-%m-%dT%H:%M:%fZ', 'now', '-${SESSION_RECONNECT_GRACE_S} seconds') THEN 'live' ELSE s.state END
-           FROM sessions s WHERE s.task_id = c.task_id OR s.id = t.owner_session_id ORDER BY s.connected_at DESC LIMIT 1) AS session_state,
-        (SELECT s.can_nudge FROM sessions s WHERE s.task_id = c.task_id OR s.id = t.owner_session_id ORDER BY s.connected_at DESC LIMIT 1) AS session_can_nudge,
-        (SELECT s.client_name FROM sessions s WHERE s.task_id = c.task_id OR s.id = t.owner_session_id ORDER BY s.connected_at DESC LIMIT 1) AS session_client_name,
-        (SELECT CASE WHEN s.state = 'ended'
-                  THEN (SELECT MAX(e.at) FROM events e WHERE e.type = 'session.state_changed' AND e.session_id = s.id) END
-           FROM sessions s WHERE s.task_id = c.task_id OR s.id = t.owner_session_id ORDER BY s.connected_at DESC LIMIT 1) AS session_ended_at,
+        CASE WHEN ls.state = 'disconnected' AND ls.last_seen_at >= strftime('%Y-%m-%dT%H:%M:%fZ', 'now', '-${SESSION_RECONNECT_GRACE_S} seconds') THEN 'live' ELSE ls.state END AS session_state,
+        ls.can_nudge AS session_can_nudge,
+        ls.client_name AS session_client_name,
+        CASE WHEN ls.state = 'ended'
+             THEN (SELECT MAX(e.at) FROM events e WHERE e.type = 'session.state_changed' AND e.session_id = ls.id) END AS session_ended_at,
         (SELECT m.text FROM messages m WHERE m.case_id = c.id AND m.role = 'agent' AND m.working = 1
            AND c.status <> 'resolved'
            AND m.rowid = (SELECT m2.rowid FROM messages m2 WHERE m2.case_id = c.id AND m2.role = 'agent'
@@ -4034,7 +4031,11 @@ function caseSelectColumns(): string {
         t.project AS project,
         t.linear_key AS linear_key
       FROM cases c
-      JOIN tasks t ON t.id = c.task_id`;
+      JOIN tasks t ON t.id = c.task_id
+      LEFT JOIN replies lr ON lr.rowid =
+        (SELECT r.rowid FROM replies r WHERE r.case_id = c.id ORDER BY r.created_at DESC, r.rowid DESC LIMIT 1)
+      LEFT JOIN sessions ls ON ls.rowid =
+        (SELECT s.rowid FROM sessions s WHERE s.task_id = c.task_id OR s.id = t.owner_session_id ORDER BY s.connected_at DESC LIMIT 1)`;
 }
 
 function rowToCase(row: CaseRow): Case {
@@ -4163,10 +4164,6 @@ function rowToSessionInfo(row: SessionInfoRow): SessionInfo {
     connected_at: row.connected_at,
     last_seen_at: row.last_seen_at,
   };
-}
-
-function rowToTask(row: TaskRow): Task {
-  return { id: row.id, name: row.name, project: row.project };
 }
 
 function rowToMessage(row: MessageRow): Message {

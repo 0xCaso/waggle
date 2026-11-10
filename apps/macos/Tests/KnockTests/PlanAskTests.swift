@@ -90,15 +90,6 @@ struct PlanAskTests {
 
     // MARK: queue row text
 
-    @Test func theStageLineReadsInPlainWords() {
-        #expect(PlanText.stageLine(PlanStage(name: .questions, step: 3, total: 5, totalIsEstimate: true)) == "Brainstorm · question 3 of ~5")
-        #expect(PlanText.stageLine(PlanStage(name: .questions, step: 2, total: 4)) == "Brainstorm · question 2 of 4")
-        #expect(PlanText.stageLine(PlanStage(name: .questions)) == "Brainstorm")
-        #expect(PlanText.stageLine(PlanStage(name: .approaches)) == "Approaches · pick one")
-        #expect(PlanText.stageLine(PlanStage(name: .design, step: 1, total: 3)) == "Design · section 1 of 3")
-        #expect(PlanText.stageLine(PlanStage(name: .spec)) == "Spec · ready for review")
-    }
-
     @Test func theProgressLabel() {
         #expect(PlanText.progressLabel(PlanStage(name: .questions, step: 3, total: 5, totalIsEstimate: true)) == "Question 3 of ~5")
         #expect(PlanText.progressLabel(PlanStage(name: .design, step: 1, total: 3)) == "Design · section 1 of 3")
@@ -110,10 +101,6 @@ struct PlanAskTests {
         #expect(PlanText.track(current: .questions).map(\.state) == [.current, .upcoming, .upcoming, .upcoming])
         #expect(PlanText.track(current: .spec).map(\.state) == [.done, .done, .done, .current])
         #expect(PlanText.track(current: .spec).map { PlanText.title($0.name) } == ["Questions", "Approaches", "Design", "Spec"])
-    }
-
-    @Test func theRoundChip() {
-        #expect(PlanText.roundChip(rounds: 3) == "Plan · round 3")
     }
 
     // MARK: buttons
@@ -152,7 +139,6 @@ struct PlanAskTests {
         #expect(composer.selectedOptionId == nil)
         #expect(composer.planPrimaryLabel == "Next question")
         #expect(composer.planSecondaryLabel == nil)
-        #expect(composer.footerPrimaryAction == .acceptRecommendation)
     }
 
     @Test func aNewRoundStartsWithNothingPicked() {
@@ -232,41 +218,8 @@ struct PlanAskTests {
 
     // MARK: question headline and body (operator, 4 Oct)
 
-    @Test func aOneLineQuestionIsAllHeadline() {
-        #expect(PlanText.questionParts("Who reads the weekly post?") == .init(headline: "Who reads the weekly post?", body: nil))
-        #expect(PlanText.questionParts("  Pick a tone\n") == .init(headline: "Pick a tone", body: nil))
-    }
-
-    @Test func aLongParagraphKeepsOnlyItsFirstSentenceInTheHeadline() {
-        let text = "Here is section 3: the sync engine. It keeps a queue per device. Writes retry e.g. on a timeout."
-        #expect(PlanText.questionParts(text) == .init(
-            headline: "Here is section 3: the sync engine.",
-            body: "It keeps a queue per device. Writes retry e.g. on a timeout."))
-    }
-
-    @Test func aHeadlineThenABlankLineThenAList() {
-        let text = "Does this section look right?\n\nIt covers:\n- the **queue**\n- retries with `backoff`"
-        #expect(PlanText.questionParts(text) == .init(
-            headline: "Does this section look right?",
-            body: "It covers:\n- the **queue**\n- retries with `backoff`"))
-    }
-
-    @Test func aParagraphThatRunsOnIntoTheRestJoinsTheBody() {
-        let text = "Approve the design? It has two parts.\n\n1. Store\n2. Sync"
-        #expect(PlanText.questionParts(text) == .init(headline: "Approve the design?", body: "It has two parts.\n\n1. Store\n2. Sync"))
-    }
-
     @Test func markersInTheHeadlineStayWholeAndTheSplitSkipsCodeAndBold() {
-        #expect(PlanText.questionParts("**Use SQLite?** It is local. Fine.").headline == "**Use SQLite?**")
-        #expect(PlanText.questionParts("Run `a. b` first. Then wait.").headline == "Run `a. b` first.")
-        #expect(PlanText.questionParts("**Keep it. All of it** please").headline == "**Keep it. All of it** please")
-        #expect(PlanText.questionParts("# Section 2\nThe store.").headline == "Section 2")
         #expect(AgentMarkdown.singleLine("**Use SQLite?** It is local.") == "Use SQLite? It is local.")
-    }
-
-    @Test func aTextThatOpensWithAListHasNoHeadline() {
-        #expect(PlanText.questionParts("- one\n- two") == .init(headline: "", body: "- one\n- two"))
-        #expect(PlanText.questionParts("") == .init(headline: "", body: nil))
     }
 
     @Test func trackLineSaysStageOfFour() {

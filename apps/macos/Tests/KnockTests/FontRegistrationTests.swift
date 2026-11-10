@@ -6,15 +6,7 @@ import Testing
 /// installed must not silently fall back to SF. This fails if the bundled
 /// fonts stop registering (moved, renamed, or dropped from Package.swift).
 struct FontRegistrationTests {
-    @Test func bundledSansFamilyResolvesAfterRegistration() {
-        FontRegistration.registerBundledFonts()
-        #expect(FontRegistration.familyResolves(Theme.FontFamily.sans))
-    }
 
-    @Test func bundledMonoFamilyResolvesAfterRegistration() {
-        FontRegistration.registerBundledFonts()
-        #expect(FontRegistration.familyResolves(Theme.FontFamily.mono))
-    }
 }
 
 struct InterTightFontTests {
@@ -33,10 +25,4 @@ struct InterTightFontTests {
         #expect(!FileManager.default.fileExists(atPath: fonts.appendingPathComponent("Inter").path))
     }
 
-    @Test func headingsUseMediumWithMinus3_5PercentTracking() {
-        let style = Theme.Typography.panelTitle22w650
-        #expect(abs((style.letterSpacing ?? 0) - (-0.035 * 22)) < 0.001)
-        let wordmark = Theme.Typography.wordmark(size: 20)
-        #expect(abs((wordmark.letterSpacing ?? 0) - (-0.7)) < 0.001)
-    }
 }

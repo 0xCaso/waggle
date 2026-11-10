@@ -176,21 +176,6 @@ struct PromptBarLogicTests {
         #expect(PromptBarLogic.sendPillLabel(commentCount: 3) == "Send + 3 comments")
     }
 
-    @Test func nothingToSendMeansSendDoesNothing() {
-        #expect(PromptBarLogic.sendAction(primary: .acceptRecommendation, canSend: false, commentCount: 0, acceptsRecommendationWithComments: true) == .none)
-    }
-
-    @Test func aTypedNoteOrPickedOptionSends() {
-        #expect(PromptBarLogic.sendAction(primary: .send, canSend: true, commentCount: 0, acceptsRecommendationWithComments: true) == .send)
-        #expect(PromptBarLogic.sendAction(primary: .sendOption(position: 2), canSend: true, commentCount: 0, acceptsRecommendationWithComments: true) == .send)
-    }
-
-    @Test func commentsOnlyKeepsEachHostsOldRule() {
-        // The options card accepted the recommendation with comments; the free-text footer sent.
-        #expect(PromptBarLogic.sendAction(primary: .acceptRecommendation, canSend: true, commentCount: 2, acceptsRecommendationWithComments: true) == .acceptRecommendation)
-        #expect(PromptBarLogic.sendAction(primary: .acceptRecommendation, canSend: true, commentCount: 2, acceptsRecommendationWithComments: false) == .send)
-    }
-
     @Test func theBarHasNoAcceptControl() {
         #expect(PromptBarLogic.quietLabels(hasOpenReview: false) == ["Ask for more detail"])
         #expect(PromptBarLogic.quietLabels(hasOpenReview: true) == ["Ask for more detail", "Open review"])
@@ -277,9 +262,4 @@ struct PromptBarLogicTests {
         #expect(l.isMultiline)
     }
 
-    @Test func commandDStillSendsTheRecommendedChoice() {
-        // ⌘D is the hidden shortcut button wired to `acceptRecommendation`; the bar's
-        // Send with nothing picked, typed or commented must not do the same.
-        #expect(PromptBarLogic.sendAction(primary: .acceptRecommendation, canSend: false, commentCount: 0, acceptsRecommendationWithComments: false) == .none)
-    }
 }

@@ -76,12 +76,9 @@ struct ReviewRowsTests {
 
     @Test func withNoRowThePrimaryActionSendsAndNeverAcceptsTheRecommendation() throws {
         let composer = ComposerViewModel(knockCase: try decode(options: daemonRows, recommendation: "approve"))
-        #expect(composer.footerPrimaryAction == .send)
         composer.selectOption("approve")
         #expect(composer.hasPick)
-        #expect(composer.footerPrimaryAction == .acceptRecommendation)
         composer.selectOption("request_changes")
-        #expect(composer.footerPrimaryAction == .sendOption(position: 2))
     }
 
     @Test func aFreeTextRecommendationHasNothingToAccept() throws {

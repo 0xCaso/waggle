@@ -135,13 +135,6 @@ enum ArtifactTabs {
         return trimmed.isEmpty ? nil : trimmed
     }
 
-    /// Whether the decision page shows the artifact box (live, with tabs) instead of the still card: a page
-    /// does, and so does a case with more than one artifact. `fallbackKind` is the newest artifact's kind
-    /// from the case list, for a daemon that sends no kind on revisions.
-    static func showsLive(tabs: [ArtifactTab], fallbackKind: ArtifactKind?) -> Bool {
-        tabs.count > 1 || (tabs.last?.kind ?? fallbackKind) == .htmlBundle
-    }
-
     /// The plain word for an artifact with no name.
     static func defaultTitle(_ kind: ArtifactKind?) -> String {
         switch kind {

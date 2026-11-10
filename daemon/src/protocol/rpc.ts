@@ -16,27 +16,20 @@ import {
   UsageLaunchTarget,
   UsageSettingsPage,
   UsageStartedLine,
-  UsageSource,
 } from "./states";
 import {
   ArtifactPathResult,
   Case,
-  CaseDetail,
   Capture,
   Comment,
   ItemAnswers,
   PointAnswers,
-  Reply,
   ReplyAttachmentInput,
-  ReplySummary,
-  Revision,
-  ServiceStatus,
-  SessionInfo,
   SessionChanges,
 } from "./nouns";
 import { ToolErrorCode } from "./error-codes";
 import { ArtifactPreset, DesignKit, DesignKitChange, UpdatedBy } from "./design-kit";
-import { KnockAskInput, KnockGuideInput, KnockSettingsInput, KnockThemesInput, KnockUpdateInput, McpContent, PendingResult } from "./mcp";
+import { KnockAskInput, KnockGuideInput, KnockSettingsInput, KnockThemesInput, KnockUpdateInput, McpContent } from "./mcp";
 
 // One event notification (docs/protocol-mvp.md "Events").
 export const Event = z.object({
@@ -58,13 +51,11 @@ export type CasesListParams = z.infer<typeof CasesListParams>;
 // A missing value means "same as options".
 export const CaseListRow = Case.extend({ first_options: Case.shape.first_options.optional() });
 export type CaseListRow = z.infer<typeof CaseListRow>;
-export const CasesListResult = z.array(CaseListRow);
 
 // cases.auto_decided (WAG-412): the cases a rule decided since `since` (an ISO time, default: all), newest first.
 // A case leaves the list when the person changes their mind: its new reply makes it a normal answered case.
 export const CasesAutoDecidedParams = z.object({ since: z.string().optional() });
 export type CasesAutoDecidedParams = z.infer<typeof CasesAutoDecidedParams>;
-export const CasesAutoDecidedResult = z.array(CaseListRow);
 
 export function toCaseListRow(c: z.infer<typeof Case>): CaseListRow {
   if (JSON.stringify(c.first_options) !== JSON.stringify(c.options)) return c;
@@ -74,7 +65,6 @@ export function toCaseListRow(c: z.infer<typeof Case>): CaseListRow {
 
 export const CasesGetParams = z.object({ id: z.string() });
 export type CasesGetParams = z.infer<typeof CasesGetParams>;
-export const CasesGetResult = CaseDetail;
 
 // capture.image (PERF-2): one capture's image, fetched when the app shows it.
 // `cases.get` and the reply echoes carry no image data.
@@ -106,7 +96,6 @@ export const RevisionAddByHumanParams = z.object({
   markdown: z.string(),
 });
 export type RevisionAddByHumanParams = z.infer<typeof RevisionAddByHumanParams>;
-export const RevisionAddByHumanResult = Revision;
 
 export const ReplySubmitParams = z.object({
   case_id: z.string(),
@@ -146,15 +135,12 @@ export const ReplySubmitParams = z.object({
   attachments: z.array(ReplyAttachmentInput).optional(),
 });
 export type ReplySubmitParams = z.infer<typeof ReplySubmitParams>;
-export const ReplySubmitResult = ReplySummary;
 
 export const ReplyRetryParams = z.object({ reply_id: z.string() });
 export type ReplyRetryParams = z.infer<typeof ReplyRetryParams>;
-export const ReplyRetryResult = ReplySummary;
 // WAG-410: marks a failed reply handed_over after "Continue in a new session".
 export const ReplyHandOverParams = z.object({ reply_id: z.string() });
 export type ReplyHandOverParams = z.infer<typeof ReplyHandOverParams>;
-export const ReplyHandOverResult = ReplySummary;
 
 // reply.replace (HAIL-34): changes a queued reply's choice/message/comments/
 // captures in place - the answer is editable up to the moment the agent
@@ -182,7 +168,6 @@ export const ReplyReplaceParams = z.object({
   attachments: z.array(ReplyAttachmentInput).optional(),
 });
 export type ReplyReplaceParams = z.infer<typeof ReplyReplaceParams>;
-export const ReplyReplaceResult = ReplySummary;
 
 // case.dismiss (HAIL-32): sets the case to resolved with a dismissed_at,
 // idempotently. A live case.wait for this case settles with a dismissal
@@ -190,27 +175,22 @@ export const ReplyReplaceResult = ReplySummary;
 // reply states").
 export const CaseDismissParams = z.object({ case_id: z.string().min(1) });
 export type CaseDismissParams = z.infer<typeof CaseDismissParams>;
-export const CaseDismissResult = Case;
 // case.change_mind (WAG-412): "Change my mind" on a case a rule decided. The case becomes a normal open ask again
 // (needs_you), so the person picks another option in the usual pane and the pick goes to the agent as a normal reply.
 export const CaseChangeMindParams = z.object({ case_id: z.string().min(1) });
 export type CaseChangeMindParams = z.infer<typeof CaseChangeMindParams>;
-export const CaseChangeMindResult = Case;
 
 // case.restore (HAIL-32): the Undo half of case.dismiss. Clears dismissed_at
 // and puts the case back in the status it held right before the dismiss.
 export const CaseRestoreParams = z.object({ case_id: z.string().min(1) });
 export type CaseRestoreParams = z.infer<typeof CaseRestoreParams>;
-export const CaseRestoreResult = Case;
 
 // events.subscribe streams Event notifications back to the caller.
 export const EventsSubscribeParams = z.object({});
 export type EventsSubscribeParams = z.infer<typeof EventsSubscribeParams>;
-export const EventsSubscribeResult = Event;
 
 export const ServiceStatusParams = z.object({});
 export type ServiceStatusParams = z.infer<typeof ServiceStatusParams>;
-export const ServiceStatusResult = ServiceStatus;
 
 // service.restart (KNOCK-21): the app asks the daemon to exit cleanly after it
 // flushes writes, so the next on-demand start runs the newer binary. The daemon
@@ -377,7 +357,6 @@ export const UsageContextParams = z.strictObject({
   output: Count,
 });
 export type UsageContextParams = z.infer<typeof UsageContextParams>;
-export const UsageOkResult = z.object({ ok: z.literal(true) });
 
 export const UsageSummaryParams = z.strictObject({ days: z.number().int().min(1).max(3650).optional() });
 export type UsageSummaryParams = z.infer<typeof UsageSummaryParams>;
@@ -565,7 +544,6 @@ export type SessionSendPromptResult = z.infer<typeof SessionSendPromptResult>;
 
 export const SessionsListParams = z.object({});
 export type SessionsListParams = z.infer<typeof SessionsListParams>;
-export const SessionsListResult = z.array(SessionInfo);
 
 // --- Session methods (shim only) ---
 
@@ -663,7 +641,6 @@ export const CaseWaitReply = z.object({
   shared_comments: z.array(AgentSharedComment).optional(),
 });
 export type CaseWaitReply = z.infer<typeof CaseWaitReply>;
-export const CaseWaitResult = z.union([CaseWaitReply, PendingResult.extend({ shared_comments: z.array(AgentSharedComment).optional() })]);
 
 // case.update mirrors waggle_update and returns the updated case. `words_warning`
 // (HAIL-140) carries the one line waggle_update appends when the new proposal
@@ -683,7 +660,6 @@ export const ReplyAckParams = z.object({
   reply_id: z.string().min(1),
 });
 export type ReplyAckParams = z.infer<typeof ReplyAckParams>;
-export const ReplyAckResult = ReplySummary;
 
 // settings.get / settings.set (HAIL-100, HAIL-101): operator settings the daemon
 // persists (the app never writes knock.db). Keys:
@@ -1007,7 +983,6 @@ export const TelegramStartPairingParams = z.object({}).strict();
 export type TelegramStartPairingParams = z.infer<typeof TelegramStartPairingParams>;
 export const TelegramSendTestParams = z.object({}).strict();
 export type TelegramSendTestParams = z.infer<typeof TelegramSendTestParams>;
-export const TelegramSendTestResult = z.object({ ok: z.literal(true) });
 export const TelegramDisconnectParams = z.object({}).strict();
 export type TelegramDisconnectParams = z.infer<typeof TelegramDisconnectParams>;
 
@@ -1073,105 +1048,12 @@ export const ProjectDecisionsParams = z.object({
 });
 export const ProjectDecisionsResult = z.object({ items: z.array(ProjectDecision), total: z.number().int() });
 export const ProjectGetParams = z.object({ project: z.string() });
-export const ProjectGetResult = z.object({
-  project: z.string(),
-  decisions: z.number().int(),
-  comments: z.number().int(),
-  last_decision_at: z.string().nullable(),
-  repo_records: z.boolean(),
-  themes: z.array(ProjectTheme),
-});
 export const ProjectThemeToggleParams = z.object({ id: z.string(), enabled: z.boolean() });
-export const ProjectThemeToggleResult = ProjectTheme;
 export const ProjectRepoRecordsParams = z.object({ project: z.string(), enabled: z.boolean() });
 export const ProjectRepoRecordsResult = z.object({ project: z.string(), repo_records: z.boolean() });
 // waggle_themes: what the shim sends. The daemon finds the project from the session.
 export const KnockThemesParams = KnockThemesInput.extend({ session_id: z.string() });
 export type KnockThemesParams = z.infer<typeof KnockThemesParams>;
-export const KnockThemesResult = z.object({ added: z.array(ProjectTheme), merged: z.array(ProjectTheme) });
-
-// Method registries: the single source of truth for method names and payloads.
-export const rpcMethods = {
-  "cases.list": { params: CasesListParams, result: CasesListResult },
-  "cases.auto_decided": { params: CasesAutoDecidedParams, result: CasesAutoDecidedResult },
-  "cases.get": { params: CasesGetParams, result: CasesGetResult },
-  "artifact.path": { params: ArtifactPathParams, result: ArtifactPathResultSchema },
-  "revision.add_by_human": { params: RevisionAddByHumanParams, result: RevisionAddByHumanResult },
-  "reply.submit": { params: ReplySubmitParams, result: ReplySubmitResult },
-  "reply.retry": { params: ReplyRetryParams, result: ReplyRetryResult },
-  "reply.hand_over": { params: ReplyHandOverParams, result: ReplyHandOverResult },
-  "reply.replace": { params: ReplyReplaceParams, result: ReplyReplaceResult },
-  "case.dismiss": { params: CaseDismissParams, result: CaseDismissResult },
-  "case.change_mind": { params: CaseChangeMindParams, result: CaseChangeMindResult },
-  "case.restore": { params: CaseRestoreParams, result: CaseRestoreResult },
-  "events.subscribe": { params: EventsSubscribeParams, result: EventsSubscribeResult },
-  "service.status": { params: ServiceStatusParams, result: ServiceStatusResult },
-  "service.restart": { params: ServiceRestartParams, result: ServiceRestartResult },
-  "usage.record": { params: UsageRecordParams, result: UsageRecordResult },
-  "usage.context": { params: UsageContextParams, result: UsageOkResult },
-  "usage.summary": { params: UsageSummaryParams, result: UsageSummaryResult },
-  "usage.export": { params: UsageExportParams, result: UsageExportResult },
-  "usage.control": { params: UsageControlParams, result: UsageControlResult },
-  "sessions.list": { params: SessionsListParams, result: SessionsListResult },
-  "session.nudge": { params: SessionNudgeParams, result: SessionNudgeResult },
-  "session.send_prompt": { params: SessionSendPromptParams, result: SessionSendPromptResult },
-  "cases.resolved_stats": { params: CasesResolvedStatsParams, result: CasesResolvedStatsResult },
-  "cases.purge_resolved": { params: CasesPurgeResolvedParams, result: CasesPurgeResolvedResult },
-  "mcp.manifest": { params: McpManifestParams, result: McpManifestResult },
-  "guide.get": { params: GuideGetParams, result: GuideGetResult },
-  "settings.get": { params: SettingsGetParams, result: SettingsResult },
-  "settings.set": { params: SettingsSetParams, result: SettingsResult },
-  "project.decisions": { params: ProjectDecisionsParams, result: ProjectDecisionsResult },
-  "project.get": { params: ProjectGetParams, result: ProjectGetResult },
-  "project.theme_toggle": { params: ProjectThemeToggleParams, result: ProjectThemeToggleResult },
-  "project.set_repo_records": { params: ProjectRepoRecordsParams, result: ProjectRepoRecordsResult },
-  "knock_themes": { params: KnockThemesParams, result: KnockThemesResult },
-  "design_kit.get": { params: DesignKitGetParams, result: DesignKitResult },
-  "design_kit.set": { params: DesignKitSetParams, result: DesignKitResult },
-  "design_kit.undo": { params: DesignKitUndoParams, result: DesignKitResult },
-  "knock_settings": { params: KnockSettingsParams, result: KnockSettingsResult },
-  "connectors.status": { params: ConnectorsStatusParams, result: ConnectorsStatusResult },
-  "connectors.telegram.check_token": { params: TelegramCheckTokenParams, result: TelegramStatus },
-  "connectors.telegram.start_pairing": { params: TelegramStartPairingParams, result: TelegramStatus },
-  "connectors.telegram.send_test": { params: TelegramSendTestParams, result: TelegramSendTestResult },
-  "connectors.telegram.disconnect": { params: TelegramDisconnectParams, result: TelegramStatus },
-  "connectors.slack.check_tokens": { params: SlackCheckTokensParams, result: SlackStatus },
-  "connectors.slack.look_up_app": { params: SlackLookUpAppParams, result: SlackStatus },
-  "connectors.slack.start_pairing": { params: SlackStartPairingParams, result: SlackStatus },
-  "connectors.slack.send_test": { params: SlackSendTestParams, result: TelegramSendTestResult },
-  "connectors.slack.disconnect": { params: SlackDisconnectParams, result: SlackStatus },
-  "sharing.get": { params: SharingGetParams, result: SharingState },
-  "sharing.set_enabled": { params: SharingSetEnabledParams, result: SharingState },
-  "sharing.start": { params: SharingStartParams, result: SharingState },
-  "sharing.stop": { params: SharingStopParams, result: SharingState },
-  "sharing.refresh": { params: SharingRefreshParams, result: SharingState },
-  "sharing.update": { params: SharingUpdateParams, result: SharingState },
-  "sharing.open_page": { params: SharingOpenPageParams, result: SharingOpenPageResult },
-  "sharing.reply": { params: SharingReplyParams, result: SharingState },
-  "sharing.comment": { params: SharingCommentParams, result: SharingState },
-  "sharing.resolve": { params: SharingResolveParams, result: SharingState },
-  "sharing.close_comments": { params: SharingCloseCommentsParams, result: SharingState },
-  "sharing.reopen": { params: SharingReopenParams, result: SharingState },
-  "sharing.mark_late_given": { params: SharingMarkLateGivenParams, result: SharingState },
-  "sharing.mark_seen": { params: SharingMarkSeenParams, result: SharingUnread },
-  "sharing.unread": { params: SharingEmptyParams, result: SharingUnread },
-  "sharing.take_notifications": { params: SharingEmptyParams, result: SharingNotifications },
-  "account.get": { params: AccountEmptyParams, result: AccountState },
-  "account.connect_start": { params: AccountEmptyParams, result: AccountState },
-  "account.connect_cancel": { params: AccountEmptyParams, result: AccountState },
-  "account.sign_out": { params: AccountEmptyParams, result: AccountState },
-  "account.shares": { params: AccountEmptyParams, result: AccountShares },
-  "account.stop_share": { params: AccountStopShareParams, result: AccountShares },
-} as const;
-
-export const sessionMethods = {
-  "session.hello": { params: SessionHelloParams, result: SessionHelloResult },
-  "case.create": { params: CaseCreateParams, result: CaseCreateResult },
-  "case.wait": { params: CaseWaitParams, result: CaseWaitResult },
-  "case.update": { params: CaseUpdateParams, result: CaseUpdateResult },
-  "reply.ack": { params: ReplyAckParams, result: ReplyAckResult },
-  "usage.tool_call": { params: UsageToolCallParams, result: UsageOkResult },
-} as const;
 
 // --- Claude Code mod methods (HAIL-134) ---
 //

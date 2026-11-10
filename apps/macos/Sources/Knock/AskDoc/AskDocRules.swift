@@ -41,9 +41,6 @@ enum DecisionDock {
     /// Options live in the bar on every layout that has any.
     static func optionsInDock(_ layout: DecisionLayout) -> Bool { layout != .review }
 
-    /// No layout lists its options in the scrolling page.
-    static func optionsInScroll(_ layout: DecisionLayout) -> Bool { false }
-
     /// The tallest the options part of a step bar gets: about 40% of the window height.
     static let stepShare: CGFloat = 0.4
     /// The tallest the options part of the plan bar gets: about 45% of the window height.

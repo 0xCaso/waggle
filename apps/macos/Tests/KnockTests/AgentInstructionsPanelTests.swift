@@ -54,7 +54,6 @@ struct AgentInstructionsTests {
     @Test func summaryListsTheContractBulletCounts() {
         #expect(AgentInstructions.knockWhen.count == 3)
         #expect(AgentInstructions.knockWont.count == 2)
-        #expect(AgentInstructions.everyAskCarries.count == 3)
     }
 
     @Test func versionIsPositive() {

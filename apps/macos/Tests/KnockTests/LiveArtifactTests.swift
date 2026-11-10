@@ -84,18 +84,6 @@ struct LiveArtifactTests {
 
     // MARK: live replaces the preview
 
-    @Test func aPageShowsLiveAndSeveralArtifactsShowTheBox() {
-        let page = ArtifactTabs.tabs(revisions: [revision(1)])
-        #expect(ArtifactTabs.showsLive(tabs: page, fallbackKind: nil))
-        let shots = ArtifactTabs.tabs(revisions: [revision(1, kind: .screenshot)])
-        #expect(!ArtifactTabs.showsLive(tabs: shots, fallbackKind: .screenshot))
-        let text = ArtifactTabs.tabs(revisions: [revision(1, kind: .markdown)])
-        #expect(!ArtifactTabs.showsLive(tabs: text, fallbackKind: .markdown))
-        let many = ArtifactTabs.tabs(revisions: [revision(1, kind: .screenshot), revision(2, name: "Notes", kind: .markdown)])
-        #expect(ArtifactTabs.showsLive(tabs: many, fallbackKind: nil))
-        #expect(ArtifactTabs.showsLive(tabs: [], fallbackKind: .htmlBundle))
-    }
-
     @Test func theLivePageScalesDownToTheBoxAndNeverUp() {
         let wide = ViewportSize(width: 1280, height: 800)
         #expect(LiveArtifactGeometry.scale(boxWidth: 640, viewport: wide) == 0.5)
@@ -162,8 +150,6 @@ struct LiveArtifactTests {
         #expect(AskPanelLayout.parts(for: item, picked: options[1]) == [.crumb, .title, .need, .why, .pickedPoints])
         #expect(AskPanelLayout.parts(for: item, picked: nil, hasCrumb: false) == [.title, .need, .why])
         #expect(AskPanelLayout.optionsPlaces(for: item) == [.bottomBar])
-        #expect(AskPanelLayout.pickedOption(in: item, selectedId: "b")?.id == "b")
-        #expect(AskPanelLayout.pickedOption(in: item, selectedId: nil) == nil)
         #expect(AskPanelLayout.pickLabel(options[0], position: 1) == "YOUR PICK · 1 CARDS")
     }
 
@@ -208,11 +194,6 @@ struct LiveArtifactTests {
     @Test func theStageLabelShowsOnceNotInTheHoneyBox() {
         // The honey box keeps its own label; the stage label belongs to the track.
         #expect(NeedCalloutView(need: "n", why: nil).label == "WHAT I NEED FROM YOU")
-    }
-
-    @Test func theHoneyBoxNamesTheQuestion() {
-        let plan = PlanInfo(stage: PlanStage(name: .questions, step: 2, total: 5, totalIsEstimate: true), rounds: 2, answered: 1)
-        #expect(AskLayout.questionLabel(plan) == "QUESTION 2 OF ~5")
     }
 
     @Test func theWriteUpRowNamesWhatItHolds() {

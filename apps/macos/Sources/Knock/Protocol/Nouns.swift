@@ -880,8 +880,6 @@ struct QuestionPoint: Codable, Equatable, Sendable, Identifiable {
     }
     /// The labels of `choices`.
     var choiceLabels: [String] { choices.map(\.label) }
-    /// When any option carries pros or cons, the answers show as option cards, not chips.
-    var showsOptionCards: Bool { options?.contains { $0.hasPoints } ?? false }
 }
 
 struct QuestionVariant: Codable, Equatable, Sendable, Identifiable {
