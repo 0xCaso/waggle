@@ -327,12 +327,6 @@ enum AskPanelLayout {
     /// Where the panel shows the ask's options: the dock, and only there.
     static func optionsPlaces(for knockCase: Case) -> [AskOptionsPlace] { AskDocRules.optionsPlaces(for: knockCase) }
 
-    /// The sticky area shows a pick whose pros and cons the doc then spells out.
-    static func pickedOption(in knockCase: Case, selectedId: String?) -> Option? {
-        guard let selectedId else { return nil }
-        return knockCase.options.first { $0.id == selectedId }
-    }
-
     /// The pick block shows for every ask with single-choice options, before a pick too (WAG-303, audit F1).
     /// An ask with questions shows its steps and the steps bar, not the free reply field (WAG-305).
     static func showsQuestions(_ knockCase: Case) -> Bool { AskBarMode.forCase(knockCase) == .answers }

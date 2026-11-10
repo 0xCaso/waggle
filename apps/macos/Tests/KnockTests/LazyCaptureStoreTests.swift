@@ -68,7 +68,6 @@ struct LazyCaptureStoreTests {
         #expect(comment?.text == "Make it blue")
         #expect(store.model.comments.count == 1, "counts at once, synchronously")
         #expect(store.draftPin == nil)
-        #expect(ComposerViewModel.primaryButtonLabel(action: .send, commentCount: store.model.comments.count).hasSuffix("+ 1 comment"))
 
         gate.continuation.yield()
         await store.settleCaptures()

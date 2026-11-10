@@ -208,7 +208,6 @@ final class ComposerViewModel: ObservableObject {
     /// True once the ticks reach `max`: unticked rows dim and do not toggle.
     var isAtLimit: Bool { maxChoices.map { selectedOptionIds.count >= $0 } ?? false }
     func isTicked(_ id: String) -> Bool { selectedOptionIds.contains(id) }
-    func canToggle(_ id: String) -> Bool { isTicked(id) || !isAtLimit }
     /// What the send button counts: ticked options, or 1 for a single pick.
     var pickCount: Int { isMultiSelect ? selectedOptionIds.count : (selectedOptionId == nil ? 0 : 1) }
 
@@ -328,16 +327,6 @@ final class ComposerViewModel: ObservableObject {
     /// but the shared `ComposerCardView` only holds this view model.
     var options: [Option] { knockCase.options }
 
-    /// The selected option's 1-indexed position in `options` (HAIL-54): the
-    /// numbered badge and the "Send <n>" button label both name an option by
-    /// its position, not its id or label text. `nil` with no selection, for a
-    /// free-text case, or (defensively) for a selected id `options` no longer
-    /// carries.
-    var selectedOptionPosition: Int? {
-        guard isOptionsCase, let selectedOptionId else { return nil }
-        return knockCase.options.firstIndex(where: { $0.id == selectedOptionId }).map { $0 + 1 }
-    }
-
     /// Picks the option at a 1-indexed position (HAIL-54: pressing "1", "2",
     /// … picks that row, the same toggle `selectOption(_:)` already gives a
     /// click - HAIL-43's deselect-on-repeat still applies). A position past
@@ -346,14 +335,6 @@ final class ComposerViewModel: ObservableObject {
     func selectOption(atPosition position: Int) {
         guard let index = ComposerKeyMapping.optionIndex(forDigit: position, optionCount: knockCase.options.count) else { return }
         selectOption(knockCase.options[index].id, via: .numberKey)
-    }
-
-    /// "Accept recommendation" (options) / "Send recommended answer" (free
-    /// text) - docs/design/mvp-values.md §M7 panels A and B. "Confirm vN"
-    /// (§M9 `ZBEXl`) takes priority over both once a revision has arrived.
-    var acceptButtonLabel: String {
-        if let revisionArrival { return "Confirm v\(revisionArrival.latestRevision)" }
-        return isOptionsCase ? "Accept recommendation" : "Send recommended answer"
     }
 
     /// Clicking the already-selected option again clears it (docs/stories/
@@ -470,18 +451,6 @@ final class ComposerViewModel: ObservableObject {
     /// True when there is a pick to send: a chosen option, or at least one tick.
     var hasPick: Bool { currentChoice != nil || !selectedOptionIds.isEmpty }
 
-    /// The currently selected option's own label (docs/stories/HAIL-43.md):
-    /// drives `ComposerFooterView.sendLabel` once a comment is pinned, so
-    /// the send button reads "Send <label>" while an option is picked and
-    /// falls back to a plain "Send reply" the moment it is cleared. `nil`
-    /// for a free-text case (nothing to choose) and once no option is
-    /// selected.
-    var selectedOptionLabel: String? {
-        guard isOptionsCase, let selectedOptionId else { return nil }
-        let pool = selectedFromFirstOptions ? knockCase.firstOptions : knockCase.options
-        return pool.first(where: { $0.id == selectedOptionId })?.label ?? selectedOptionId
-    }
-
     var currentMessage: String? {
         let trimmed = draftText.trimmingCharacters(in: .whitespacesAndNewlines)
         return trimmed.isEmpty ? nil : trimmed
@@ -498,66 +467,6 @@ final class ComposerViewModel: ObservableObject {
     /// ⌘D on a select "many" ask sends the recommended list.
     var recommendationChoices: [String]? { isMultiSelect ? Self.recommendedTicks(for: knockCase) : nil }
     var recommendationMessage: String? { knockCase.options.isEmpty ? knockCase.recommendation : nil }
-
-    /// The footer's primary action (Amendments, HAIL-25 continue pass): a
-    /// pick that differs from the recommendation had no visible way to send
-    /// it - "Accept recommendation" would send the recommendation instead.
-    /// A typed note over an unchanged pick has the same problem the other
-    /// way: "Accept recommendation" sends the pick alone and drops the note.
-    enum FooterPrimaryAction: Equatable {
-        case acceptRecommendation
-        case sendOption(position: Int)
-        /// Several ticks go out together (HAIL-123): "Send 2".
-        case sendPicks(count: Int)
-        case send
-    }
-
-    var footerPrimaryAction: FooterPrimaryAction {
-        // Leans and rule-outs are sent as they are, never swapped for the recommendation (WAG-301).
-        if isDiscussing { return .send }
-        // A review decides only with a row picked. Comments or a note with no row keep the talk going (WAG-316, Q3).
-        if isReview, !hasPick { return .send }
-        if isMultiSelect, !selectedFromFirstOptions {
-            return selectedOptionIds.isEmpty ? .send : .sendPicks(count: selectedOptionIds.count)
-        }
-        // A pick under "First options" has no number key: it sends as a plain "Send".
-        if isOptionsCase, selectedOptionId != nil, selectedFromFirstOptions { return .send }
-        if isOptionsCase, let selectedOptionId, selectedOptionId != knockCase.recommendation {
-            let position = knockCase.options.firstIndex(where: { $0.id == selectedOptionId }).map { $0 + 1 } ?? 0
-            return .sendOption(position: position)
-        }
-        if currentMessage != nil || hasFiles {
-            return .send
-        }
-        return .acceptRecommendation
-    }
-
-    /// The primary button's own label (HAIL-54 Pen V1+V3: "Send <n> ⌘↵" /
-    /// "Send ⌘↵" / "Accept recommendation ⌘D"), plus the "+ N comments" suffix
-    /// once comments are pinned - a pure function of `footerPrimaryAction` and
-    /// `commentCount` so the three states and the suffix are each unit-
-    /// testable without hosting `ComposerCardView`/`ComposerFooterView`.
-    /// `compact` is the narrow-column form (the review workspace): "Accept"
-    /// instead of "Accept recommendation", so the toolbar stays on one row.
-    static func primaryButtonLabel(action: FooterPrimaryAction, commentCount: Int, compact: Bool = false) -> String {
-        let base: String
-        switch action {
-        case .acceptRecommendation: base = compact ? "Accept" : "Accept recommendation"
-        case .sendOption(let position): base = "Send \(position)"
-        case .sendPicks(let count): base = "Send \(count)"
-        case .send: base = "Send"
-        }
-        guard commentCount > 0 else { return base }
-        return "\(base) + \(commentCount) comment\(commentCount == 1 ? "" : "s")"
-    }
-
-    /// The primary button's key hint: "⌘D" only for `.acceptRecommendation`,
-    /// "⌘↵" otherwise - both shortcuts stay wired regardless of which one is
-    /// showing (⌘D always accepts the recommendation, ⌘↵ always sends).
-    static func primaryButtonKeyHint(action: FooterPrimaryAction) -> String {
-        if case .acceptRecommendation = action { return "⌘D" }
-        return "⌘↵"
-    }
 
     // MARK: - Ask for more detail (HAIL-33)
 
@@ -607,13 +516,4 @@ enum ComposerPlaceholder {
 }
 
 extension Option {
-    /// A heuristic for "an option whose label signals a change request"
-    /// (docs/stories/HAIL-25.md): a catch-all label like "Something else" or
-    /// "Change the copy" should route straight to the review's message
-    /// field rather than a plain accept. See the Choices ledger.
-    var signalsChangeRequest: Bool {
-        let needle = label.lowercased()
-        return ["change", "something else", "other", "custom", "different", "edit", "rewrite", "modify"]
-            .contains { needle.contains($0) }
-    }
 }

@@ -19,10 +19,6 @@ export const LEGACY_CLAUDE_MARKETPLACE = "knock";
 // (KNOCK-20 added the -e KNOCK_RUNTIME=claude env flag; `claude mcp add -e
 // K=V ...` is the syntax a locally installed Claude Code 2.1.283 accepts.)
 
-export function claudeMcpList(): RunResult {
-  return run("claude", ["mcp", "list"]);
-}
-
 // `claude mcp get knock` prints the server's command, args and an
 // "Environment:" block listing each `KEY=value` line — used to detect an
 // older registration that predates the runtime env (see `hasRuntimeEnv`).
@@ -53,15 +49,11 @@ export function claudeVersion(): RunResult {
   return run("claude", ["--version"]);
 }
 
-// Async twins of `claudeVersion`/`claudeMcpList`, used only by `waggle doctor`
-// (doctor.ts) so its Claude Code and Codex checks actually overlap on the
-// wire instead of queueing behind each other (KNOCK-20 fold pass 2).
+// Async twin of `claudeVersion`, used only by `waggle doctor` (doctor.ts) so its
+// Claude Code and Codex checks actually overlap on the wire instead of queueing
+// behind each other (KNOCK-20 fold pass 2).
 export function claudeVersionAsync(): Promise<RunResult> {
   return runAsync("claude", ["--version"]);
-}
-
-export function claudeMcpListAsync(): Promise<RunResult> {
-  return runAsync("claude", ["mcp", "list"]);
 }
 
 // `claude mcp get knock` checks only Waggle's own entry (about 1 s), where

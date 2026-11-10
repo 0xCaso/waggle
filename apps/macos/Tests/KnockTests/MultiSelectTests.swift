@@ -94,10 +94,8 @@ struct MultiSelectTests {
         let composer = Self.composer(Self.many(max: 2))
         composer.tickRecommended()
         #expect(composer.isAtLimit)
-        #expect(!composer.canToggle("c"))
         composer.toggleOption("c")
         #expect(composer.selectedOptionIds == ["a", "b"])
-        #expect(composer.canToggle("a"))
         composer.toggleOption("a")
         #expect(composer.selectedOptionIds == ["b"])
         #expect(!composer.isAtLimit)
@@ -145,8 +143,6 @@ struct MultiSelectTests {
         composer.tickRecommended()
         #expect(composer.currentChoices == ["a", "b"])
         #expect(composer.currentChoice == nil)
-        #expect(composer.footerPrimaryAction == .sendPicks(count: 2))
-        #expect(ComposerViewModel.primaryButtonLabel(action: .sendPicks(count: 2), commentCount: 0) == "Send 2")
     }
 
     @Test func noTicksNeedANoteToBeAnEmptyList() {

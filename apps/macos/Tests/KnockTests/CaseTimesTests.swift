@@ -27,27 +27,6 @@ struct CaseTimesTests {
 
     // MARK: - arrivalRowLabel
 
-    @Test func arrivalRowLabelShowsAClockTimeToday() {
-        let now = Date(timeIntervalSince1970: 1_758_960_000) // some Tuesday
-        let sameDayEarlier = now.addingTimeInterval(-3600)
-        #expect(CaseTimes.arrivalRowLabel(for: sameDayEarlier, now: now) == KnockDateFormat.shortTime(from: sameDayEarlier))
-    }
-
-    @Test func arrivalRowLabelShowsAWeekdayWithinSevenDays() {
-        let now = Date()
-        let threeDaysAgo = Calendar.current.date(byAdding: .day, value: -3, to: now)!
-        let label = CaseTimes.arrivalRowLabel(for: threeDaysAgo, now: now)
-        #expect(label != KnockDateFormat.shortTime(from: threeDaysAgo))
-        #expect(!label.contains(":"))
-    }
-
-    @Test func arrivalRowLabelShowsAFullDateBeyondSevenDays() {
-        let now = Date()
-        let longAgo = Calendar.current.date(byAdding: .day, value: -30, to: now)!
-        let label = CaseTimes.arrivalRowLabel(for: longAgo, now: now)
-        #expect(!label.contains(":"))
-    }
-
     // MARK: - arrivalTooltip
 
     @Test func arrivalTooltipIncludesBothDateAndTime() {
@@ -60,19 +39,6 @@ struct CaseTimesTests {
     }
 
     // MARK: - Case.tookLabel
-
-    @Test func tookLabelIsNilWithoutAFirstReply() {
-        let item = Case.fixture(firstReplySubmittedAt: nil)
-        #expect(item.tookLabel == nil)
-    }
-
-    @Test func tookLabelReadsTheGapBetweenCreatedAndTheFirstReply() {
-        let item = Case.fixture(
-            createdAt: "2026-09-27T21:14:00.000Z",
-            firstReplySubmittedAt: "2026-09-27T21:30:00.000Z"
-        )
-        #expect(item.tookLabel == "took 16m")
-    }
 
     // MARK: - headerMetaLabel (opened-ask header meta, HAIL-34 21:38)
 

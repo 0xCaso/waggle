@@ -64,7 +64,6 @@ struct MarkdownEditModel: Equatable {
     var displayText: [UInt16] { units.map(\.u) }
 
     var canUndo: Bool { !past.isEmpty }
-    var canRedo: Bool { !future.isEmpty }
 
     /// True when the markdown the edit would save differs from the original.
     var hasChanges: Bool {

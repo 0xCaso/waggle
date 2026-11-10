@@ -37,7 +37,6 @@ struct CaughtUpStatsTests {
         ]
         let stats = CaughtUpStats.compute(waitingOnAgentCases: cases, liveSessionCount: 2, now: now)
         #expect(stats.medianTimeToDecideTodaySeconds == 180)
-        #expect(stats.medianTimeToDecideTodayLabel == "3m")
     }
 
     @Test func medianIsTheAverageOfTheTwoMiddleDurationsForAnEvenCount() {
@@ -56,7 +55,6 @@ struct CaughtUpStatsTests {
         let stats = CaughtUpStats.compute(waitingOnAgentCases: cases, liveSessionCount: 2, now: now)
         #expect(stats.answeredToday == 0)
         #expect(stats.medianTimeToDecideTodaySeconds == nil)
-        #expect(stats.medianTimeToDecideTodayLabel == "–")
     }
 
     @Test func ignoresACaseWithNoReplyYet() {

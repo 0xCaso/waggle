@@ -440,3 +440,14 @@ describe("schema migrations", () => {
     db.close();
   });
 });
+
+describe("migration 58: event log index", () => {
+  test("the session-ended lookup of the case list uses the index", () => {
+    const db = new Database(":memory:");
+    migrate(db);
+    const plan = db
+      .query(`EXPLAIN QUERY PLAN SELECT MAX(at) FROM events WHERE type = 'session.state_changed' AND session_id = ?`)
+      .all("s1") as { detail: string }[];
+    expect(plan.map((p) => p.detail).join(" ")).toContain("idx_events_session");
+  });
+});

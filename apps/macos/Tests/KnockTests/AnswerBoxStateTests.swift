@@ -117,11 +117,8 @@ struct AnswerBoxStateTests {
         #expect(composer.selectedOptionId == "a")
         #expect(composer.currentChoice == "a")
         #expect(composer.currentOptionsSet == "first")
-        #expect(composer.selectedOptionLabel == "Compact layout")
-        #expect(composer.footerPrimaryAction == .send)
         composer.selectOption("a")  // the same id in the newest set switches sets
         #expect(composer.currentOptionsSet == nil)
-        #expect(composer.selectedOptionLabel == "Ship both together")
         composer.selectFirstOption("b")
         composer.selectFirstOption("b")  // second tap clears
         #expect(composer.selectedOptionId == nil)

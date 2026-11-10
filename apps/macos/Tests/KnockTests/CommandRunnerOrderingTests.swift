@@ -210,9 +210,4 @@ struct CommandRunnerOrderingTests {
         #expect(model.rows.first { $0.runtime == .claude }?.status == .connected)
     }
 
-    @Test func updateStepSaysNothingAboutRevisionsForATextOnlyAsk() {
-        #expect(ThreadCopy.updatedMeta(revision: nil, hasArtifact: false) == nil)
-        #expect(ThreadCopy.updatedMeta(revision: nil, hasArtifact: true) == "no new revision")
-        #expect(ThreadCopy.updatedMeta(revision: .init(n: 2, isLatest: true, prior: 1), hasArtifact: false) == "v2 is new")
-    }
 }

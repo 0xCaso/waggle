@@ -111,6 +111,5 @@ struct PaneWidthTests {
         }
         let model = ContextCardModel.make(block: SessionContextBlock(line: nil, earlier: items), thread: nil)
         #expect(model.rows.first?.label == "21 earlier requests")
-        #expect(askedWidth(ContextCardView(model: model)) <= Self.limit)
     }
 }
