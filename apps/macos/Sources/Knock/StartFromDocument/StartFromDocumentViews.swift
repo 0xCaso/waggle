@@ -98,6 +98,7 @@ struct AgentChip: View {
 /// The chip's menu (WAG-278): a Claude Code | Codex switch, one row per place with the usable ones
 /// first, places to set up folded into one line, and the running sessions in a submenu.
 private struct LaunchTargetMenu: View {
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @ObservedObject var launcher: SessionLauncher
     let folder: URL
     let sessionOptions: [DocumentSendOption]
@@ -135,8 +136,8 @@ private struct LaunchTargetMenu: View {
         .overlay(RoundedRectangle(cornerRadius: 12).stroke(Theme.Colors.line, lineWidth: 1))
         .shadow(color: Color.black.opacity(Double(0x24) / 255.0), radius: 15, x: 0, y: 10)
         .opacity(appeared ? 1 : 0)
-        .offset(y: appeared ? 0 : -4)
-        .onAppear { withAnimation(.easeOut(duration: 0.2)) { appeared = true } }
+        .offset(y: appeared || reduceMotion ? 0 : -4)
+        .onAppear { ReducedMotion.animate(reduceMotion: reduceMotion, .easeOut(duration: 0.2)) { appeared = true } }
         .animation(.easeOut(duration: 0.2), value: showsSetup)
         .task {
             await launcher.refreshT3Availability()

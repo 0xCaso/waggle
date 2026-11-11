@@ -382,13 +382,14 @@ struct ConversationText: View {
 
 /// "› Worked: 3 steps" (AI Elements "Reasoning" / "Tool"): the agent's progress notes, folded; a click opens them.
 struct WorkedStepsRow: View {
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
     let notes: [ThreadStep.Updated]
     let runtime: String
     @State private var open = false
 
     var body: some View {
         VStack(alignment: .leading, spacing: 8) {
-            Button { withAnimation(.easeOut(duration: 0.15)) { open.toggle() } } label: {
+            Button { ReducedMotion.animate(reduceMotion: reduceMotion, .easeOut(duration: 0.15)) { open.toggle() } } label: {
                 HStack(spacing: 6) {
                     Image(systemName: open ? "chevron.down" : "chevron.right")
                         .font(.system(size: 9, weight: .semibold))
@@ -424,6 +425,7 @@ struct WorkedStepsRow: View {
 
 /// "2 earlier requests ▾" at the top of the Conversation tab: opens the list in place; each row opens its request.
 struct EarlierRequestsList: View {
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
     let model: EarlierAsksModel
     var onOpenCase: (String) -> Void
     @State private var open = false
@@ -431,7 +433,7 @@ struct EarlierRequestsList: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 6) {
             HStack(spacing: 10) {
-                Button { withAnimation(.easeOut(duration: 0.15)) { open.toggle() } } label: {
+                Button { ReducedMotion.animate(reduceMotion: reduceMotion, .easeOut(duration: 0.15)) { open.toggle() } } label: {
                     Text((model.linkLabel ?? "") + (open ? " ▴" : " ▾"))
                         .knockTextStyle(Theme.AskDoc.Typography.crumbs12_5)
                         .foregroundColor(Theme.Colors.ds)
