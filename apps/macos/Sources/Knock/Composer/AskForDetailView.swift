@@ -36,6 +36,15 @@ enum QuickReply: CaseIterable, Identifiable {
         allCases.filter { $0 != .lookAtMyComments || hasComments }
     }
 
+    /// The quick replies the send row shows after "+", wherever the bar has "Ask for…" (request page, 2026-11-10).
+    static let inSendRow: [QuickReply] = [.letsDiscuss, .showMeMore]
+
+    /// The chips of the panel's "Reply" row: the visible ones the send row does not already show, so none shows
+    /// twice while the panel is open (PR #1 review).
+    static func inPanel(hasComments: Bool) -> [QuickReply] {
+        visible(hasComments: hasComments).filter { !inSendRow.contains($0) }
+    }
+
     /// The reply text: a typed draft stays and the quick reply follows it on a new line.
     static func message(draft: String?, reply: QuickReply) -> String {
         let typed = draft?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
@@ -244,7 +253,7 @@ struct AskForDetailPanelView: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
             header
-            if let onQuickReply { quickReplies(onQuickReply) }
+            if let onQuickReply, !panelReplies.isEmpty { quickReplies(onQuickReply) }
             ForEach(Array(entries.enumerated()), id: \.offset) { index, entry in
                 if index == firstFormat {
                     Rectangle().fill(Theme.Colors.line).frame(height: 1)
@@ -283,8 +292,12 @@ struct AskForDetailPanelView: View {
     }
 
     /// The quick replies (WAG-411): one click sends the words as the reply. They wrap, never cut.
+    private var panelReplies: [QuickReply] {
+        QuickReply.inPanel(hasComments: hasComments || ProcessInfo.processInfo.environment["KNOCK_EVIDENCE_QUICK_COMMENTS"] == "1")
+    }
+
     private func quickReplies(_ send: @escaping (QuickReply) -> Void) -> some View {
-        let visible = QuickReply.visible(hasComments: hasComments || ProcessInfo.processInfo.environment["KNOCK_EVIDENCE_QUICK_COMMENTS"] == "1")
+        let visible = panelReplies
         return HStack(spacing: 6) {
             Text("Reply")
                 .knockTextStyle(Theme.Typography.statusCaption11w400)

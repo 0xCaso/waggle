@@ -605,7 +605,7 @@ struct PromptBarView: View {
 
     /// "Let's discuss" and "Show me more" in the tools row: the quick replies of the "Ask for…" panel, wherever
     /// the bar shows "Ask for…".
-    private var quickReplies: [QuickReply] { showsDetailButton ? [.letsDiscuss, .showMeMore] : [] }
+    private var quickReplies: [QuickReply] { showsDetailButton ? QuickReply.inSendRow : [] }
 
     var body: some View {
         VStack(spacing: 0) {

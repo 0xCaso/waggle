@@ -33,6 +33,9 @@ struct RequestPageOptionsTests {
     @Test func theQuickRepliesStayInThePanel() {
         #expect(QuickReply.visible(hasComments: false).map(\.label) == ["Let's discuss", "Show me more"])
         #expect(QuickReply.visible(hasComments: true).map(\.label) == ["Let's discuss", "Look at my comments", "Show me more"])
+        // The open panel shows only what the send row does not, so no quick reply shows twice.
+        #expect(QuickReply.inPanel(hasComments: false).isEmpty)
+        #expect(QuickReply.inPanel(hasComments: true) == [.lookAtMyComments])
     }
 
     @Test func theFooterPanelScrollsInsideItsCap() {
