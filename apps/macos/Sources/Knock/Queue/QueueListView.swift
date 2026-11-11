@@ -70,8 +70,14 @@ struct QueueListView: View {
             let isQueueEmpty = model.visibleNeedsYouCases.isEmpty && model.visibleWaitingCases.isEmpty
                 && model.visibleAnsweredCases.isEmpty && model.homeOverview.cards.isEmpty && model.autoDecidedToday.isEmpty
             let working = isOffline ? nil : firstRun.sidebarAgentOnIt
-            let showsList = !isOffline && firstRun.isListVisible
-            if isQueueEmpty && working == nil && !showsList {
+            let showsList = !isOffline && firstRun.isCardVisible
+            let hasAnswered = FirstRunRules.hasAnswered(
+                decided: firstRun.state.decided, sampleAnswered: firstRun.sampleAnswered,
+                waitingCount: model.visibleWaitingCases.count, answeredCount: model.visibleAnsweredCases.count)
+            let showsSample = !isOffline && model.sessionFilter == nil && FirstRunRules.showsSampleRow(
+                inboxEmpty: model.visibleNeedsYouCases.isEmpty && model.visibleWaitingCases.isEmpty,
+                hasAnswered: hasAnswered, sampleAnswered: firstRun.sampleAnswered, sampleDismissed: firstRun.sampleDismissed)
+            if isQueueEmpty && working == nil && !showsList && !showsSample {
                 emptyState
             } else {
                 let groupedNeedsYou = Self.grouped(model.visibleNeedsYouCases)
@@ -83,7 +89,10 @@ struct QueueListView: View {
                 let doneCases = held.filter(\.isDone)
                 ScrollView {
                     LazyVStack(spacing: 0) {
-                        if isQueueEmpty && working == nil { QueueEmptyStateView(embedded: true) }
+                        if showsSample {
+                            SampleRequestRow(
+                                isOpen: firstRun.sampleOpen && model.selectedCaseDetail == nil, onOpen: openSample, onDismiss: firstRun.dismissSample)
+                        }
                         if !groupedNeedsYou.isEmpty {
                             SidebarSectionTitle(text: SidebarSections.sectionTitle("Needs you", count: groupedNeedsYou.count))
                         }
@@ -434,17 +443,24 @@ struct QueueListView: View {
         }
     }
 
-    /// The eight examples while there is nothing yet (WAG-338). A filtered or offline queue keeps its one line.
+    /// A filtered queue keeps its one line. Otherwise the list column is bare: the sample row and the card
+    /// carry the first run, and the pane beside it says the rest.
     @ViewBuilder private var emptyState: some View {
-        if model.sessionFilter == nil && !isOffline {
-            QueueEmptyStateView()
-        } else {
-            if model.sessionFilter != nil {
-                Text("No decisions from this session.")
-                    .knockTextStyle(Theme.Typography.body13w400)
-                    .foregroundColor(Theme.Colors.ink2)
-                    .padding(EdgeInsets(top: 18, leading: 18, bottom: 18, trailing: 18))
-            }
+        if model.sessionFilter != nil {
+            Text("No decisions from this session.")
+                .knockTextStyle(Theme.Typography.body13w400)
+                .foregroundColor(Theme.Colors.ink2)
+                .padding(EdgeInsets(top: 18, leading: 18, bottom: 18, trailing: 18))
+        }
+    }
+
+    /// A tap on the sample row: the pane leaves any real request, then shows the sample.
+    private func openSample() {
+        model.goHome()
+        Task {
+            // The artifact is registered before the page opens, so it never asks the daemon for it.
+            await SampleRequest.prepare(client: model.client)
+            firstRun.openSample()
         }
     }
 

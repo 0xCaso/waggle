@@ -20,6 +20,12 @@ struct CasePaneView: View {
 
     private var isOffline: Bool { model.connectionState != .connected }
 
+    private var hasAnswered: Bool {
+        FirstRunRules.hasAnswered(
+            decided: firstRun.state.decided, sampleAnswered: firstRun.sampleAnswered,
+            waitingCount: model.visibleWaitingCases.count, answeredCount: model.visibleAnsweredCases.count)
+    }
+
     var body: some View {
         Group {
             if let detail = model.selectedCaseDetail {
@@ -27,11 +33,20 @@ struct CasePaneView: View {
                     model: model, detail: detail,
                     isBothFolded: isBothFolded, onToggleBothFolded: onToggleBothFolded)
                     .id(detail.case.id)
+            } else if !isOffline, firstRun.sampleOpen, firstRun.sampleAvailable, model.needsYouCases.isEmpty {
+                CasePaneDetailView(
+                    model: model, detail: SampleRequest.detail,
+                    isBothFolded: isBothFolded, onToggleBothFolded: onToggleBothFolded,
+                    sample: SampleHooks(onAnswered: firstRun.answerSample, onDismiss: firstRun.dismissSample))
+                    .id(SampleRequest.caseId)
             } else if !isOffline, let working = firstRun.agentOnIt {
                 AgentOnItCard(working: working, sample: firstRun.sample, onTrySample: onTrySample)
             } else if !isOffline && model.needsYouCases.isEmpty {
-                // WAG-362: Home replaces the plain "Select a case…" placeholder once no ask needs you.
-                HomeView()
+                // Once no ask needs you: the explainer before the first answer, "All caught up" after it.
+                switch FirstRunRules.pane(sampleOpen: false, hasAnswered: hasAnswered) {
+                case .caughtUp: CaughtUpView(stats: model.caughtUpStats)
+                case .explainer, .sample: HomeView()
+                }
             } else {
                 VStack {
                     Spacer()
@@ -45,6 +60,13 @@ struct CasePaneView: View {
         .frame(maxWidth: .infinity, maxHeight: .infinity)
         .background(Theme.Colors.win)
     }
+}
+
+/// What the built-in sample request changes on the real request page: Decide and Dismiss act on the first-run
+/// state only.
+struct SampleHooks {
+    let onAnswered: () -> Void
+    let onDismiss: () -> Void
 }
 
 /// One selected case's toolbar, body and bottom action bar. A fresh instance
@@ -91,6 +113,8 @@ struct CasePaneDetailView: View {
     @State private var commentsTabSeen = false
     let isBothFolded: Bool
     let onToggleBothFolded: (() -> Void)?
+    /// Set only for the built-in sample request: the page is the real one, but Decide stays on this Mac.
+    let sample: SampleHooks?
 
     private var isOffline: Bool { model.connectionState != .connected }
     /// The ask's thread, once you have replied (HAIL-71).
@@ -104,11 +128,12 @@ struct CasePaneDetailView: View {
     private var lockState: ReplyLockState { detail.case.replyLockState }
     init(
         model: AppModel, detail: CaseDetail,
-        isBothFolded: Bool = false, onToggleBothFolded: (() -> Void)? = nil,
+        isBothFolded: Bool = false, onToggleBothFolded: (() -> Void)? = nil, sample: SampleHooks? = nil,
         environment: [String: String] = ProcessInfo.processInfo.environment
     ) {
         self.model = model
         self.detail = detail
+        self.sample = sample
         _commentsStore = ObservedObject(wrappedValue: model.commentsStore(forCase: detail.case.id))
         self.isBothFolded = isBothFolded
         self.onToggleBothFolded = onToggleBothFolded
@@ -117,13 +142,15 @@ struct CasePaneDetailView: View {
             // WAG-280: the case's one comment store, shared with the opened artifact's viewer, the
             // own window and the review workspace. Send goes straight through, comments included.
             commentsStore: model.commentsStore(forCase: detail.case.id),
-            coordinator: model.sendCoordinator,
+            coordinator: sample == nil ? model.sendCoordinator : model.sampleCoordinator,
             client: model.client,
             revisionArrival: detail.revisionArrival,
             replies: detail.replies,
-            usage: model.usage,
+            usage: sample == nil ? model.usage : nil,
             onSent: {},
-            onAnswerSent: { model.advanceAfterSend(answeredCaseId: detail.case.id, answer: $0) }
+            onAnswerSent: { answer in
+                if let sample { sample.onAnswered() } else { model.advanceAfterSend(answeredCaseId: detail.case.id, answer: answer) }
+            }
         )
         // Every `KNOCK_PANE_*` hook below targets only the case `KNOCK_OPEN_CASE`
         // named (Contract HAIL-53 fold): a case with no `KNOCK_OPEN_CASE` set
@@ -257,9 +284,9 @@ struct CasePaneDetailView: View {
         // the last one's outcome (docs/stories/HAIL-32.md "One state
         // source" - the footer must never show a state older than reality).
         // WAG-387: opening a shared case uploads missing rounds and fetches new comments.
-        .task(id: detail.case.id) { await sharing.refresh() }
+        .task(id: detail.case.id) { if sample == nil { await sharing.refresh() } }
         .onChange(of: detail.case) { _, updated in
-            Task { await sharing.load() }
+            if sample == nil { Task { await sharing.load() } }
             // An update may bring new options (HAIL-108): the composer reads the newest set.
             sendFlow.refreshCase(updated)
             askDoc.refresh(with: updated, itemAnswers: Self.sentItemAnswers(detail))
@@ -333,7 +360,9 @@ struct CasePaneDetailView: View {
             "Dismiss this decision?",
             isPresented: $showDismissConfirmation
         ) {
-            Button("Dismiss", role: .destructive) { Task { await model.dismiss(caseId: detail.case.id) } }
+            Button("Dismiss", role: .destructive) {
+                if let sample { sample.onDismiss() } else { Task { await model.dismiss(caseId: detail.case.id) } }
+            }
             Button("Cancel", role: .cancel) {}
         } message: {
             Text("The agent is waiting on \"\(detail.case.title)\". Dismissing it now sends back \"The human dismissed this ask without answering.\"")
@@ -640,7 +669,9 @@ struct CasePaneDetailView: View {
     }
 
     private func requestDismiss() {
-        if detail.case.needsDismissConfirmation {
+        if let sample {
+            sample.onDismiss()
+        } else if detail.case.needsDismissConfirmation {
             showDismissConfirmation = true
         } else {
             Task { await model.dismiss(caseId: detail.case.id) }
@@ -677,7 +708,13 @@ struct CasePaneDetailView: View {
             if showsHomeLink {
                 HStack(spacing: 6) { HomeLinkButton(action: model.goHome) }
             }
-            if !isPageLayout {
+            if sample != nil {
+                Text(FirstRunRules.sampleToolbarLine)
+                    .knockTextStyle(Theme.AskDoc.Chrome.crumb)
+                    .foregroundColor(Theme.Colors.ink3)
+                    .lineLimit(1)
+                    .accessibilityIdentifier("sample-toolbar-line")
+            } else if !isPageLayout {
                 // "Waggle / Request page UI cleanup · arrived 15:24" (`.top`, mono 11.5, the project in ink).
                 HStack(spacing: 0) {
                     breadcrumb
@@ -693,10 +730,12 @@ struct CasePaneDetailView: View {
             Spacer(minLength: 0)
             HStack(spacing: Theme.AskDoc.Chrome.rightGap) {
                 if let waiting = topBarMeta.waiting { TopBarPill(text: waiting) }
-                ShareCaseButton(
-                    model: sharing,
-                    onViewComments: AppModel.canOpenReview(kind: detail.case.kind, hasArtifact: detail.case.hasArtifact)
-                        ? { model.openReviewOnComments(caseId: detail.case.id) } : nil)
+                if sample == nil {
+                    ShareCaseButton(
+                        model: sharing,
+                        onViewComments: AppModel.canOpenReview(kind: detail.case.kind, hasArtifact: detail.case.hasArtifact)
+                            ? { model.openReviewOnComments(caseId: detail.case.id) } : nil)
+                }
                 FoldIconButton(
                     symbol: BothFoldedCopy.symbol(isBothFolded: isBothFolded), isActive: isBothFolded,
                     help: BothFoldedCopy.help(isBothFolded: isBothFolded), action: { onToggleBothFolded?() })

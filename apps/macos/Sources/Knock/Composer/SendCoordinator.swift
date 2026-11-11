@@ -32,11 +32,30 @@ final class SendCoordinator {
     private let submitTimeout: Duration?
     /// Called once the daemon holds a reply, from a live send and from a reconnect resubmit (WAG-358).
     var onDelivered: ((PendingReply) -> Void)?
+    /// The built-in sample request answers here and nowhere else: when set, `send` saves nothing, never
+    /// calls the daemon and never touches the network. It returns the reply this closure builds.
+    private let localDelivery: ((PendingReply) -> Reply)?
+
+    /// A coordinator for the sample request: Decide is delivered to this process only.
+    static func local(client: KnockClient, onAnswered: @escaping (PendingReply) -> Void = { _ in }) -> SendCoordinator {
+        SendCoordinator(client: client, localDelivery: { reply in
+            onAnswered(reply)
+            return SampleRequest.localReply(for: reply)
+        })
+    }
+
+    private init(client: KnockClient, localDelivery: @escaping (PendingReply) -> Reply) {
+        self.client = client
+        self.store = PendingReplyStore(environment: ["KNOCK_HOME": NSTemporaryDirectory() + "waggle-sample-unused"])
+        self.submitTimeout = nil
+        self.localDelivery = localDelivery
+    }
 
     init(client: KnockClient, store: PendingReplyStore = PendingReplyStore(), submitTimeout: Duration? = nil) {
         self.client = client
         self.store = store
         self.submitTimeout = submitTimeout
+        self.localDelivery = nil
     }
 
     /// The idempotency key this case's next send should use: an
@@ -63,6 +82,7 @@ final class SendCoordinator {
     func send(_ reply: PendingReply, timeout: Duration? = nil) async throws -> Reply {
         // WAG-349: a saved reply with an out-of-range rect is repaired here, on Retry and on the reconnect resubmit.
         let reply = reply.withClampedRects()
+        if let localDelivery { return localDelivery(reply) }
         try store.save(reply)
         let result = try await client.replySubmit(
             caseId: reply.caseId,
