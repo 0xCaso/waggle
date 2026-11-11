@@ -62,7 +62,7 @@ struct QueueListView: View {
             if isOffline {
                 OfflineBannerView(
                     onStartService: { ServiceControl.startDaemon() },
-                    onViewLog: {}
+                    onViewLog: DaemonLog.existingURL().map { url in { DaemonLog.open(url) } }
                 )
                 cachedLabel
             }
@@ -136,6 +136,8 @@ struct QueueListView: View {
             if let undo = model.dismissUndo {
                 DismissUndoToastView(undo: undo, onUndo: { Task { await model.undoDismiss() } })
             }
+            // The "Sent" toast sits here, above the footer: it takes its own room and covers no row.
+            SentToastView(model: model)
             footer
         }
         .frame(width: width)
@@ -154,6 +156,12 @@ struct QueueListView: View {
         .onAppear {
             isFocused = true
             scheduleEvidenceGotIt()
+        }
+        // The list takes focus only when it appears. An answer sent from the note field or a focused option
+        // card leaves focus in the pane, and the next request's pane does not give it back, so j, k and
+        // Return stopped until a click. A new answer returns focus here.
+        .onChange(of: model.sentToast?.id) { _, id in
+            if id != nil { isFocused = true }
         }
         .onKeyPress { press in
             switch press.key {
