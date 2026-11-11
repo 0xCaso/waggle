@@ -49,8 +49,8 @@ From top to bottom:
 The box is the weak point today (the height is estimated, quiet buttons are cut, more than 6 lines scroll with no sign). After:
 - The height comes from the real text view layout (`NSTextView` layout manager of the field itself, after each change and on width change), not from a second estimate.
 - The text wraps at the field width. The field grows with the text up to 40 % of the column height, at least 6 lines. Past that it scrolls, and the scroller is always visible while there is hidden text.
-- At rest the field shares the row with the buttons, as today. When the text needs more width than that row gives, the field moves to its own full row above the buttons, so the buttons never take width from the text. Check this in the running app before the task is done.
-- Buttons in one row under the field: + (attach), Ask for…, quiet buttons (Ask for more detail, Open review, Change / Request changes, More), then Send. When the row is too narrow, quiet buttons move into "More", one by one; they are never cut with "…".
+- The field always has its own full row, with the buttons under it, so the buttons never take width from the text and the bar keeps one shape (decision 2026-11-10 "Field on its own row").
+- Buttons in one row under the field: + (attach), Let's discuss, Show me more, Ask for…, quiet buttons (Ask for more detail, Open review, Change / Request changes, More), then Send. When the row is too narrow, Show me more and Let's discuss move into "More" first, then the quiet buttons, one by one; they are never cut with "…".
 - All Send labels stay as today: Decide, "Decide: X", Decide with changes / Approve with changes (+N comments), Decide: N picked, Ask, Keep talking, Lean to 1, keep talking, Rule out 3…, Send feedback, Send comments, + edit; ↵ / ⌘↵, ⇧↵ new line.
 - Text the app puts in ("Use this reply") keeps the caret at the end.
 - The placeholder wraps; it is never cut with "…".
@@ -64,7 +64,7 @@ Pattern reference: AI Elements (Message, Reasoning, Tool, Inline citation), buil
 - Above the tabs, one line with the latest agent message, no left border. Click opens the Conversation tab.
 - Each entry is a message: who (agent or you), time, text. Your answers are on the right, agent messages on the left, no bubble border.
 - Actions under each message on hover: Copy, and "See vN" for a revision.
-- Long agent text folds after 6 lines, with "Show more".
+- Each message shows in full, with no fold (decision 2026-11-10 "Conversation tab fixes").
 - The agent's working notes and tool steps show as one folded line ("Worked: 3 steps") that opens.
 - Earlier requests: a list at the top of the tab ("2 earlier requests ▾", Open the history ›).
 - ⌘] and the top bar icon open this tab. The 380 pt overlay column goes away.
