@@ -174,8 +174,8 @@ struct SessionActivityTests {
     // MARK: Titles, closed count, today
 
     @Test func titleAndUptime() {
-        #expect(SessionActivity.title(session()) == "knock · main")
-        #expect(SessionActivity.title(session(branch: nil)) == "knock")
+        #expect(SessionActivity.title(session()) == "Knock")
+        #expect(SessionActivity.title(session(branch: nil)) == "Knock")
         #expect(SessionActivity.uptime(session(), now: now) == "up 2h 14m")
     }
 

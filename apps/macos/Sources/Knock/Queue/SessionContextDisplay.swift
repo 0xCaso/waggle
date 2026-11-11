@@ -85,7 +85,7 @@ enum SessionContextDisplay {
         rowTitle(session) ?? SessionActivity.title(session)
     }
 
-    /// "project · branch · runtime · seen …" under a titled header. Without a
+    /// "project · runtime · seen …" under a titled header. Without a
     /// title it is today's "runtime · up … · seen …".
     static func headerSubtitle(session: SessionInfo, now: Date) -> String {
         let seenAt = KnockDateFormat.date(from: session.lastSeenAt) ?? now
