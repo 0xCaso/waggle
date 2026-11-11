@@ -62,6 +62,7 @@ struct ConversationTabTests {
         #expect(ConversationCopy.repliedHeader(replied, timeZone: utc) == "YOU · 21:23 · 1 comment on v1")
         #expect(ConversationCopy.updatedHeader(updated, runtime: "Claude Code", timeZone: utc) == "CLAUDE CODE · 21:24 · v2")
         #expect(ConversationCopy.pickedUpLine(try #require(replied.pickedUp), timeZone: utc) == "✓ picked up 21:23 · worked 1m")
+        #expect(ConversationCopy.priorVersionLink(updated) == "v1 · see in review")
     }
 
     @Test func turnLabelDropsTheHintWhileItIsYourTurn() {

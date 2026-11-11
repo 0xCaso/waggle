@@ -193,6 +193,12 @@ enum ConversationCopy {
     static func turnLabel(_ turn: ThreadTurn) -> String {
         turn.status == .needsYou ? String(turn.label.prefix { $0 != ":" }) : turn.label
     }
+
+    /// "v1 · see in review": the link to the version before the update's own.
+    static func priorVersionLink(_ updated: ThreadStep.Updated) -> String? {
+        guard let revision = updated.revision, revision.isLatest, let prior = revision.prior else { return nil }
+        return "v\(prior) · see in review"
+    }
 }
 
 extension ThreadModel {
@@ -211,6 +217,8 @@ struct ConversationTabView: View {
     let turn: ThreadTurn
     var earlier: EarlierAsksModel?
     var onOpenCase: (String) -> Void = { _ in }
+    /// Opens the review on the version before an update's own ("v1 · see in review"). Nil hides the link.
+    var onSeeInReview: (() -> Void)? = nil
     /// The column's content edges, the same as its other tabs: the earlier-requests row and the messages stay inside them.
     var leadingPadding: CGFloat = Theme.AskDoc.Column.scrollInset.leading
     var trailingPadding: CGFloat = Theme.AskDoc.Column.scrollInset.trailing
@@ -265,7 +273,8 @@ struct ConversationTabView: View {
         case .updated(let updated):
             ConversationMessageView(
                 header: ConversationCopy.updatedHeader(updated, runtime: model.runtimeName), text: updated.message,
-                isYours: false, isLatest: isLatest)
+                isYours: false, isLatest: isLatest,
+                link: onSeeInReview == nil ? nil : ConversationCopy.priorVersionLink(updated), onLink: onSeeInReview)
         case .replied(let replied):
             ConversationMessageView(
                 header: ConversationCopy.repliedHeader(replied), text: replied.summary, isYours: true,
@@ -302,6 +311,9 @@ struct ConversationMessageView: View {
     let isYours: Bool
     var footnote: String? = nil
     var isLatest = false
+    /// "v1 · see in review" under an update, and what a click on it does.
+    var link: String? = nil
+    var onLink: (() -> Void)? = nil
 
     private typealias Column = Theme.AskDoc.Column
 
@@ -321,12 +333,21 @@ struct ConversationMessageView: View {
             .foregroundColor(isYours ? Column.yourHead : Theme.AskDoc.Colors.quiet)
             ConversationText(
                 text: text, boldsQuestion: false, style: Column.message, color: isYours ? Theme.Colors.win : Theme.Colors.ink)
+            if let link, let onLink {
+                Text(link)
+                    .knockTextStyle(Theme.Typography.priorRevisionLink12w500)
+                    .foregroundColor(Theme.Colors.ds)
+                    .contentShape(Rectangle())
+                    .onTapGesture(perform: onLink).pointerCursor()
+            }
         }
         .textSelection(.enabled)
         .padding(Column.messagePadding)
         .frame(maxWidth: .infinity, alignment: .leading)
         .background(background)
         .clipShape(RoundedRectangle(cornerRadius: Column.messageRadius))
+        // Copy the message as plain text, as before the restyle (spec §5). Yours puts the button in the 40 pt gap.
+        .copyOnHover(AgentMarkdown.plainText(text), outsideLeading: isYours)
         .padding(.leading, isYours ? 40 : 0)
     }
 
