@@ -1,0 +1,455 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Mockup canvas</title>
+<!--
+  Mockup canvas: 2-3 variants side by side, each in its own frame at real size.
+  Copy this file to design/mockups/<yyyy-mm-dd>-<topic>/index.html, then fill:
+    1. #mockup-meta   title, axis, devices, themes, default view
+    2. #tokens        the project's tokens and base styles (shared by every variant)
+    3. one <template data-variant> per variant (markup, plus its own <style> if needed)
+  Each frame is an iframe as wide as the device, so media queries work per frame.
+  The theme is the class "dark" on the frame's <html>; write dark tokens under .dark.
+  States (e.g. ["ready", "resting"]) set data-state on the frame's <html>: style them with [data-state="resting"] ...
+  Fonts: put files in ./fonts/ and use relative url() in #tokens (Waggle bundles may have no network).
+  URL params override the meta view: ?theme=light|dark|both &device=phone|desktop &v=<id> &state=<state> &zoom=0.5 &export=1 (bare frame)
+  Frames are device height and scroll inside; position: fixed docks stay on screen. "grow": true in the meta = frame as tall as the content.
+  No vh units anywhere (T3 html_preview rejects them): use height: 100% on html, body and the screen root.
+-->
+<script type="application/json" id="mockup-meta">
+{
+  "title": "Request page cleanup",
+  "axis": "How much the page shows at once: light cleanup → options in place → one request in focus",
+  "devices": { "desktop": [1440, 900] },
+  "themes": ["light"],
+  "states": [],
+  "view": { "theme": "light", "device": "desktop", "v": "all", "state": "", "zoom": 1 }
+}
+</script>
+
+<style id="tokens">
+  @font-face { font-family: "Inter Tight"; src: url(fonts/InterTight-Regular.ttf); font-weight: 400; }
+  @font-face { font-family: "Inter Tight"; src: url(fonts/InterTight-Medium.ttf); font-weight: 500; }
+  @font-face { font-family: "Inter Tight"; src: url(fonts/InterTight-SemiBold.ttf); font-weight: 600; }
+  @font-face { font-family: "JetBrains Mono"; src: url(fonts/JetBrainsMono-Regular.ttf); font-weight: 400; }
+  :root {
+    --win: #fff; --side: #f3f3f3; --list: #fafafa; --sel: #ebebeb; --hover: #f0f0f0;
+    --ink: #16181a; --ink2: #4a4c50; --ink3: #6b6b6b; --quiet: #8a8a8a;
+    --line: #e6e6e6; --line2: #d9d9d9;
+    --honey300: #f9c846; --honey500: #f2b01e; --honey600: #e89a0c; --honey-soft: #fdf4da; --need-label: #9a6a00; --rec-text: #c98a00;
+    --open: #e0352b; --ok: #18a058; --ok-soft: #e3f5ea; --pro: #0e7a43; --watch: #c2410c; --watch-soft: #ffede3;
+    --sans: "Inter Tight", -apple-system, sans-serif; --mono: "JetBrains Mono", ui-monospace, monospace;
+  }
+  *, *::before, *::after { box-sizing: border-box; }
+  html, body { height: 100%; margin: 0; background: var(--win); color: var(--ink); font: 400 13.5px/1.45 var(--sans); }
+  body { font-variant-numeric: tabular-nums; -webkit-font-smoothing: antialiased; }
+  button { font: inherit; color: inherit; border: 0; background: none; cursor: pointer; padding: 0; }
+  .app { display: grid; height: 100%; }
+  .mono { font-family: var(--mono); }
+  .dot { width: 7px; height: 7px; border-radius: 50%; display: inline-block; flex: none; }
+  .dot.open { background: var(--open); } .dot.ok { background: var(--ok); }
+
+  /* sidebar shared */
+  .side { background: var(--side); border-right: 1px solid var(--line); display: flex; flex-direction: column; min-height: 0; }
+  .side-head { display: flex; align-items: center; gap: 8px; padding: 40px 16px 12px; }
+  .brand { display: flex; align-items: center; gap: 7px; font-weight: 500; font-size: 15px; letter-spacing: -0.03em; }
+  .mark { width: 16px; height: 16px; background: var(--honey500); clip-path: polygon(25% 3%, 75% 3%, 100% 50%, 75% 97%, 25% 97%, 0 50%); }
+  .count { background: var(--open); color: #fff; font-weight: 700; font-size: 11px; border-radius: 9px; padding: 1px 6px; }
+  .sec { font: 600 10.5px/1 var(--sans); letter-spacing: 0.06em; text-transform: uppercase; color: var(--quiet); padding: 14px 16px 6px; display: flex; justify-content: space-between; }
+  .sec button { text-transform: none; letter-spacing: 0; font-weight: 500; font-size: 12px; color: var(--ink3); }
+  .row { display: flex; gap: 9px; padding: 9px 16px; align-items: baseline; }
+  .row .dot { transform: translateY(-1px); }
+  .row.sel { background: #fff; box-shadow: inset 3px 0 0 var(--honey500); }
+  .row-t { font-weight: 600; font-size: 13.5px; line-height: 1.3; }
+  .row-m { color: var(--quiet); font-size: 12px; margin-top: 2px; }
+  .row.done .row-t { font-weight: 500; color: var(--ink2); }
+  .side-foot { margin-top: auto; padding: 12px 16px; border-top: 1px solid var(--line); color: var(--ink3); font-size: 12px; display: flex; align-items: center; gap: 7px; }
+
+  /* page shared */
+  .main { display: flex; flex-direction: column; min-height: 0; }
+  .top { height: 44px; flex: none; display: flex; align-items: center; gap: 10px; padding: 0 20px; border-bottom: 1px solid var(--line); font-size: 12.5px; color: var(--ink3); }
+  .top b { color: var(--ink); font-weight: 600; }
+  .status { margin-left: auto; display: inline-flex; align-items: center; gap: 6px; color: var(--pro); background: var(--ok-soft); border-radius: 20px; padding: 3px 10px; font-weight: 500; font-size: 12px; }
+  .scroll { flex: 1; overflow: auto; min-height: 0; }
+  .page { max-width: 760px; margin: 0 auto; padding: 28px 32px 40px; }
+  h1 { font-weight: 600; font-size: 28px; line-height: 1.15; letter-spacing: -0.03em; margin: 0 0 10px; }
+  .lead { font-size: 16px; line-height: 1.55; color: var(--ink); margin: 0 0 16px; }
+  p { margin: 0 0 10px; }
+  .body { font-size: 14.5px; line-height: 1.6; color: var(--ink2); }
+  .body b { color: var(--ink); font-weight: 600; }
+  table.t { width: 100%; border-collapse: separate; border-spacing: 0; border: 1px solid var(--line); border-radius: 10px; overflow: hidden; margin: 4px 0 16px; font-size: 13.5px; background: #fff; }
+  .t th { background: var(--side); text-align: left; font-weight: 600; color: var(--ink); padding: 8px 12px; }
+  .t td { padding: 8px 12px; border-top: 1px solid var(--line); color: var(--ink2); vertical-align: top; }
+  .t td.num, .t th.num { text-align: right; white-space: nowrap; }
+  .t .muted { color: var(--quiet); }
+  .src { display: inline-block; font: 400 11px/1 var(--mono); color: var(--ink3); background: var(--side); border-radius: 5px; padding: 3px 6px; margin-left: 4px; vertical-align: 1px; }
+  .rec-tag { display: inline-flex; align-items: center; gap: 4px; font: 600 11px/1 var(--sans); color: var(--rec-text); background: var(--honey-soft); border-radius: 5px; padding: 4px 7px; }
+  .pro { color: var(--pro); } .con { color: var(--watch); }
+  .send { background: var(--ink); color: #fff; border-radius: 8px; padding: 8px 14px; font-weight: 600; font-size: 13px; }
+  .ghost { border: 1px solid var(--line2); border-radius: 8px; padding: 7px 12px; font-weight: 500; font-size: 13px; background: #fff; }
+  .chip { border: 1px solid var(--line2); border-radius: 20px; padding: 4px 11px; font-size: 12.5px; background: #fff; color: var(--ink2); }
+  .note { flex: 1; border: 1px solid var(--line2); border-radius: 10px; padding: 9px 12px; color: var(--quiet); background: #fff; font-size: 13.5px; }
+</style>
+</head>
+<body>
+
+<template data-variant="calm" data-name="A · Calm" data-position="Same layout, half the noise: one context line, quiet need, options once" data-right-when="You like today's structure and only want it lighter; smallest build" data-costs="The page still scrolls to reach the option details; the composer stays a separate band">
+<style>
+  .app { grid-template-columns: 300px 1fr; }
+  .need { border-left: 3px solid var(--honey500); padding: 2px 0 2px 16px; margin: 6px 0 22px; }
+  .need-l { font: 400 10.5px/1 var(--mono); letter-spacing: 0.06em; color: var(--need-label); margin-bottom: 10px; }
+  .why { font-size: 13px; color: var(--ink3); margin: 0 0 24px; }
+  .opt-card { border: 1px solid var(--line); border-radius: 12px; padding: 16px 18px; }
+  .opt-card.rec { border-color: var(--honey300); background: linear-gradient(#fffdf6, #fff); }
+  .opt-h { display: flex; align-items: center; gap: 10px; margin-bottom: 6px; }
+  .opt-h b { font-size: 15px; font-weight: 600; }
+  .pc { display: grid; grid-template-columns: 1fr 1fr; gap: 6px 24px; font-size: 13px; color: var(--ink2); margin-top: 10px; }
+  .pc div::before { margin-right: 6px; font-weight: 600; }
+  .pc .p::before { content: "+"; color: var(--pro); } .pc .c::before { content: "–"; color: var(--watch); }
+  .others { margin-top: 10px; color: var(--ink3); font-size: 13px; }
+  .dock { flex: none; border-top: 1px solid var(--line); padding: 12px 20px 14px; background: #fff; }
+  .opts { display: flex; gap: 8px; margin-bottom: 10px; }
+  .opt { flex: 1; display: flex; align-items: center; gap: 10px; border: 1px solid var(--line2); border-radius: 10px; padding: 9px 12px; font-weight: 500; background: #fff; }
+  .opt.on { border-color: var(--honey500); background: var(--honey-soft); box-shadow: inset 0 0 0 1px var(--honey500); }
+  .kbd { font: 400 11.5px/1 var(--mono); color: var(--ink3); border: 1px solid var(--line2); border-radius: 5px; padding: 3px 6px; background: #fff; }
+  .opt small { margin-left: auto; color: var(--quiet); font-size: 12px; font-weight: 400; }
+  .bar { display: flex; gap: 8px; align-items: center; }
+</style>
+<div class="app">
+  <aside class="side">
+    <div class="side-head"><span class="brand"><span class="mark"></span>waggle</span></div>
+    <div class="sec">Needs you · 2</div>
+    <div class="row sel"><span class="dot open"></span><div><div class="row-t">Which image host do we use?</div><div class="row-m">Sample blog · now</div></div></div>
+    <div class="row"><span class="dot open"></span><div><div class="row-t">Is the search index for the docs site ready to ship?</div><div class="row-m">Docs site · 14m</div></div></div>
+    <div class="sec">Answered today · 6 <button>Show all 271</button></div>
+    <div class="row done"><span class="dot ok"></span><div><div class="row-t">Do I open the PR for the checkout copy?</div><div class="row-m">Demo shop · 16m</div></div></div>
+    <div class="row done"><span class="dot ok"></span><div><div class="row-t">When do we send the first test build to the testers?</div><div class="row-m">Docs site · 2h</div></div></div>
+    <div class="row done"><span class="dot ok"></span><div><div class="row-t">Which version number do we use for this release?</div><div class="row-m">Demo shop · 2h</div></div></div>
+    <div class="row done"><span class="dot ok"></span><div><div class="row-t">Do I post these two comments on the docs review?</div><div class="row-m">Docs site · 2h</div></div></div>
+    <div class="side-foot"><span class="dot ok"></span>Connected · 3 sessions</div>
+  </aside>
+  <section class="main">
+    <div class="top"><span>Sample blog</span>/<b>Image hosting for the blog</b><span>· Round 2 · 15:00</span><span class="status">✓ Delivered 15:01</span></div>
+    <div class="scroll"><div class="page">
+      <h1>Which image host do we use?</h1>
+      <div class="need">
+        <div class="need-l">WHAT I NEED FROM YOU</div>
+        <p class="lead">For the images we need, yes: Pixbin has all the formats and you pay per use.</p>
+        <table class="t"><tr><th>Service</th><th>Has a CDN</th><th class="num">Cost per 1,000 images</th></tr>
+          <tr><td>Pixbin standard</td><td>Yes</td><td class="num">$0.50–0.60</td></tr>
+          <tr><td>Cloudframe basic</td><td>Yes</td><td class="num">$0.375 + $0.15/resize</td></tr>
+          <tr><td>Snapstore lite</td><td>Yes</td><td class="num">$0.40</td></tr>
+          <tr><td>Lumen media library</td><td>Yes (from search)</td><td class="num muted">Not confirmed</td></tr></table>
+        <div class="body"><p><b>Correction:</b> before, I wrote that Pro adds Lumen. That is not true: Lumen also works with Pixbin, which adds Snapstore too.</p><p><b>Test cost:</b> about $1.70 for three services, plus the first top-up.</p></div>
+      </div>
+      <p class="why">Why you: the blog images go to a new service, and only you can accept its terms of use.</p>
+      <div class="opt-card rec">
+        <div class="opt-h"><span class="rec-tag">★ Recommended</span><b>Pixbin pay-as-you-go</b></div>
+        <div class="body" style="font-size:13.5px">You make a Pixbin account and add a few dollars. I test Pixbin, Cloudframe and Snapstore.</div>
+        <div class="pc"><div class="p">About $1.70 for 3 services</div><div class="c">The images go to a new service</div><div class="p">No subscription</div><div class="c">Minimum top-up not confirmed</div><div class="p">Includes Snapstore</div><div class="c">Terms of use still to read</div></div>
+      </div>
+      <div class="others">Also: <b>Wait for the free tier</b> · <b>Pro plan at $19</b> — open them below.</div>
+    </div></div>
+    <div class="dock">
+      <div class="opts">
+        <button class="opt on"><span class="kbd">1</span>Pixbin pay-as-you-go<small>+3 / –3</small></button>
+        <button class="opt"><span class="kbd">2</span>Wait for the free tier<small>+1 / –4</small></button>
+        <button class="opt"><span class="kbd">3</span>Pro plan at $19<small>+2 / –3</small></button>
+      </div>
+      <div class="bar">
+        <button class="chip">Let's discuss</button><button class="chip">Show me more</button><button class="chip">More…</button>
+        <div class="note">Add a note, or ask something…</div>
+        <button class="send">Send 1</button>
+      </div>
+    </div>
+  </section>
+</div>
+</template>
+
+<template data-variant="inplace" data-name="B · Options in place" data-position="The options are the page: pick, read the trade-offs and send in one spot" data-right-when="Most asks are 'pick one of 3' and you want the decision in the first screen" data-costs="Bigger change to the Swift layout; the long need text sits behind 'Read the details'">
+<style>
+  .app { grid-template-columns: 300px 1fr; }
+  .page { max-width: 820px; }
+  .ctx { font: 400 11.5px/1 var(--mono); color: var(--quiet); margin-bottom: 10px; }
+  .summary { font-size: 16px; line-height: 1.55; margin: 0 0 6px; }
+  details.more { margin: 0 0 22px; }
+  .more-btn { font-size: 13px; color: var(--ink3); text-decoration: underline; text-underline-offset: 3px; }
+  .det { margin-top: 12px; }
+  .q { font: 600 10.5px/1 var(--sans); letter-spacing: 0.06em; text-transform: uppercase; color: var(--quiet); margin: 0 0 10px; }
+  .choice { border: 1px solid var(--line); border-radius: 12px; margin-bottom: 8px; background: #fff; }
+  .choice.on { border-color: var(--honey500); box-shadow: 0 0 0 1px var(--honey500); }
+  .ch { display: flex; align-items: center; gap: 12px; padding: 13px 16px; }
+  .radio { width: 18px; height: 18px; border-radius: 50%; border: 1.5px solid var(--line2); flex: none; display: grid; place-items: center; }
+  .on .radio { border-color: var(--honey600); } .on .radio::after { content: ""; width: 9px; height: 9px; border-radius: 50%; background: var(--honey600); }
+  .ch b { font-size: 15px; font-weight: 600; }
+  .key { margin-left: auto; font: 400 11.5px/1 var(--mono); color: var(--quiet); border: 1px solid var(--line2); border-radius: 5px; padding: 3px 6px; }
+  .tl { display: flex; gap: 18px; padding: 0 16px 13px 46px; font-size: 13px; color: var(--ink2); }
+  .tl span::before { font-weight: 600; margin-right: 5px; }
+  .tl .p::before { content: "+"; color: var(--pro); } .tl .c::before { content: "–"; color: var(--watch); }
+  .tl .n { color: var(--quiet); }
+  .expand { padding: 0 16px 16px 46px; }
+  .expand .desc { font-size: 13.5px; color: var(--ink2); margin-bottom: 10px; }
+  .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 6px 24px; font-size: 13px; color: var(--ink2); }
+  .grid div::before { font-weight: 600; margin-right: 6px; }
+  .grid .p::before { content: "+"; color: var(--pro); } .grid .c::before { content: "–"; color: var(--watch); }
+  .because { margin-top: 12px; font-size: 13px; color: var(--ink3); border-top: 1px dashed var(--line2); padding-top: 10px; }
+  .answer { display: flex; gap: 8px; align-items: center; margin-top: 16px; }
+  .side-tools { display: flex; gap: 14px; margin-top: 12px; font-size: 12.5px; color: var(--ink3); }
+</style>
+<div class="app">
+  <aside class="side">
+    <div class="side-head"><span class="brand"><span class="mark"></span>waggle</span></div>
+    <div class="sec">Needs you · 2</div>
+    <div class="row sel"><span class="dot open"></span><div><div class="row-t">Which image host do we use?</div><div class="row-m">Sample blog · now</div></div></div>
+    <div class="row"><span class="dot open"></span><div><div class="row-t">Is the search index for the docs site ready to ship?</div><div class="row-m">Docs site · 14m</div></div></div>
+    <div class="sec">Answered today · 6 <button>Show all 271</button></div>
+    <div class="row done"><span class="dot ok"></span><div><div class="row-t">Do I open the PR for the checkout copy?</div><div class="row-m">Demo shop · 16m</div></div></div>
+    <div class="row done"><span class="dot ok"></span><div><div class="row-t">When do we send the first test build to the testers?</div><div class="row-m">Docs site · 2h</div></div></div>
+    <div class="row done"><span class="dot ok"></span><div><div class="row-t">Which version number do we use for this release?</div><div class="row-m">Demo shop · 2h</div></div></div>
+    <div class="side-foot"><span class="dot ok"></span>Connected · 3 sessions</div>
+  </aside>
+  <section class="main">
+    <div class="scroll"><div class="page" style="padding-top:44px">
+      <div class="ctx">SAMPLE BLOG · IMAGE HOSTING · ROUND 2 · 15:00</div>
+      <h1>Which image host do we use?</h1>
+      <p class="summary">For the images we need, yes: Pixbin has all the formats and you pay per use. The test costs about $1.70.</p>
+      <details class="more" open><summary class="more-btn">Hide the price table and the correction</summary>
+        <div class="det">
+          <table class="t"><tr><th>Service</th><th>Has a CDN</th><th class="num">Cost per 1,000 images</th></tr>
+            <tr><td>Pixbin standard</td><td>Yes</td><td class="num">$0.50–0.60</td></tr>
+            <tr><td>Cloudframe basic</td><td>Yes</td><td class="num">$0.375 + $0.15/resize</td></tr>
+            <tr><td>Snapstore lite</td><td>Yes</td><td class="num">$0.40</td></tr>
+            <tr><td>Lumen media library</td><td>Yes (from search)</td><td class="num muted">Not confirmed</td></tr></table>
+          <div class="body" style="font-size:13.5px"><p><b>Correction:</b> before, I wrote that Pro adds Lumen. That is not true: Lumen also works with Pixbin.</p></div>
+        </div>
+      </details>
+      <div class="q">Your choice</div>
+      <div class="choice on">
+        <div class="ch"><span class="radio"></span><b>Pixbin pay-as-you-go</b><span class="rec-tag">★ Recommended</span><span class="key">1</span></div>
+        <div class="expand">
+          <div class="desc">You make a Pixbin account and add a few dollars. I test Pixbin, Cloudframe and Snapstore.</div>
+          <div class="grid"><div class="p">About $1.70 for 3 services</div><div class="c">The images go to a new service</div><div class="p">No subscription</div><div class="c">Minimum top-up not confirmed</div><div class="p">Includes Snapstore</div><div class="c">Terms of use still to read</div></div>
+          <div class="because">Why I recommend it: it costs much less and adds Snapstore. I stop before any upload if the terms are not OK.</div>
+        </div>
+      </div>
+      <div class="choice">
+        <div class="ch"><span class="radio"></span><b>Wait for the free tier</b><span class="key">2</span></div>
+        <div class="tl"><span class="p">No new account</span><span class="c">Three days on hold</span><span class="n">+3 more</span></div>
+      </div>
+      <div class="choice">
+        <div class="ch"><span class="radio"></span><b>Pro plan at $19</b><span class="key">3</span></div>
+        <div class="tl"><span class="p">Only one service</span><span class="c">$19 a month</span><span class="n">+3 more</span></div>
+      </div>
+      <div class="answer">
+        <div class="note">Add a note (optional)…</div>
+        <button class="send">Send: Pixbin pay-as-you-go ↵</button>
+      </div>
+      <div class="side-tools"><span>Let's discuss</span><span>Show me more</span><span>Ask for…</span><span style="margin-left:auto" class="pro">✓ Round 1 delivered 15:01</span></div>
+    </div></div>
+  </section>
+</div>
+</template>
+
+<template data-variant="focus" data-name="C · Focus (stretch)" data-position="One request at a time: the queue becomes a strip, the answer card is the screen" data-right-when="You clear asks in bursts and want 'next' instead of hunting in a list of 271" data-costs="New way to move (strip + Next); history lives in its own view; the biggest change">
+<style>
+  .app { grid-template-rows: 52px 1fr; }
+  .strip { display: flex; align-items: center; gap: 8px; padding: 0 20px 0 90px; border-bottom: 1px solid var(--line); background: var(--side); }
+  .tab { display: flex; align-items: center; gap: 8px; padding: 6px 12px; border-radius: 8px; font-size: 13px; font-weight: 500; color: var(--ink2); max-width: 300px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .tab.on { background: #fff; color: var(--ink); box-shadow: 0 1px 2px rgb(0 0 0 / .08); font-weight: 600; }
+  .strip .hist { margin-left: auto; font-size: 12.5px; color: var(--ink3); }
+  .wrap { overflow: auto; background: var(--list); }
+  .sheet { max-width: 1080px; margin: 28px auto 40px; display: grid; grid-template-columns: 1fr 380px; gap: 28px; padding: 0 32px; }
+  .ctx { font: 400 11.5px/1 var(--mono); color: var(--quiet); margin-bottom: 10px; }
+  .card { background: #fff; border: 1px solid var(--line); border-radius: 14px; padding: 18px; position: sticky; top: 0; }
+  .card h2 { font-size: 12px; text-transform: uppercase; letter-spacing: .06em; color: var(--quiet); margin: 0 0 12px; font-weight: 600; }
+  .c-opt { border: 1px solid var(--line); border-radius: 10px; padding: 11px 13px; margin-bottom: 8px; }
+  .c-opt.on { border-color: var(--honey500); background: var(--honey-soft); box-shadow: inset 0 0 0 1px var(--honey500); }
+  .c-h { display: flex; align-items: center; gap: 8px; font-weight: 600; font-size: 14px; }
+  .c-h .k { margin-left: auto; font: 400 11px/1 var(--mono); color: var(--quiet); }
+  .c-l { font-size: 12.5px; color: var(--ink2); margin-top: 6px; display: grid; gap: 3px; }
+  .c-l .p::before { content: "+ "; color: var(--pro); font-weight: 600; } .c-l .c::before { content: "– "; color: var(--watch); font-weight: 600; }
+  .card .note { display: block; margin: 12px 0 10px; }
+  .card .send { width: 100%; padding: 10px; }
+  .after { display: flex; justify-content: space-between; margin-top: 10px; font-size: 12px; color: var(--ink3); }
+</style>
+<div class="app">
+  <div class="strip">
+    <span class="brand" style="margin-right:10px"><span class="mark"></span></span>
+    <span class="tab on"><span class="dot open"></span>Which image host do we use?</span>
+    <span class="tab"><span class="dot open"></span>Is the search index for the docs site…</span>
+    <span class="hist">History · 271 &nbsp;⌘H</span>
+  </div>
+  <div class="wrap"><div class="sheet">
+    <div>
+      <div class="ctx">SAMPLE BLOG · IMAGE HOSTING · ROUND 2 · 15:00 · <span class="pro">✓ DELIVERED</span></div>
+      <h1>Which image host do we use?</h1>
+      <p class="lead">For the images we need, yes: Pixbin has all the formats and you pay per use.</p>
+      <table class="t"><tr><th>Service</th><th>Has a CDN</th><th class="num">Cost per 1,000 images</th></tr>
+        <tr><td>Pixbin standard</td><td>Yes</td><td class="num">$0.50–0.60</td></tr>
+        <tr><td>Cloudframe basic</td><td>Yes</td><td class="num">$0.375 + $0.15/resize</td></tr>
+        <tr><td>Snapstore lite</td><td>Yes</td><td class="num">$0.40</td></tr>
+        <tr><td>Lumen media library</td><td>Yes (from search)</td><td class="num muted">Not confirmed</td></tr></table>
+      <div class="body"><p><b>Correction:</b> before, I wrote that Pro adds Lumen. That is not true: Lumen also works with Pixbin, which adds Snapstore too.</p><p><b>Test cost:</b> about $1.70 for three services, plus the first top-up.</p>
+      <p style="color:var(--ink3);font-size:13px">Why you: the blog images go to a new service, and only you can accept its terms of use.</p></div>
+    </div>
+    <aside class="card">
+      <h2>Your answer</h2>
+      <div class="c-opt on"><div class="c-h">Pixbin pay-as-you-go <span class="rec-tag">★ Rec.</span><span class="k">1</span></div>
+        <div class="c-l"><span class="p">About $1.70 for 3 services</span><span class="p">No subscription, includes Snapstore</span><span class="c">The images go to a new service</span><span class="c">Terms of use still to read</span></div></div>
+      <div class="c-opt"><div class="c-h">Wait for the free tier<span class="k">2</span></div><div class="c-l"><span class="c">Three days on hold</span></div></div>
+      <div class="c-opt"><div class="c-h">Pro plan at $19<span class="k">3</span></div><div class="c-l"><span class="c">$19 a month</span></div></div>
+      <div class="note">Add a note…</div>
+      <button class="send">Send and go to next (1 left) ↵</button>
+      <div class="after"><span>Let's discuss</span><span>Show me more</span><span>Ask for…</span></div>
+    </aside>
+  </div></div>
+</div>
+</template>
+
+<!-- ===== Canvas chrome below: no need to edit. It stays outside the project's design system on purpose. ===== -->
+<style>
+  :root { color-scheme: light; }
+  body.mc-canvas { margin: 0; background: #e9e9ec; color: #1d1d20; font: 13px/1.4 -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; }
+  .mc-bar { position: sticky; top: 0; z-index: 2; display: flex; flex-wrap: wrap; gap: 8px 16px; align-items: center; padding: 10px 16px; background: #f7f7f8; border-bottom: 1px solid #d4d4d8; }
+  .mc-bar h1 { margin: 0; font-size: 14px; font-weight: 600; }
+  .mc-bar .mc-axis { color: #5f5f66; }
+  .mc-group { display: flex; gap: 2px; padding: 2px; background: #e4e4e7; border-radius: 7px; }
+  .mc-group button { border: 0; background: transparent; padding: 4px 10px; border-radius: 5px; font: inherit; color: #3f3f46; cursor: pointer; min-height: 28px; }
+  .mc-group button[aria-pressed="true"] { background: #fff; color: #111; box-shadow: 0 1px 2px rgb(0 0 0 / 0.12); }
+  .mc-group button:focus-visible { outline: 2px solid #2563eb; outline-offset: 1px; }
+  .mc-board { padding: 24px; overflow-x: auto; }
+  .mc-row { display: flex; gap: 32px; align-items: flex-start; width: max-content; }
+  .mc-row + .mc-row { margin-top: 40px; }
+  .mc-frame figcaption { margin-bottom: 8px; }
+  .mc-frame figcaption strong { font-size: 14px; }
+  .mc-frame figcaption span { color: #5f5f66; margin-left: 6px; }
+  .mc-frame { margin: 0; }
+  .mc-frame iframe { display: block; border: 0; border-radius: 12px; background: #fff; box-shadow: 0 0 0 1px rgb(0 0 0 / 0.08), 0 8px 24px rgb(0 0 0 / 0.08); }
+  .mc-notes { margin: 10px 0 0; display: grid; grid-template-columns: auto 1fr; gap: 2px 8px; color: #3f3f46; max-width: 100%; }
+  .mc-notes dt { color: #71717a; }
+  .mc-notes dd { margin: 0; }
+  /* ?export=1: one bare frame, centred, for screenshots (bash shoot.sh) */
+  .mc-export .mc-bar, .mc-export figcaption, .mc-export .mc-notes { display: none; }
+  .mc-export .mc-board { padding: 0; }
+  .mc-export .mc-row { width: auto; justify-content: center; }
+  .mc-export .mc-frame iframe { border-radius: 0; box-shadow: none; }
+</style>
+<script>
+(() => {
+  const meta = JSON.parse(document.getElementById("mockup-meta").textContent);
+  const tokens = document.getElementById("tokens").outerHTML;
+  const variants = [...document.querySelectorAll("template[data-variant]")];
+  const params = new URLSearchParams(location.search);
+  const view = { ...meta.view };
+  for (const k of ["theme", "device", "v", "state", "zoom", "export"]) if (params.has(k)) view[k] = params.get(k);
+
+  document.body.classList.add("mc-canvas");
+  if (view.export) document.body.classList.add("mc-export");
+  document.title = `${meta.title} · mockup`;
+
+  const bar = document.createElement("header");
+  bar.className = "mc-bar";
+  bar.innerHTML = `<h1></h1><span class="mc-axis"></span>`;
+  bar.querySelector("h1").textContent = meta.title;
+  bar.querySelector(".mc-axis").textContent = `Axis: ${meta.axis}`;
+  const board = document.createElement("div");
+  board.className = "mc-board";
+  document.body.append(bar, board);
+
+  function group(label, key, values) {
+    if (values.length < 2) return;
+    const g = document.createElement("div");
+    g.className = "mc-group";
+    g.setAttribute("role", "group");
+    g.setAttribute("aria-label", label);
+    for (const [value, text] of values) {
+      const b = document.createElement("button");
+      b.type = "button";
+      b.textContent = text;
+      b.dataset.key = key;
+      b.dataset.value = value;
+      b.addEventListener("click", () => { view[key] = value; sync(); });
+      g.append(b);
+    }
+    bar.append(g);
+  }
+  const themes = meta.themes.map((t) => [t, t[0].toUpperCase() + t.slice(1)]);
+  if (meta.themes.length > 1) themes.push(["both", "Both"]);
+  group("Theme", "theme", themes);
+  group("Device", "device", Object.keys(meta.devices).map((d) => [d, d[0].toUpperCase() + d.slice(1)]));
+  if (!view.state && meta.states?.length) view.state = meta.states[0];
+  group("State", "state", (meta.states || []).map((s) => [s, s[0].toUpperCase() + s.slice(1)]));
+  group("Variants", "v", [["all", "All"], ...variants.map((t) => [t.dataset.variant, t.dataset.name])]);
+
+  function frame(t, theme) {
+    const [w, h] = meta.devices[view.device] || Object.values(meta.devices)[0];
+    const fig = document.createElement("figure");
+    fig.className = "mc-frame";
+    fig.style.width = `${w}px`;
+    const cap = document.createElement("figcaption");
+    cap.innerHTML = "<strong></strong><span></span>";
+    cap.querySelector("strong").textContent = t.dataset.name;
+    cap.querySelector("span").textContent = [t.dataset.position, view.theme === "both" ? theme : ""].filter(Boolean).join(", ");
+    const iframe = document.createElement("iframe");
+    iframe.title = `${t.dataset.name}, ${theme}`;
+    iframe.width = w;
+    iframe.height = h;
+    iframe.srcdoc = `<!doctype html><html class="${theme === "dark" ? "dark" : ""}" data-state="${view.state || ""}"><head><meta charset="utf-8"><meta name="viewport" content="width=${w}">${tokens}</head><body>${t.innerHTML}</body></html>`;
+    iframe.addEventListener("load", () => {
+      const doc = iframe.contentDocument;
+      if (!doc) return;
+      // Frames stay at device height and scroll inside, like a real screen (fixed docks stay visible).
+      // "grow": true in the meta makes them as tall as the content instead (long pages, landings).
+      if (!meta.grow) return;
+      const fit = () => { iframe.height = Math.max(h, doc.documentElement.scrollHeight); };
+      fit();
+      new ResizeObserver(fit).observe(doc.body);
+      doc.querySelectorAll("img").forEach((img) => img.addEventListener("load", fit));
+    });
+    fig.append(cap, iframe);
+    if (t.dataset.rightWhen || t.dataset.costs) {
+      const dl = document.createElement("dl");
+      dl.className = "mc-notes";
+      for (const [label, value] of [["Right when", t.dataset.rightWhen], ["Costs", t.dataset.costs]]) {
+        if (!value) continue;
+        const dt = document.createElement("dt"); dt.textContent = label;
+        const dd = document.createElement("dd"); dd.textContent = value;
+        dl.append(dt, dd);
+      }
+      fig.append(dl);
+    }
+    return fig;
+  }
+
+  function sync() {
+    const url = new URL(location.href);
+    for (const k of ["theme", "device", "v", "state"]) if (view[k]) url.searchParams.set(k, view[k]);
+    try { history.replaceState(null, "", url); } catch {}
+    bar.querySelectorAll("button").forEach((b) => b.setAttribute("aria-pressed", String(view[b.dataset.key] === b.dataset.value)));
+    board.replaceChildren();
+    board.style.zoom = view.zoom || 1;
+    const shown = view.v === "all" ? variants : variants.filter((t) => t.dataset.variant === view.v);
+    const rows = view.theme === "both" ? meta.themes : [view.theme];
+    for (const theme of rows) {
+      const row = document.createElement("div");
+      row.className = "mc-row";
+      for (const t of shown) row.append(frame(t, theme));
+      board.append(row);
+    }
+    if (!shown.length) console.error(`mockup canvas: no variant with id "${view.v}"`);
+  }
+
+  addEventListener("keydown", (e) => {
+    if (e.target.closest("input, textarea, select, [contenteditable]")) return;
+    const n = Number(e.key);
+    if (n >= 1 && n <= variants.length) { view.v = variants[n - 1].dataset.variant; sync(); }
+    if (e.key === "0") { view.v = "all"; sync(); }
+  });
+  sync();
+  console.log(`mockup canvas: ${variants.length} variants, theme=${view.theme}, device=${view.device}, state=${view.state || "-"}, v=${view.v}`);
+})();
+</script>
+</body>
+</html>
