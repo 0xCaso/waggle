@@ -6,7 +6,7 @@ import Testing
 /// operator report 21:37 - "the review workspace ignores the delivery
 /// state ... Open review still opens a live composer with 'Accept
 /// recommendation' and an empty reply field"). For each of Queued/Delivered/
-/// Failed the workspace must show the locked recap, hiding the composer and
+/// Failed the workspace must show the case pane's answered view, hiding the composer and
 /// the Accept button, unless "Change answer" has put it back into edit mode.
 struct ReviewWorkspaceRightColumnTests {
     private func kind(
@@ -24,11 +24,11 @@ struct ReviewWorkspaceRightColumnTests {
         #expect(kind(lockState: .editable, tab: .comments) == .comments)
     }
 
-    @Test func queuedDeliveredAndFailedAllShowTheLockedRecapRegardlessOfTab() {
-        #expect(kind(lockState: .queued, tab: .comments) == .answeredRecap)
-        #expect(kind(lockState: .delivered, tab: .comments) == .answeredRecap)
-        #expect(kind(lockState: .failed, tab: .comments) == .answeredRecap)
-        #expect(kind(lockState: .delivered, tab: .question) == .answeredRecap)
+    @Test func queuedDeliveredAndFailedAllShowTheAskWithStatusRegardlessOfTab() {
+        #expect(kind(lockState: .queued, tab: .comments) == .askWithStatus)
+        #expect(kind(lockState: .delivered, tab: .comments) == .askWithStatus)
+        #expect(kind(lockState: .failed, tab: .comments) == .askWithStatus)
+        #expect(kind(lockState: .delivered, tab: .question) == .askWithStatus)
     }
 
     @Test func changeAnswerReturnsToTheNormalComposerEvenWhileLocked() {
