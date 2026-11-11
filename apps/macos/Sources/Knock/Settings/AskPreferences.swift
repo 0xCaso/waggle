@@ -609,10 +609,13 @@ struct AskTopicChecklist: View {
 /// Settings › Asks (HAIL-101): the same three sections and the generated text.
 struct AsksSettingsView: View {
     @ObservedObject var model: AskPreferencesModel
+    /// Asks the daemon for the "Small things" card (the old Ask less page).
+    let client: KnockClient
 
     var body: some View {
         SettingsPageChrome(title: SettingsPage.asks.title, subtitle: SettingsPage.asks.subtitle) {
             AskPreferencesView(model: model)
+            AskLessSection(client: client)
             Text("New sessions get this at the start. Running sessions hear about a new level on their next Waggle call, and read other changes the next time they open Waggle's guide.")
                 .knockTextStyle(Theme.Typography.body12_5w400)
                 .foregroundColor(Theme.Colors.ink3)

@@ -42,16 +42,12 @@ struct SettingsView: View {
             AgentsSettingsView(client: client, onboardingModel: onboardingModel)
         case .notifications:
             NotificationsSettingsView()
-        case .previews:
-            PreviewsSettingsView()
         case .screenshots:
             ScreenshotsSettingsView()
         case .artifacts:
             ArtifactsSettingsView(client: client)
         case .asks:
-            AsksSettingsView(model: askPreferences)
-        case .askLess:
-            AskLessSettingsView(client: client)
+            AsksSettingsView(model: askPreferences, client: client)
         case .phone:
             PhoneSettingsView(client: client)
         case .sharing:

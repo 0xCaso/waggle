@@ -92,6 +92,7 @@ struct ArtifactsSettingsView: View {
                 .knockTextStyle(Theme.Typography.body12_5w400)
                 .foregroundColor(Theme.Colors.ink3)
             DesignKitSection(client: client)
+            PreviewsSection()
         }
         .task { await model.load() }
     }

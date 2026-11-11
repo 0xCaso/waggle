@@ -1,17 +1,15 @@
 import Combine
 import Foundation
 
-/// One page of the Settings sidebar window (HAIL-50). Seven pages, existing
+/// One page of the Settings sidebar window (HAIL-50). Nine pages, existing
 /// behaviour only - see the story's Contract for what each page shows and,
 /// just as deliberately, what it leaves out for a later release.
 enum SettingsPage: String, CaseIterable, Identifiable, Equatable {
     case agents
     case notifications
-    case previews
     case artifacts
     case asks
     case phone
-    case askLess
     case screenshots
     case sharing
     case account
@@ -31,11 +29,9 @@ enum SettingsPage: String, CaseIterable, Identifiable, Equatable {
         switch self {
         case .agents: "Agents"
         case .notifications: "Notifications"
-        case .previews: "Previews"
         case .screenshots: "Screenshots"
         case .artifacts: "Artifacts"
         case .asks: "Requests"
-        case .askLess: "Ask less"
         case .phone: "Phone"
         case .sharing: "Sharing"
         case .account: "Account"
@@ -49,11 +45,9 @@ enum SettingsPage: String, CaseIterable, Identifiable, Equatable {
         switch self {
         case .agents: "Waggle works with Claude Code and Codex on this Mac. Your agents ask you here instead of in the terminal."
         case .notifications: "Waggle tells you the moment an agent has a decision for you, even when it isn't in front."
-        case .previews: "How prototypes, plans and screenshots from your agents show in a decision."
         case .screenshots: "Send a screenshot you took to an agent that is running. Optional, and off until you turn it on."
-        case .artifacts: "How your agents build the pages and screenshots they send you."
+        case .artifacts: "How your agents build the pages and screenshots they send you, and how they show in a decision."
         case .asks: "What your agents bring you in Waggle, and how often."
-        case .askLess: "Let Waggle answer small choices for you, by rules you pick. Off until you turn it on."
         case .phone: "Get new decisions on your phone and answer them there. Optional, and off until you connect it."
         case .sharing: "Share a case with your team so they can read it and comment. Off until you turn it on."
         case .account: "Your Waggle account. Only sharing a case needs it. Local use never does."
@@ -68,11 +62,9 @@ enum SettingsPage: String, CaseIterable, Identifiable, Equatable {
         switch self {
         case .agents: "terminal"
         case .notifications: "bell"
-        case .previews: "photo"
         case .screenshots: "camera.viewfinder"
         case .artifacts: "square.stack"
         case .asks: "bubble.left.and.bubble.right"
-        case .askLess: "checkmark.bubble"
         case .phone: "iphone"
         case .sharing: "person.2"
         case .account: "person.crop.circle"
@@ -82,12 +74,23 @@ enum SettingsPage: String, CaseIterable, Identifiable, Equatable {
         }
     }
 
-    /// `KNOCK_SETTINGS_PAGE=<agents|notifications|previews|screenshots|artifacts|asks|askLess|phone|sharing|account|updates|data|help>`
+    /// Names of pages that no longer exist, and the page that holds their settings now (task 5 of the
+    /// 2026-11-11 UI audit). Previews moved into Artifacts. Ask less moved into Requests.
+    static func page(named raw: String) -> SettingsPage? {
+        switch raw {
+        case "previews": .artifacts
+        case "askLess": .asks
+        default: SettingsPage(rawValue: raw)
+        }
+    }
+
+    /// `KNOCK_SETTINGS_PAGE=<agents|notifications|screenshots|artifacts|asks|phone|sharing|account|updates|data|help>`
+    /// (`previews` opens Artifacts and `askLess` opens Requests)
     /// (contract): an evidence hook so the orchestrator can open a page
     /// without a click. An unset or unrecognised value falls back to
     /// `.agents`, the first row.
     static func initial(environment: [String: String] = ProcessInfo.processInfo.environment) -> SettingsPage {
-        guard let raw = environment["KNOCK_SETTINGS_PAGE"], let page = SettingsPage(rawValue: raw) else {
+        guard let raw = environment["KNOCK_SETTINGS_PAGE"], let page = SettingsPage.page(named: raw) else {
             return .agents
         }
         return page
@@ -133,7 +136,11 @@ final class SettingsNavigationModel: ObservableObject {
         // The getting started list opens a page by name (WAG-338).
         showPage = NotificationCenter.default.publisher(for: .knockShowSettingsPage)
             .receive(on: DispatchQueue.main)
-            .sink { [weak self] note in if let page = note.object as? SettingsPage { self?.selected = page } }
+            .sink { [weak self] note in
+                // A name string works too, so an old link to "askLess" or "previews" lands in the new place.
+                let page = (note.object as? SettingsPage) ?? (note.object as? String).flatMap(SettingsPage.page(named:))
+                if let page { self?.selected = page }
+            }
     }
 }
 

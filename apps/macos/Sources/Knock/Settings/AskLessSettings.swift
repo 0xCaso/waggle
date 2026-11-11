@@ -1,10 +1,10 @@
 import SwiftUI
 
-/// The words of the "Ask less" page (WAG-412). Plain, friendly, no em-dashes.
+/// The words of the "Small things" card on Requests (WAG-412, was the Ask less page). Plain, friendly, no em-dashes.
 enum AskLessCopy {
     static let masterTitle = "Let the agent decide small things"
     static let masterBody = "When an agent asks a small question and has a recommendation, Waggle answers with it at once. You see every answer in a folded list in the queue, and you can change your mind."
-    static let rulesLabel = "WHICH SMALL THINGS"
+    static let label = "SMALL THINGS"
     static let footer = "Reviews and asks with no recommendation always come to you. Agents only use this for choices that are easy to undo."
     static let footerOff = "Agents learn about this the next time they read Waggle's guide."
 }
@@ -69,8 +69,9 @@ final class AskLessSettingsModel: ObservableObject {
     }
 }
 
-/// The Ask less page: one master switch, then one switch per category.
-struct AskLessSettingsView: View {
+/// The "Small things" card on the Requests page: one master switch, then one switch per category. It was
+/// the Ask less page (WAG-412); the keys and values it reads and writes did not change.
+struct AskLessSection: View {
     @StateObject private var model: AskLessSettingsModel
 
     init(client: KnockClient) {
@@ -82,45 +83,39 @@ struct AskLessSettingsView: View {
     }
 
     var body: some View {
-        SettingsPageChrome(title: SettingsPage.askLess.title, subtitle: SettingsPage.askLess.subtitle) {
-            VStack(alignment: .leading, spacing: 18) {
-                SettingsCard {
-                    SettingsCardRow(title: AskLessCopy.masterTitle, subtitle: AskLessCopy.masterBody, showsDivider: false) {
-                        Toggle("", isOn: Binding(get: { model.value.enabled }, set: { on in Task { await model.setMaster(on) } }))
+        VStack(alignment: .leading, spacing: 10) {
+            SettingsSectionLabel(AskLessCopy.label)
+            SettingsCard {
+                SettingsCardRow(title: AskLessCopy.masterTitle, subtitle: AskLessCopy.masterBody) {
+                    Toggle("", isOn: Binding(get: { model.value.enabled }, set: { on in Task { await model.setMaster(on) } }))
+                        .labelsHidden()
+                        .toggleStyle(.switch).pointerCursor()
+                        .disabled(!model.loaded)
+                        .accessibilityLabel(AskLessCopy.masterTitle)
+                }
+                ForEach(Array(AskCategory.allCases.enumerated()), id: \.element.id) { index, category in
+                    SettingsCardRow(
+                        title: category.title, subtitle: category.detail,
+                        showsDivider: index < AskCategory.allCases.count - 1
+                    ) {
+                        Toggle("", isOn: Binding(get: { model.isOn(category) }, set: { on in Task { await model.set(category, on) } }))
                             .labelsHidden()
                             .toggleStyle(.switch).pointerCursor()
-                            .disabled(!model.loaded)
-                            .accessibilityLabel(AskLessCopy.masterTitle)
-                    }
-                }
-                VStack(alignment: .leading, spacing: 8) {
-                    SettingsSectionLabel(AskLessCopy.rulesLabel)
-                    SettingsCard {
-                        ForEach(Array(AskCategory.allCases.enumerated()), id: \.element.id) { index, category in
-                            SettingsCardRow(
-                                title: category.title, subtitle: category.detail,
-                                showsDivider: index < AskCategory.allCases.count - 1
-                            ) {
-                                Toggle("", isOn: Binding(get: { model.isOn(category) }, set: { on in Task { await model.set(category, on) } }))
-                                    .labelsHidden()
-                                    .toggleStyle(.switch).pointerCursor()
-                                    .disabled(!model.rulesEnabled)
-                                    .accessibilityLabel(category.title)
-                            }
-                        }
+                            .disabled(!model.rulesEnabled)
+                            .accessibilityLabel(category.title)
                     }
                     .opacity(model.rulesEnabled ? 1 : 0.55)
                 }
-                if let problem = model.problem {
-                    Text(problem)
-                        .knockTextStyle(Theme.Typography.body12_5w400)
-                        .foregroundColor(Theme.Colors.accent)
-                }
-                Text(AskLessCopy.footer)
-                    .knockTextStyle(Theme.Typography.body12_5w400)
-                    .foregroundColor(Theme.Colors.ink3)
-                    .fixedSize(horizontal: false, vertical: true)
             }
+            if let problem = model.problem {
+                Text(problem)
+                    .knockTextStyle(Theme.Typography.body12_5w400)
+                    .foregroundColor(Theme.Colors.accent)
+            }
+            Text(AskLessCopy.footer)
+                .knockTextStyle(Theme.Typography.body12_5w400)
+                .foregroundColor(Theme.Colors.ink3)
+                .fixedSize(horizontal: false, vertical: true)
         }
         .task { await model.load() }
     }
