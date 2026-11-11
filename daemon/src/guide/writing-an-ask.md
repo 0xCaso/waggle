@@ -80,6 +80,16 @@ effect goes in `effects`. A good or bad point stays in `pros` or `cons`.
                 pros: ["Fastest for the buyer"], cons: ["Hides billing details"],
                 effects: ["Touches the checkout form only", "Closes the two-step flow", "Needs a new address check"] }]
 
+An option may also carry `facts`: up to 3 short neutral facts (24 characters each) that Waggle shows
+as chips under the title: a time, a scope, a file. A long pro or con may be `{ gist, detail }`
+instead of a string: the gist (40 characters at most) shows on the card, and the detail is the full
+sentence the human opens with one click. A plain string still works and shows in full.
+
+    options: [{ id: "a", title: "One store file", label: "One store file: keep the cache in src/store.ts",
+                facts: ["~2 h", "no migration", "src/store.ts"],
+                pros: [{ gist: "One file to change", detail: "Only src/store.ts changes, so the review stays small" }],
+                cons: ["The cache stays in memory"] }]
+
 To link an option to a named artifact, add
 `artifact_ref` and `anchor`. Call waggle_guide({ topic: "artifacts" }) for the rules.
 

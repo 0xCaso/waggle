@@ -183,11 +183,14 @@ export function clampExcerpt(excerpt: string): string {
 export function mapMarkedText<T extends object>(input: T, fn: (text: string) => string): T {
   const out: any = { ...input };
   const text = (v: unknown): any => (typeof v === "string" ? fn(v) : v);
+  // A pro or con is a string or { gist, detail } (option card "Gist and facts"); both texts may carry markers.
+  const point = (p: any): any =>
+    p !== null && typeof p === "object" ? { ...p, gist: text(p.gist), detail: text(p.detail) } : text(p);
   const option = (o: any): any => ({
     ...o,
     label: text(o.label),
-    ...(o.pros !== undefined ? { pros: o.pros.map(text) } : {}),
-    ...(o.cons !== undefined ? { cons: o.cons.map(text) } : {}),
+    ...(o.pros !== undefined ? { pros: o.pros.map(point) } : {}),
+    ...(o.cons !== undefined ? { cons: o.cons.map(point) } : {}),
     ...(o.effects !== undefined ? { effects: o.effects.map(text) } : {}),
   });
   for (const key of ["need", "why", "recommendation_why", "message"]) if (key in out) out[key] = text(out[key]);
