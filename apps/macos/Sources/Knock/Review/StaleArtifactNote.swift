@@ -13,15 +13,6 @@ struct StaleArtifactNote: Equatable {
     }
 }
 
-/// Which of the two lines over the artifact shows (WAG-377). "vN arrived" says a new version came. The stale
-/// note says the newest change did not update the artifact. They cannot both be true for the person reading,
-/// so the stale note wins: it is the newer fact and it stops them trusting a picture that is out of date.
-enum ArtifactStatusLine {
-    static func arrivalToShow(arrival: RevisionArrival?, staleNote: StaleArtifactNote?) -> RevisionArrival? {
-        staleNote == nil ? arrival : nil
-    }
-}
-
 extension Case {
     /// Non-nil when the case has an artifact and its newest agent update (a
     /// message after the first reply, or a new option set) is later than its

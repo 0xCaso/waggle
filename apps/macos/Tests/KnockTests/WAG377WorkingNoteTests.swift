@@ -51,12 +51,4 @@ struct WAG377WorkingNoteTests {
         let item = make(note: nil)
         #expect(item.isAnswerLocked)
     }
-
-    @Test func vNArrivedHidesWhileTheStaleNoteShows() {
-        let arrival = RevisionArrival(latestRevision: 2, priorRevision: 1, priorCommentCount: 0, agentMessage: nil)
-        let stale = StaleArtifactNote(shownRevision: 2, changeAt: Date())
-        #expect(ArtifactStatusLine.arrivalToShow(arrival: arrival, staleNote: stale) == nil)
-        #expect(ArtifactStatusLine.arrivalToShow(arrival: arrival, staleNote: nil)?.latestRevision == 2)
-        #expect(ArtifactStatusLine.arrivalToShow(arrival: nil, staleNote: stale) == nil)
-    }
 }
