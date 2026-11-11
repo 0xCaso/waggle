@@ -20,14 +20,13 @@ struct SlackSection: View {
                     busy: model.isBusy
                 )
                 let current = model.slackStep
-                GuideStep(number: 1, title: "Create the Slack app", current: current) { createApp }
-                GuideStep(number: 2, title: "Install it and copy the bot token", current: current) { botToken }
-                GuideStep(number: 3, title: "Make the app-level token", current: current) { appToken }
-                GuideStep(number: 4, title: "Check both tokens", current: current) { check }
-                GuideStep(number: 5, title: "Send the code to the bot", current: current) { sendCode }
-                GuideStep(number: 6, title: connectedTitle, current: current) { connected }
+                GuideStep(number: 1, title: "Create the Slack app and copy the bot token", current: current) { createApp }
+                GuideStep(number: 2, title: "Make the app-level token", current: current) { appToken }
+                GuideStep(number: 3, title: "Check both tokens", current: current) { check }
+                GuideStep(number: 4, title: "Send the code to the bot", current: current) { sendCode }
+                GuideStep(number: 5, title: connectedTitle, current: current) { connected }
             }
-            if let error = model.slack.error, model.slackProblem == nil, model.slackStep != 4 {
+            if let error = model.slack.error, model.slackProblem == nil, model.slackStep != 3 {
                 Text(error)
                     .knockTextStyle(Theme.Typography.body12_5w400)
                     .foregroundColor(Theme.Colors.accent)
@@ -41,7 +40,7 @@ struct SlackSection: View {
     }
 
     private var connectedTitle: String {
-        model.slackStep == 6 ? "Connected as \(model.slack.userLabel ?? "you")" : "Connected"
+        model.slackStep == 5 ? "Connected as \(model.slack.userLabel ?? "you")" : "Connected"
     }
 
     // MARK: Steps
@@ -59,12 +58,6 @@ struct SlackSection: View {
                     .help("Copies the app manifest, to paste into Slack's \"From a manifest\" box")
             }
             GuideText("If the page asks for a manifest, choose the JSON tab and paste what Copy manifest gave you.")
-            GuideNav(next: { model.goSlack(2) }, nextTitle: "I created the app")
-        }
-    }
-
-    private var botToken: some View {
-        VStack(alignment: .leading, spacing: 10) {
             GuideText("On the app page, click Install App in the left menu, then Install to Workspace, then Allow. Copy the Bot User OAuth Token. It starts with xoxb-.")
             GuideTokenField(
                 placeholder: "Bot token (xoxb-...)",
@@ -75,8 +68,7 @@ struct SlackSection: View {
             .onChange(of: model.slackBotToken) { _ in Task { await model.lookUpSlackApp() } }
             wrongBoxFix
             GuideNav(
-                back: { model.goSlack(1) },
-                next: { model.goSlack(3) },
+                next: { model.goSlack(2) },
                 nextEnabled: TokenShape.isSlackBot(model.slackBotToken.trimmingCharacters(in: .whitespaces))
             )
         }
@@ -104,8 +96,8 @@ struct SlackSection: View {
             )
             wrongBoxFix
             GuideNav(
-                back: { model.goSlack(2) },
-                next: { model.goSlack(4) },
+                back: { model.goSlack(1) },
+                next: { model.goSlack(3) },
                 nextEnabled: TokenShape.isSlackApp(model.slackAppToken.trimmingCharacters(in: .whitespaces))
             )
         }
@@ -127,7 +119,7 @@ struct SlackSection: View {
                 SettingsPrimaryButton(title: "Check tokens") { Task { await model.checkSlackGuided() } }
                     .disabled(model.isBusy || !tokensReady)
                     .opacity(tokensReady ? 1 : 0.5)
-                SettingsSecondaryButton(title: "Back") { model.goSlack(3) }
+                SettingsSecondaryButton(title: "Back") { model.goSlack(2) }
             }
         }
     }

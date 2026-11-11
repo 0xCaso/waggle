@@ -134,7 +134,7 @@ struct ConnectorGuideTests {
         model.goSlack(2)
         #expect(model.slackStep == 2)
         model.goSlack(9)
-        #expect(model.slackStep == 4)
+        #expect(model.slackStep == 3)
         model.slackBotToken = "xoxb-1-A"
         await model.lookUpSlackApp()
         #expect(model.slack.appId == "A0KNOCK")
@@ -149,7 +149,7 @@ struct ConnectorGuideTests {
         let model = PhoneSettingsModel(client: c)
         model.slackBotToken = "xoxb-1-A"
         await model.lookUpSlackApp()
-        #expect(model.slackStep == 3)
+        #expect(model.slackStep == 2)
         await c.stop()
     }
 
@@ -165,7 +165,7 @@ struct ConnectorGuideTests {
         #expect(log.calls.contains("tokens:xapp-1-APP|xoxb-1-BOT"))
         #expect(model.slack.state == .waitingForStart)
         #expect(model.slack.code == "XYZ789")
-        #expect(model.slackStep == 5)
+        #expect(model.slackStep == 4)
         await c.stop()
     }
 
@@ -192,9 +192,44 @@ struct ConnectorGuideTests {
         model.token = "123456789:AAHdqTcvCH1vGWJxfSeofSAs0K5PALDsaw"
         await model.checkTokenGuided()
         #expect(model.status.state == .waitingForStart)
-        #expect(model.telegramStep == 3)
+        #expect(model.telegramStep == 2)
         model.open(ConnectorLinks.telegramBot(username: model.status.botUsername, code: model.status.code))
         #expect(opened.map(\.absoluteString) == ["https://t.me/knock_test_bot?start=ABC234"])
+        await c.stop()
+    }
+
+    @Test func theGuidesHaveNoGateClicks() {
+        // Telegram: BotFather and the token box share step 1. Slack: the app and the bot token share step 1.
+        #expect(PhoneSettingsModel.telegramStepCount == 3)
+        #expect(PhoneSettingsModel.slackStepCount == 5)
+    }
+
+    @Test func telegramNeedsNoNextClickBetweenBotFatherAndTheToken() async throws {
+        let (c, server) = try await client(log: Log())
+        defer { server.stop() }
+        let model = PhoneSettingsModel(client: c)
+        // The token box is on step 1, so a pasted token is checked with no step change first.
+        #expect(model.telegramStep == 1)
+        model.token = "123456789:AAHdqTcvCH1vGWJxfSeofSAs0K5PALDsaw"
+        #expect(model.telegramTokenProblem == nil)
+        await model.checkTokenGuided()
+        #expect(model.telegramStep == 2)
+        await c.stop()
+    }
+
+    @Test func slackKeepsTheBotTokenOnStepOneAndTheLaterStepsStillMove() async throws {
+        let (c, server) = try await client(log: Log())
+        defer { server.stop() }
+        let model = PhoneSettingsModel(client: c)
+        #expect(model.slackStep == 1)
+        model.slackBotToken = "xoxb-1-A"
+        await model.lookUpSlackApp()
+        #expect(model.slackStep == 2)
+        model.slackAppToken = "xapp-1-APP"
+        model.goSlack(3)
+        #expect(model.slackStep == 3)
+        await model.checkSlackGuided()
+        #expect(model.slackStep == 4)
         await c.stop()
     }
 
