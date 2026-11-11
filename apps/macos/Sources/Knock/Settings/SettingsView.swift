@@ -39,7 +39,7 @@ struct SettingsView: View {
     private var page: some View {
         switch navigation.selected {
         case .agents:
-            AgentsSettingsView(client: client, onboardingModel: onboardingModel)
+            AgentsSettingsView(client: client)
         case .notifications:
             NotificationsSettingsView()
         case .screenshots:

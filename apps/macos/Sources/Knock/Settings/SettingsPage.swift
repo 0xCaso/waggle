@@ -43,7 +43,7 @@ enum SettingsPage: String, CaseIterable, Identifiable, Equatable {
 
     var subtitle: String {
         switch self {
-        case .agents: "Waggle works with Claude Code and Codex on this Mac. Your agents ask you here instead of in the terminal."
+        case .agents: "Connect your agents so they ask you here, not in the terminal."
         case .notifications: "Waggle tells you the moment an agent has a decision for you, even when it isn't in front."
         case .screenshots: "Send a screenshot you took to an agent that is running. Optional, and off until you turn it on."
         case .artifacts: "How your agents build the pages and screenshots they send you, and how they show in a decision."

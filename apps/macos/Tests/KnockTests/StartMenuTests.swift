@@ -122,8 +122,8 @@ struct StartMenuTests {
     }
 
     @Test func menuCopyHasNoEmDashes() {
-        let texts = [AgentPlaceCopy.claudeApp.subtitle, AgentPlaceCopy.codexApp.subtitle, AgentPlaceCopy.supersetInstall.subtitle,
-                     AgentPlaceCopy.supersetSignInRow.subtitle, AgentPlaceCopy.conductor.subtitle, StartMenuSettingsRoute.footerTitle]
+        let texts = [AgentPlaceCopy.claudeApp, AgentPlaceCopy.claudeAppConnected, AgentPlaceCopy.codexPlugin,
+                     AgentPlaceCopy.superset, AgentPlaceCopy.conductor, StartMenuSettingsRoute.footerTitle]
         #expect(texts.allSatisfy { !$0.contains("\u{2014}") })
     }
 }

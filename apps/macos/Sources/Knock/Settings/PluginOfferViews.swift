@@ -98,7 +98,7 @@ struct PluginSetupChecklist: View {
 }
 
 /// "Copy test prompt" (shows "Copied" after) and "Skip".
-private struct PluginSetupWaitingButtons: View {
+struct PluginSetupWaitingButtons: View {
     @ObservedObject var offer: PluginOfferModel
     /// Evidence only: `KNOCK_EVIDENCE_PLUGIN_COPIED=1` starts in the "Copied" state.
     @State private var copied = ProcessInfo.processInfo.environment["KNOCK_EVIDENCE_PLUGIN_COPIED"] == "1"

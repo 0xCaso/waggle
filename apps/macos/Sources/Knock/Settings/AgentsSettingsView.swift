@@ -94,155 +94,363 @@ final class AgentsSettingsModel: ObservableObject {
     }
 }
 
-/// The Agents page (HAIL-50 contract). Reuses `OnboardingRuntimeRowView` for
-/// the two runtime rows (the exact same Connect mechanics as onboarding
-/// O1) and `OnboardingCopy` for "Use it on your real work" -
-/// the same words a tester already saw once, in onboarding's own payoff
-/// screen.
+/// The Agents page: one list of agents, then the "Asking in Waggle" card. Each row has one
+/// action. The download links, the Claude app place and T3 Code live in the rows, so nothing
+/// repeats below. The example prompts and the sharing note are on the Help page.
 struct AgentsSettingsView: View {
     let client: KnockClient
-    let onboardingModel: OnboardingModel
 
     @StateObject private var agentsModel: AgentsSettingsModel
-    @StateObject private var claudeApp = ClaudeAppModel()
-    @ObservedObject private var pluginOffer = PluginOfferModel.shared
-    @StateObject private var designHelpers = DesignHelpersModel()
-    @StateObject private var t3Connection = T3ConnectionModel()
-    @ObservedObject private var migration = LaunchMigrationStatus.shared
-    @State private var showsFullInstructions = false
-    @Environment(\.openWindow) private var openWindow
+    @StateObject private var claudeApp: ClaudeAppModel
+    @StateObject private var t3Connection: T3ConnectionModel
+    private let ruleModel: AgentRuleModel
 
-    init(client: KnockClient, onboardingModel: OnboardingModel) {
+    init(
+        client: KnockClient,
+        agentsModel: AgentsSettingsModel? = nil,
+        claudeApp: ClaudeAppModel = ClaudeAppModel(),
+        t3: T3ConnectionModel = T3ConnectionModel(),
+        ruleModel: AgentRuleModel = AgentRuleModel()
+    ) {
         self.client = client
-        self.onboardingModel = onboardingModel
-        _agentsModel = StateObject(wrappedValue: AgentsSettingsModel(liveRuntimes: {
+        self.ruleModel = ruleModel
+        _agentsModel = StateObject(wrappedValue: agentsModel ?? AgentsSettingsModel(liveRuntimes: {
             let sessions = (try? await client.sessionsList()) ?? []
             return Set(ConnectionModel.live(sessions).map(\.runtime))
         }, pluginOffer: PluginOfferModel.shared))
+        _claudeApp = StateObject(wrappedValue: claudeApp)
+        _t3Connection = StateObject(wrappedValue: t3)
     }
 
     var body: some View {
         SettingsPageChrome(title: SettingsPage.agents.title, subtitle: SettingsPage.agents.subtitle) {
-            runtimeCard.id(AgentPlaceCard.runtimes)
-            Text("Waggle changes the Claude app's settings only after you press Connect and confirm.")
-                .knockTextStyle(Theme.Typography.body12_5w400)
-                .foregroundColor(Theme.Colors.ink3)
-            if claudeApp.justAdded && claudeApp.isConnected { ClaudeAppAfterNote() }
-            if let failure = migration.pluginFailure {
-                Text(failure)
-                    .knockTextStyle(Theme.Typography.body12_5w400)
-                    .foregroundColor(Theme.Colors.ink2)
-                    .fixedSize(horizontal: false, vertical: true)
-            }
-            PluginSettingsRows(offer: pluginOffer)
-            DesignHelpersCard(model: designHelpers)
-            AgentQuestionsSection(client: client)
-            T3CodeCard(model: t3Connection).id(AgentPlaceCard.t3)
-            AgentPlaceCards()
-            VStack(alignment: .leading, spacing: 10) {
-                SettingsSectionLabel("USE IT ON YOUR REAL WORK")
-                SettingsCard {
-                    SettingsCardRow(
-                        title: "Prompt for a running session",
-                        subtitle: OnboardingCopy.sessionPrompt,
-                        subtitleLineLimit: 1
-                    ) {
-                        copyButton(OnboardingCopy.sessionPrompt)
-                    }
-                    SettingsCardRow(
-                        title: "Line for CLAUDE.md or AGENTS.md",
-                        subtitle: OnboardingCopy.projectLine,
-                        subtitleLineLimit: 1,
-                        showsDivider: false
-                    ) {
-                        copyButton(OnboardingCopy.projectLine)
-                    }
-                }
-            }
-            sharingNote
-            StarterPromptsSection()
-            links
+            AgentsPageContent(
+                client: client, agentsModel: agentsModel, claudeApp: claudeApp, t3: t3Connection, ruleModel: ruleModel)
+        }
+    }
+}
+
+/// The page body without the scroll chrome, so a test can measure it.
+struct AgentsPageContent: View {
+    let client: KnockClient
+    @ObservedObject var agentsModel: AgentsSettingsModel
+    @ObservedObject var claudeApp: ClaudeAppModel
+    @ObservedObject var t3: T3ConnectionModel
+    let ruleModel: AgentRuleModel
+    @ObservedObject private var pluginOffer = PluginOfferModel.shared
+    @ObservedObject private var migration = LaunchMigrationStatus.shared
+
+    var body: some View {
+        Group {
+            AgentsList(
+                agentsModel: agentsModel, claudeApp: claudeApp, pluginOffer: pluginOffer,
+                t3: t3, migrationFailure: migration.pluginFailure)
+            AgentQuestionsSection(client: client, ruleModel: ruleModel)
         }
         .task { await agentsModel.start() }
-        .task { await designHelpers.refresh() }
+        .task { await t3.refresh() }
         .onChange(of: pluginOffer.checks) { _, checks in agentsModel.applyPluginChecks(checks) }
-        .sheet(isPresented: $showsFullInstructions) {
-            AgentInstructionsFullTextSheet(onClose: { showsFullInstructions = false })
+    }
+}
+
+/// The one action a Claude Code or Codex row shows. One value per state, so a row never has two.
+enum AgentRowAction: Equatable {
+    case connect
+    case reconnect
+    case installPlugin
+    case removeOldEntry
+    case retry
+    case download
+
+    static func forRow(
+        _ row: OnboardingModel.RuntimeRow, pluginOfferApplies: Bool = false, downloadWhenMissing: Bool = false
+    ) -> AgentRowAction? {
+        switch row.status {
+        case .notConnected: return .connect
+        case .couldNotCheck: return .retry
+        case .notInstalled: return downloadWhenMissing ? .download : nil
+        case .probing, .connecting: return nil
+        case .connected:
+            switch row.plugin {
+            case .pluginWithOldEntry: return .removeOldEntry
+            case .plugin: return nil
+            case .none: return pluginOfferApplies ? .installPlugin : .reconnect
+            }
         }
     }
+}
 
-    private var runtimeCard: some View {
-        // Each row pads only below its own divider, so the gap above the
-        // next row comes from the stack spacing (matches the 14 below).
-        VStack(alignment: .leading, spacing: 14) {
-            ForEach(agentsModel.rows) { row in
-                if row.runtime == .claude {
-                    ClaudeRuntimeGroupView(
-                        claudeCodeRow: row,
-                        appModel: claudeApp,
-                        showsDivider: row.id != agentsModel.rows.last?.id,
-                        onConnect: { agentsModel.connect(row.runtime) },
-                        onRetry: { agentsModel.retry() },
-                        onRemoveOldEntry: { agentsModel.removeOldEntry(row.runtime) })
-                } else {
-                OnboardingRuntimeRowView(
-                    row: row,
-                    onConnect: { agentsModel.connect(row.runtime) },
-                    showsDivider: row.id != agentsModel.rows.last?.id,
-                    showsReconnectWhenConnected: true,
-                    onRetry: { agentsModel.retry() },
-                    onRemoveOldEntry: { agentsModel.removeOldEntry(row.runtime) }
-                )
+/// One row: the agent's name, a chip for its state, an optional one-line note, one action.
+private struct AgentListRow<Trailing: View>: View {
+    let title: String
+    var chip: (text: String, ok: Bool)?
+    var note: String?
+    var showsDivider = true
+    @ViewBuilder var trailing: () -> Trailing
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 0) {
+            HStack(alignment: .center, spacing: 12) {
+                VStack(alignment: .leading, spacing: 3) {
+                    HStack(spacing: 8) {
+                        Text(title)
+                            .knockTextStyle(Theme.Typography.rowTitle13_5w600)
+                            .foregroundColor(Theme.Colors.ink)
+                        if let chip { SettingsStatusChip(text: chip.text, ok: chip.ok) }
+                    }
+                    if let note {
+                        Text(note)
+                            .knockTextStyle(Theme.Typography.body12_5w400)
+                            .foregroundColor(Theme.Colors.ink3)
+                            .fixedSize(horizontal: false, vertical: true)
+                    }
                 }
+                Spacer(minLength: 12)
+                trailing().fixedSize().layoutPriority(1)
             }
+            .padding(.vertical, 6)
+            .padding(.horizontal, 14)
+            if showsDivider { Rectangle().fill(Theme.Colors.line).frame(height: 1) }
         }
-        .padding(16)
-        .background(Theme.Colors.win)
-        .cornerRadius(10)
-        .overlay(RoundedRectangle(cornerRadius: 10).stroke(Theme.Colors.line, lineWidth: 1))
+    }
+}
+
+private func openInBrowser(_ url: URL) { NSWorkspace.shared.open(url) }
+
+private struct DownloadButton: View {
+    let url: URL
+    var body: some View {
+        SettingsSecondaryButton(icon: "arrow.up.right", title: AgentPlaceCopy.download) { openInBrowser(url) }
+    }
+}
+
+private struct AgentsList: View {
+    @ObservedObject var agentsModel: AgentsSettingsModel
+    @ObservedObject var claudeApp: ClaudeAppModel
+    @ObservedObject var pluginOffer: PluginOfferModel
+    @ObservedObject var t3: T3ConnectionModel
+    let migrationFailure: String?
+
+    private func row(_ runtime: Runtime) -> OnboardingModel.RuntimeRow {
+        agentsModel.rows.first { $0.runtime == runtime } ?? .init(runtime: runtime, status: .probing)
     }
 
-    /// For people who share a setup (HAIL-193). Waggle stays off for anyone who has not installed it.
-    private var sharingNote: some View {
-        VStack(alignment: .leading, spacing: 10) {
-            SettingsSectionLabel(AgentsSharingNote.label)
-            SettingsCard {
-                SettingsCardRow(
-                    title: AgentsSharingNote.title,
-                    subtitle: AgentsSharingNote.subtitle,
-                    showsDivider: false
-                ) {
-                    SettingsCopyButton(text: AgentsSharingNote.installLink, label: AgentsSharingNote.buttonTitle)
+    var body: some View {
+        SettingsCard {
+            claudeCodeRow.id(AgentPlaceCard.runtimes)
+            setupChecklist
+            claudeAppRow.id(AgentPlaceCard.claudeApp)
+            if claudeApp.justAdded && claudeApp.isConnected { ClaudeAppAfterNote().padding(.horizontal, 14).padding(.bottom, 8) }
+            if let message = claudeApp.errorMessage { claudeAppProblem(message) }
+            codexRow.id(AgentPlaceCard.codexApp)
+            t3Rows.id(AgentPlaceCard.t3)
+            AgentListRow(title: "Superset", note: AgentPlaceCopy.superset) {
+                DownloadButton(url: PlaceInstallLinks.superset)
+            }
+            .id(AgentPlaceCard.superset)
+            AgentListRow(title: "Conductor", note: AgentPlaceCopy.conductor, showsDivider: false) {
+                DownloadButton(url: PlaceInstallLinks.conductor)
+            }
+            .id(AgentPlaceCard.conductor)
+            problems
+        }
+    }
+
+    // MARK: Claude Code
+
+    @ViewBuilder private var claudeCodeRow: some View {
+        let row = row(.claude)
+        AgentListRow(title: "Claude Code", chip: statusChip(row), note: claudeCodeNote(row)) {
+            claudeCodeAction(row)
+        }
+    }
+
+    private func claudeCodeNote(_ row: OnboardingModel.RuntimeRow) -> String? {
+        row.status == .connected && row.plugin != .none ? "Installed as Claude Code plugin" : nil
+    }
+
+    @ViewBuilder private func claudeCodeAction(_ row: OnboardingModel.RuntimeRow) -> some View {
+        if pluginOffer.isWorking {
+            LoadingStatus(label: "Working")
+        } else if row.status == .connecting {
+            LoadingStatus(label: "Connecting")
+        } else {
+            actionButton(AgentRowAction.forRow(row, pluginOfferApplies: pluginOffer.status.offerApplies), runtime: .claude)
+        }
+    }
+
+    @ViewBuilder private func actionButton(_ action: AgentRowAction?, runtime: Runtime) -> some View {
+        switch action {
+        case .connect: SettingsPrimaryButton(title: "Connect") { agentsModel.connect(runtime) }
+        case .reconnect: SettingsSecondaryButton(title: "Reconnect") { agentsModel.connect(runtime) }
+        case .installPlugin: SettingsPrimaryButton(title: PluginOfferCopy.install) { Task { await pluginOffer.setPlugin(on: true) } }
+        case .removeOldEntry: SettingsSecondaryButton(title: "Remove old entry") { agentsModel.removeOldEntry(runtime) }
+        case .retry: SettingsSecondaryButton(icon: "arrow.clockwise", title: "Retry") { agentsModel.retry() }
+        case .download: DownloadButton(url: PlaceInstallLinks.codexApp)
+        case nil: EmptyView()
+        }
+    }
+
+    @ViewBuilder private var setupChecklist: some View {
+        if pluginOffer.showsSetupCard, let setup = pluginOffer.setup {
+            TimelineView(.periodic(from: .now, by: 20)) { context in
+                VStack(alignment: .leading, spacing: 10) {
+                    PluginSetupChecklist(setup: setup, now: context.date)
+                    if setup.step == .waiting { PluginSetupWaitingButtons(offer: pluginOffer) }
                 }
+                .padding(.vertical, 10)
+                .padding(.horizontal, 14)
+                .frame(maxWidth: .infinity, alignment: .leading)
+            }
+            Rectangle().fill(Theme.Colors.line).frame(height: 1)
+        }
+    }
+
+    // MARK: Claude app
+
+    private var claudeAppRow: some View {
+        AgentListRow(
+            title: "Claude app and Cowork",
+            chip: claudeApp.isConnected ? ("Connected", true) : ClaudeAppModel.isInstalled(config: claudeApp.config) ? nil : ("Not installed", false),
+            note: claudeApp.isConnected ? AgentPlaceCopy.claudeAppConnected : AgentPlaceCopy.claudeApp
+        ) {
+            if claudeApp.isConnected {
+                SettingsSecondaryButton(title: "Disconnect", action: claudeApp.remove)
+            } else if ClaudeAppModel.isInstalled(config: claudeApp.config) {
+                SettingsPrimaryButton(title: "Connect", action: claudeApp.connectTapped)
+            } else {
+                DownloadButton(url: PlaceInstallLinks.claudeApp)
+            }
+        }
+        .sheet(isPresented: $claudeApp.showsConfirm) {
+            ClaudeAppConfirmSheet(onCancel: claudeApp.cancelConfirm, onAdd: claudeApp.confirmAdd)
+        }
+    }
+
+    private func claudeAppProblem(_ message: String) -> some View {
+        HStack(spacing: 10) {
+            Text(message)
+                .knockTextStyle(Theme.Typography.body12_5w400)
+                .foregroundColor(Theme.Colors.ink2)
+                .fixedSize(horizontal: false, vertical: true)
+            Spacer(minLength: 0)
+            if claudeApp.canShowFile { SettingsSecondaryButton(title: "Show file", action: claudeApp.showFile) }
+        }
+        .padding(.horizontal, 14)
+        .padding(.bottom, 8)
+    }
+
+    // MARK: Codex
+
+    @ViewBuilder private var codexRow: some View {
+        let row = row(.codex)
+        AgentListRow(title: "Codex", chip: statusChip(row), note: codexNote(row)) {
+            if row.status == .connecting {
+                LoadingStatus(label: "Connecting")
+            } else {
+                actionButton(AgentRowAction.forRow(row, downloadWhenMissing: true), runtime: .codex)
             }
         }
     }
 
-    private var links: some View {
-        HStack(spacing: 20) {
-            Button(action: { showsFullInstructions = true }) {
-                Text("See the exact instructions")
-                    .knockTextStyle(Theme.Typography.buttonSm12_5w600)
-                    .foregroundColor(Theme.Colors.accent)
+    private func codexNote(_ row: OnboardingModel.RuntimeRow) -> String? {
+        row.status == .connected && row.plugin != .none ? AgentPlaceCopy.codexPlugin : nil
+    }
+
+    // MARK: T3 Code
+
+    @ViewBuilder private var t3Rows: some View {
+        AgentListRow(
+            title: "T3 Code", chip: t3Chip, note: t3Note,
+            showsDivider: t3.state == .installCLI || t3.failure != nil
+        ) {
+            HStack(spacing: 10) {
+                if t3.busy { LoadingStatus(label: "Working…") }
+                t3Action
             }
-            .buttonStyle(.plain).pointerCursor()
-            Button(action: runSetupAgain) {
-                Text("Run setup again")
-                    .knockTextStyle(Theme.Typography.buttonSm12_5w600)
-                    .foregroundColor(Theme.Colors.ink2)
+        }
+        if t3.state == .installCLI {
+            AgentListRow(title: "Install line", note: T3Command.installLine, showsDivider: t3.failure != nil) {
+                SettingsCopyButton(text: T3Command.installLine)
             }
-            .buttonStyle(.plain).pointerCursor()
+        }
+        if let failure = t3.failure {
+            Text(failure)
+                .knockTextStyle(Theme.Typography.body12_5w400)
+                .foregroundColor(Theme.Colors.accent)
+                .fixedSize(horizontal: false, vertical: true)
+                .padding(.horizontal, 14)
+                .padding(.bottom, 8)
+                .frame(maxWidth: .infinity, alignment: .leading)
+            Rectangle().fill(Theme.Colors.line).frame(height: 1)
         }
     }
 
-    /// "Run setup again" (contract: "same action as the menu's Set Up
-    /// Knock…, including `OnboardingLaunchPolicy.requestExplicitOpen()`").
-    private func runSetupAgain() {
-        OnboardingMenuCommand.runSetupAgain(onboardingModel: onboardingModel, openWindow: openWindow)
+    private var t3Chip: (text: String, ok: Bool)? {
+        switch t3.state {
+        case .notOnMac: return ("Not installed", false)
+        case .installCLI: return ("Needs the t3 command", false)
+        case .scopeUnsupported: return ("Update needed", false)
+        case .notConnected: return ("Not connected", false)
+        case .connected: return ("Connected", true)
+        case .expired: return ("Expired", false)
+        }
     }
 
-    private func copyButton(_ text: String) -> some View {
-        SettingsCopyButton(text: text)
+    private var t3Note: String? {
+        switch t3.state {
+        case .connected(let days): return "Renews in \(days) \(days == 1 ? "day" : "days")"
+        case .installCLI: return "Run the line below in Terminal, then check again."
+        case .scopeUnsupported: return "Your T3 Code cannot limit access yet. Update it, then check again."
+        default: return nil
+        }
+    }
+
+    @ViewBuilder private var t3Action: some View {
+        switch t3.state {
+        case .notOnMac:
+            DownloadButton(url: PlaceInstallLinks.t3)
+        case .installCLI, .scopeUnsupported:
+            SettingsSecondaryButton(title: "Check again") { Task { await t3.refresh() } }.disabled(t3.busy)
+        case .notConnected:
+            SettingsPrimaryButton(title: "Connect") { Task { await t3.connect() } }.disabled(t3.busy)
+        case .connected:
+            SettingsSecondaryButton(title: "Disconnect") { Task { await t3.disconnect() } }.disabled(t3.busy)
+        case .expired:
+            SettingsPrimaryButton(title: "Renew") { Task { await t3.connect() } }.disabled(t3.busy)
+        }
+    }
+
+    // MARK: Shared
+
+    private func statusChip(_ row: OnboardingModel.RuntimeRow) -> (text: String, ok: Bool)? {
+        switch row.status {
+        case .connected: return ("Connected", true)
+        case .probing, .connecting: return ("Checking…", false)
+        case .couldNotCheck: return ("Couldn't check", false)
+        case .notInstalled: return ("Not installed", false)
+        case .notConnected: return ("Not connected", false)
+        }
+    }
+
+    /// A failed move of the old entry, and the result of the plugin install.
+    @ViewBuilder private var problems: some View {
+        if let failure = migrationFailure { line(failure, color: Theme.Colors.ink2) }
+        switch pluginOffer.phase {
+        case .failed(let message): line(message, color: Theme.Colors.accent)
+        case .done(let message): line(message, color: Theme.Colors.ok)
+        case .idle, .working: EmptyView()
+        }
+    }
+
+    private func line(_ text: String, color: Color) -> some View {
+        Text(text)
+            .knockTextStyle(Theme.Typography.body12_5w400)
+            .foregroundColor(color)
+            .fixedSize(horizontal: false, vertical: true)
+            .padding(.horizontal, 14)
+            .padding(.bottom, 10)
+            .frame(maxWidth: .infinity, alignment: .leading)
     }
 }
 
