@@ -209,6 +209,13 @@ struct RequestStatusTests {
         #expect(!store.isHidden(key))
     }
 
+    @Test func aFailureIsPinnedUnderTheTabsAndOtherLinesStayInTheScroll() {
+        let failed = try! #require(line(.init(item: item(replyState: .failed), local: .offline)))
+        #expect(CasePaneDetailView.pinsStatus(failed))
+        let sent = try! #require(line(.init(item: item(), local: .sent)))
+        #expect(!CasePaneDetailView.pinsStatus(sent))
+    }
+
     @Test func aHiddenFailureShowsAgainWhenTheNextFailureHasTheSameReason() {
         let store = HiddenStatusStore()
         let offline = try! #require(line(.init(item: item(replyState: .failed), local: .offline)))

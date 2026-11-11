@@ -478,7 +478,8 @@ struct CasePaneDetailView: View {
         VStack(spacing: 0) {
             if !showsArtifactBeside, detail.case.hasArtifact { pinnedArtifactBar }
             // The tabs first (`.tabs`, margin 10 14 0). The context line (C2, C10) is the first thing in the
-            // Decision tab's scroll, as in the mockup; the other tabs keep the status under the tabs.
+            // Decision tab's scroll, as in the mockup; the other tabs keep the status under the tabs. A failure stays
+            // under the tabs in every tab, so the red line never scrolls away (spec §2, §8).
             DecisionColumnHeader(
                 thread: thread, caseId: detail.case.id, tab: columnTab, commentCount: commentsStore.model.comments.count,
                 decisionHeadsWithLatest: decisionHeadsWithLatest,
@@ -486,7 +487,7 @@ struct CasePaneDetailView: View {
                     unreadAtOpen: unreadAtOpen, lateNew: sharing.lateComments.new, seen: commentsTabSeen, tab: columnTab),
                 onSelect: selectTab)
                 .padding(Theme.AskDoc.Column.tabsInset)
-            if columnTab != .question, let line = statusLine {
+            if let line = statusLine, columnTab != .question || Self.pinsStatus(line) {
                 statusLineView(line)
                     .padding(EdgeInsets(top: 12, leading: columnLeadingInset, bottom: 0, trailing: Self.columnTrailingInset))
             }
@@ -768,9 +769,12 @@ struct CasePaneDetailView: View {
         return line
     }
 
-    /// The context line with the status in it.
+    /// A failure is pinned under the tabs, out of the Decision tab's scroll.
+    static func pinsStatus(_ line: RequestStatus.Line) -> Bool { line.tone == .failed }
+
+    /// The context line with the status in it, unless the status is pinned under the tabs.
     private var statusContextLine: some View {
-        let line = statusLine
+        let line = statusLine.flatMap { Self.pinsStatus($0) ? nil : $0 }
         return RequestContextLine(
             item: detail.case, client: model.client, planRounds: detail.planRounds ?? [],
             status: line?.text,
