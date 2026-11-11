@@ -153,6 +153,11 @@ struct QueueRowView: View {
             top: Theme.AskDoc.Chrome.rowInset.top, leading: Theme.AskDoc.Chrome.rowInset.leading + (isFollowUp ? 14 : 0),
             bottom: Theme.AskDoc.Chrome.rowInset.bottom, trailing: Theme.AskDoc.Chrome.rowInset.trailing))
         .frame(maxWidth: .infinity, alignment: .leading)
+        // Text takes a click and does not pass it to a button behind it (checked in a hosted window), so the
+        // content opens the row itself. Got it is a Button above this, and a Button wins over a tap gesture.
+        .contentShape(Rectangle())
+        .onTapGesture(perform: onOpen)
+        .pointerCursor()
         // `.row.sel`: white, a 3 pt honey bar on the left, no line between rows.
         .background {
             (isOfflineCached ? Theme.Colors.sel : (isSelected ? Theme.AskDoc.Chrome.selectedFill : Color.clear))
@@ -165,10 +170,11 @@ struct QueueRowView: View {
             }
         }
         // The row's own button fills the row behind everything above. It is a sibling layer, not a wrapper:
-        // Got it and Retry sit above it and take their own clicks; a click anywhere else lands here. It is added
+        // Got it and Retry sit above it and take their own clicks. It gives the row keyboard focus, the hover fill and
+        // one accessibility label; a mouse click on the content is taken by the tap gesture above. It is added
         // last, so it is the back-most layer and the selected fill stays on top of its hover fill.
         .background {
-            Button(action: onOpen) { Color.clear }
+            Button(action: onOpen) { Color.clear.contentShape(Rectangle()) }
                 .buttonStyle(.hoverRow)
                 .accessibilityLabel(item.title)
                 .accessibilityAddTraits(isSelected ? .isSelected : [])
