@@ -42,6 +42,11 @@ struct QueueListView: View {
     }
 
     private var isOffline: Bool { model.connectionState != .connected }
+    @StateObject private var starter = ServiceStarter()
+
+    private func startService() {
+        Task { await starter.start(isReachable: { model.connectionState == .connected }) }
+    }
 
     /// `KNOCK_EVIDENCE_GOT_IT=<seconds>` (evidence-only, HAIL-152): taps Got it on the first done
     /// row after that delay, through the same `model.dismiss` the button calls.
@@ -60,11 +65,7 @@ struct QueueListView: View {
                 SessionFilterChip(filter: filter, onClear: { model.sessionFilter = nil })
             }
             if isOffline {
-                OfflineBannerView(
-                    onStartService: { ServiceControl.startDaemon() },
-                    onViewLog: DaemonLog.existingURL().map { url in { DaemonLog.open(url) } }
-                )
-                cachedLabel
+                PausedCardView(phase: starter.phase, onStart: startService)
             }
             let isQueueEmpty = model.visibleNeedsYouCases.isEmpty && model.visibleWaitingCases.isEmpty
                 && model.visibleAnsweredCases.isEmpty && model.homeOverview.cards.isEmpty && model.autoDecidedToday.isEmpty
@@ -306,7 +307,6 @@ struct QueueListView: View {
             timeTooltip: time.tooltip,
             isSelected: item.id == model.selectedCaseId,
             isUrgent: isUrgent,
-            isOfflineCached: isOffline,
             isDimmed: isDimmed,
             artifactKind: model.artifactKindByCaseId[item.id],
             deliveryStatus: deliveryStatus,
@@ -363,52 +363,35 @@ struct QueueListView: View {
     }
 
     private var header: some View {
-        Group {
-            if isOffline {
-                HStack(spacing: 10) {
-                    Circle()
-                        .fill(Theme.Colors.daemonOfflineDot)
-                        .frame(width: 6, height: 6)
-                    Text("daemon offline")
-                        .knockTextStyle(Theme.Typography.daemonStatus11_5w500)
-                        .foregroundColor(Theme.Colors.ink2)
-                    Spacer(minLength: 0)
-                }
-            } else {
-                HStack(spacing: 8) {
-                    // `.brand`: the mark 16, 7 to the wordmark (500 15, −0.03 em).
-                    HStack(spacing: Theme.AskDoc.Chrome.brandGap) {
-                        KnockMarkView().frame(width: Theme.AskDoc.Chrome.markSize, height: Theme.AskDoc.Chrome.markSize)
-                        Text("waggle")
-                            .knockTextStyle(Theme.AskDoc.Chrome.brand)
-                            .foregroundColor(Theme.Colors.ink)
-                    }
-                    .accessibilityElement(children: .ignore)
-                    .accessibilityLabel("waggle")
-                    Spacer(minLength: 0)
-                    // Case map `.needs` and `.count`.
-                    Text("Needs you")
-                        .knockTextStyle(Theme.AskDoc.Chrome.needsLabel)
-                        .foregroundColor(Theme.Colors.ink)
-                    // The red count pill (WAG-257).
-                    Text("\(model.visibleNeedsYouCases.count)")
-                        .knockTextStyle(Theme.AskDoc.Chrome.countPill)
-                        .foregroundColor(model.visibleNeedsYouCases.isEmpty ? Theme.Colors.ink3 : Theme.Colors.onFill)
-                        .padding(Theme.AskDoc.Chrome.countPillInset)
-                        // Nothing needs you: the pill goes grey, not red.
-                        .background(Capsule().fill(model.visibleNeedsYouCases.isEmpty ? Theme.Colors.side : Theme.Colors.accent))
-                        .accessibilityLabel(model.visibleNeedsYouCases.count == 1 ? "1 request needs you" : "\(model.visibleNeedsYouCases.count) requests need you")
-                    foldButton
-                }
+        HStack(spacing: 8) {
+            // `.brand`: the mark 16, 7 to the wordmark (500 15, −0.03 em).
+            HStack(spacing: Theme.AskDoc.Chrome.brandGap) {
+                KnockMarkView().frame(width: Theme.AskDoc.Chrome.markSize, height: Theme.AskDoc.Chrome.markSize)
+                Text("waggle")
+                    .knockTextStyle(Theme.AskDoc.Chrome.brand)
+                    .foregroundColor(Theme.Colors.ink)
             }
+            .accessibilityElement(children: .ignore)
+            .accessibilityLabel("waggle")
+            Spacer(minLength: 0)
+            // Case map `.needs` and `.count`.
+            Text("Needs you")
+                .knockTextStyle(Theme.AskDoc.Chrome.needsLabel)
+                .foregroundColor(Theme.Colors.ink)
+            // The red count pill (WAG-257).
+            Text("\(model.visibleNeedsYouCases.count)")
+                .knockTextStyle(Theme.AskDoc.Chrome.countPill)
+                .foregroundColor(model.visibleNeedsYouCases.isEmpty ? Theme.Colors.ink3 : Theme.Colors.onFill)
+                .padding(Theme.AskDoc.Chrome.countPillInset)
+                // Nothing needs you: the pill goes grey, not red.
+                .background(Capsule().fill(model.visibleNeedsYouCases.isEmpty ? Theme.Colors.side : Theme.Colors.accent))
+                .accessibilityLabel(model.visibleNeedsYouCases.count == 1 ? "1 request needs you" : "\(model.visibleNeedsYouCases.count) requests need you")
+            foldButton
         }
         .padding(EdgeInsets(
             // HAIL-180: the lockup starts at the left edge, on a row under the traffic lights.
-            // The offline row keeps its old place.
-            top: isOffline ? 16 : QueueHeaderLayout.topInset(trafficLightsMaxX: trafficLightsMaxX),
-            leading: isOffline
-                ? Theme.Spacing.listHeaderLeadingReserve
-                : QueueHeaderLayout.leadingInset(trafficLightsMaxX: trafficLightsMaxX),
+            top: QueueHeaderLayout.topInset(trafficLightsMaxX: trafficLightsMaxX),
+            leading: QueueHeaderLayout.leadingInset(trafficLightsMaxX: trafficLightsMaxX),
             bottom: Theme.AskDoc.Chrome.headBottom, trailing: Theme.AskDoc.Chrome.sideInset))
         .background(TrafficLightsEdgeReader { trafficLightsMaxX = $0 })
     }
@@ -451,27 +434,17 @@ struct QueueListView: View {
         }
     }
 
-    private var cachedLabel: some View {
-        HStack(spacing: 6) {
-            Image(systemName: "cloud.slash")
-                .font(.system(size: 10))
-                .foregroundColor(Theme.Colors.ink3)
-            Text("CACHED · READ-ONLY")
-                .knockTextStyle(Theme.Typography.cachedLabel11w600)
-                .foregroundColor(Theme.Colors.ink3)
-        }
-        .padding(Theme.AskDoc.Chrome.sectionInset)
-    }
-
     /// The eight examples while there is nothing yet (WAG-338). A filtered or offline queue keeps its one line.
     @ViewBuilder private var emptyState: some View {
         if model.sessionFilter == nil && !isOffline {
             QueueEmptyStateView()
         } else {
-            Text(model.sessionFilter != nil ? "No decisions from this session." : "No cached cases.")
-                .knockTextStyle(Theme.Typography.body13w400)
-                .foregroundColor(Theme.Colors.ink2)
-                .padding(EdgeInsets(top: 18, leading: 18, bottom: 18, trailing: 18))
+            if model.sessionFilter != nil {
+                Text("No decisions from this session.")
+                    .knockTextStyle(Theme.Typography.body13w400)
+                    .foregroundColor(Theme.Colors.ink2)
+                    .padding(EdgeInsets(top: 18, leading: 18, bottom: 18, trailing: 18))
+            }
         }
     }
 
@@ -484,7 +457,7 @@ struct QueueListView: View {
     private var footer: some View {
         HStack(spacing: Theme.AskDoc.Chrome.footerGap) {
             QueueFooterSessionStatus(
-                connection: connection, activeCases: model.activeCases, isOffline: isOffline,
+                connection: connection, activeCases: model.activeCases, isOffline: isOffline, phase: starter.phase,
                 onToggle: { toggleSessions() },
                 buttonBackground: frameReader { sessionsButtonFrame = $0 })
             Spacer(minLength: 8)
@@ -581,6 +554,7 @@ private struct QueueFooterSessionStatus<ButtonBackground: View>: View {
     @ObservedObject var connection: ConnectionModel
     let activeCases: [Case]
     let isOffline: Bool
+    let phase: PausedCopy.Phase
     let onToggle: () -> Void
     let buttonBackground: ButtonBackground
 
@@ -592,7 +566,7 @@ private struct QueueFooterSessionStatus<ButtonBackground: View>: View {
         let workingCount = AgentStatus.workingCount(statuses)
         if isOffline || connection.liveSessions.isEmpty {
             Circle()
-                .fill(isOffline ? Theme.Colors.daemonOfflineDot : Theme.Colors.ok)
+                .fill(isOffline ? Theme.AskDoc.Colors.quiet : Theme.Colors.ok)
                 .frame(width: Theme.AskDoc.Chrome.dotSize, height: Theme.AskDoc.Chrome.dotSize)
         } else {
             // One grid for the busiest live session (HAIL-66).
@@ -601,7 +575,7 @@ private struct QueueFooterSessionStatus<ButtonBackground: View>: View {
                 .help(busiest.label)
         }
         Button(action: onToggle) {
-            Text(QueueFooterStatus.label(isOffline: isOffline, sessionCount: QueueFooterStatus.liveCount(connection.sessions)))
+            Text(QueueFooterStatus.label(isOffline: isOffline, phase: phase, sessionCount: QueueFooterStatus.liveCount(connection.sessions)))
                 .knockTextStyle(Theme.AskDoc.Chrome.footer)
                 .foregroundColor(Theme.Colors.ink3)
                 .lineLimit(1)

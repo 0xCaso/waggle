@@ -19,10 +19,6 @@ struct QueueRowView: View {
     let timeTooltip: String?
     let isSelected: Bool
     let isUrgent: Bool
-    /// M11's whole-list "cached, read-only while offline" treatment: dims
-    /// the row and swaps its fill for `$sel` (docs/design/mvp-values.md
-    /// §2.3 "Cached/offline variant").
-    let isOfflineCached: Bool
     /// The `waiting_on_agent` group's own dimming (KNOCK-08 AC): opacity
     /// only, no `$sel` fill swap - the row stays selectable and keeps its
     /// normal selected/unselected fill.
@@ -56,9 +52,6 @@ struct QueueRowView: View {
         case .done: Theme.Colors.ok
         }
     }
-
-    /// Dims the row's text (M11 cached rows). The waiting group takes mockup B's `.row.done` look instead.
-    private var rowOpacity: Double { isOfflineCached ? 0.5 : 1 }
 
     /// Mockup B `.row.done`: an answered row (still held by the agent, or done) has a 500 ink2 title.
     private var isAnsweredLook: Bool { isDimmed || item.isDone }
@@ -102,7 +95,6 @@ struct QueueRowView: View {
             .frame(width: Theme.AskDoc.Chrome.dotSize, height: Theme.AskDoc.Chrome.dotSize)
             .help(unreadComments == 1 ? "1 new comment from your team" : "\(unreadComments) new comments from your team")
             .accessibilityLabel(unreadComments == 1 ? "1 new comment" : "\(unreadComments) new comments")
-            .opacity(rowOpacity)
     }
 
     /// The artifact kind (no mockup counterpart): a plain quiet glyph, as quiet as the meta line.
@@ -119,9 +111,8 @@ struct QueueRowView: View {
         HStack(alignment: .center, spacing: 10) {
             // `.row`: the dot on the title's first baseline, 9 to the text; the title wraps to two lines.
             HStack(alignment: .firstTextBaseline, spacing: Theme.AskDoc.Chrome.rowGap) {
-                RowDot(color: dotColor, pulses: row.dot == .working && !isOfflineCached)
+                RowDot(color: dotColor, pulses: row.dot == .working)
                     .sidebarDotOnBaseline()
-                    .opacity(isOfflineCached ? 0.5 : 1)
                 VStack(alignment: .leading, spacing: Theme.AskDoc.Chrome.rowMetaGap) {
                     Text(row.title)
                         .knockTextStyle(isAnsweredLook ? Theme.AskDoc.Chrome.rowTitleDone : Theme.AskDoc.Chrome.rowTitle)
@@ -137,11 +128,10 @@ struct QueueRowView: View {
                     }
                 }
             }
-            .opacity(rowOpacity)
             if unreadComments > 0 { unreadMark }
             if item.isDone { gotItButton }
             if row.icon != nil {
-                iconTile.opacity(rowOpacity)
+                iconTile
             }
         }
         .padding(EdgeInsets(
@@ -149,7 +139,7 @@ struct QueueRowView: View {
             bottom: Theme.AskDoc.Chrome.rowInset.bottom, trailing: Theme.AskDoc.Chrome.rowInset.trailing))
         .frame(maxWidth: .infinity, alignment: .leading)
         // `.row.sel`: white, a 3 pt honey bar on the left, no line between rows.
-        .background(isOfflineCached ? Theme.Colors.sel : (isSelected ? Theme.AskDoc.Chrome.selectedFill : Color.clear))
+        .background(isSelected ? Theme.AskDoc.Chrome.selectedFill : Color.clear)
         .overlay(alignment: .leading) {
             if isSelected {
                 Rectangle().fill(Theme.AskDoc.Chrome.selectedBar).frame(width: Theme.AskDoc.Chrome.selectedBarWidth)

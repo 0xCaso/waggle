@@ -35,7 +35,7 @@ struct CasePaneView: View {
             } else {
                 VStack {
                     Spacer()
-                    Text(isOffline ? "No cached case selected." : "Select a case to see its details.")
+                    Text("Select a case to see its details.")
                         .knockTextStyle(Theme.Typography.body13w400)
                         .foregroundColor(Theme.Colors.ink2)
                     Spacer()
@@ -95,7 +95,7 @@ struct CasePaneDetailView: View {
     private var isOffline: Bool { model.connectionState != .connected }
     /// The ask's thread, once you have replied (HAIL-71).
     private var thread: ThreadModel? {
-        isOffline ? nil : detail.threadModel(artifactKind: model.artifactKindByCaseId[detail.case.id])
+        detail.threadModel(artifactKind: model.artifactKindByCaseId[detail.case.id])
     }
     /// The Conversation tab's messages: the thread, or the ask alone before a reply.
     private var conversation: ThreadModel {
@@ -235,25 +235,20 @@ struct CasePaneDetailView: View {
         EvidenceLayoutLog.bump("body.casePane")
         return VStack(spacing: 0) {
             toolbarRow
-            if isOffline {
-                // The page is dimmed with no answer box; the status line above it says why (C10).
-                statusContextLine
-                    .padding(EdgeInsets(top: 12, leading: 32, bottom: 0, trailing: 32))
-                offlineBody
-            } else {
-                AskCommentsHost(hub: askHub, onExplain: { [sendFlow] in sendFlow.explain(selection: $0) }) {
-                SourcesHost(hub: sourcesHub) {
-                    decisionColumn
-                        .environment(\.roundTagInEyebrow, isPageLayout)
-                }
-                }
-                .clipped()
-                .onChange(of: isAnswerDisplayLocked, initial: true) { _, _ in askHub.sync(detail: detail, canComment: !isAnswerDisplayLocked) }
-                .onChange(of: detail.replies) { _, _ in askHub.sync(detail: detail, canComment: !isAnswerDisplayLocked) }
+            AskCommentsHost(hub: askHub, onExplain: { [sendFlow] in sendFlow.explain(selection: $0) }) {
+            SourcesHost(hub: sourcesHub) {
+                decisionColumn
+                    .environment(\.roundTagInEyebrow, isPageLayout)
             }
+            }
+            .clipped()
+            .onChange(of: isAnswerDisplayLocked, initial: true) { _, _ in askHub.sync(detail: detail, canComment: !isAnswerDisplayLocked) }
+            .onChange(of: detail.replies) { _, _ in askHub.sync(detail: detail, canComment: !isAnswerDisplayLocked) }
         }
         .boundedIdealWidth()
         .frame(maxWidth: .infinity, maxHeight: .infinity)
+        // Paused: Decide and Send are off, and one line next to them says why.
+        .environment(\.pausedAnswerLine, isOffline ? PausedCopy.answerLine : nil)
         // Files dropped on the request attach to the reply (WAG-345), until it is sent.
         .attachesDroppedFiles(to: sendFlow.composer.files, enabled: !isAnswerDisplayLocked || sendFlow.isEditingLockedAnswer)
         // A stale `.sent` from a prior send-and-cycle: the case returning to
@@ -313,7 +308,6 @@ struct CasePaneDetailView: View {
         .background(
             Button("Toggle conversation") { toggleConversation() }
                 .keyboardShortcut(SplitFoldShortcuts.ask)
-                .disabled(isOffline)
                 .opacity(0)
         )
         .onAppear {
@@ -512,7 +506,6 @@ struct CasePaneDetailView: View {
 
     /// The header icon and ⌘] (C8): open the Conversation tab; a second press goes back to Decision.
     private func toggleConversation() {
-        guard !isOffline else { return }
         selectTab(ConversationTabRouting.toggled(columnTab))
     }
 
@@ -643,6 +636,7 @@ struct CasePaneDetailView: View {
             onOpenReview: detail.case.kind == .review ? { openReview() } : nil,
             showsStatus: false
         )
+        .disabled(isOffline)
     }
 
     private func requestDismiss() {
@@ -720,7 +714,6 @@ struct CasePaneDetailView: View {
         }
         .padding(.horizontal, Theme.AskDoc.Chrome.topBarSide)
         .frame(height: isPageLayout ? Theme.AskDoc.Chrome.pageTopBarHeight : Theme.AskDoc.Chrome.topBarHeight)
-        .opacity(isOffline ? 0.55 : 1)
         .overlay(alignment: .bottom) {
             if !isPageLayout { Rectangle().fill(Theme.Colors.line).frame(height: 1) }
         }
@@ -757,7 +750,7 @@ struct CasePaneDetailView: View {
         let delivery = model.deliveryStatusByCaseId[detail.case.id]
         let agent = AgentStatus.forCase(liveCase, deliveryStatus: delivery)
         let line = RequestStatus.line(RequestStatus.Input(
-            item: liveCase, isOffline: isOffline, confirmed: delivery, local: sendFlow.deliveryState.state,
+            item: liveCase, confirmed: delivery, local: sendFlow.deliveryState.state,
             isEditingLockedAnswer: sendFlow.isEditingLockedAnswer,
             settled: AnswerGrouping.settled(
                 detail.case, allCases: model.needsYouCases + model.waitingOnAgentCases,
@@ -1133,6 +1126,7 @@ struct CasePaneDetailView: View {
                     sendFlow: sendFlow, deliveryState: sendFlow.deliveryState, isChanging: sendFlow.isEditingLockedAnswer,
                     maxPointsHeight: DecisionDock.cap(.step, windowHeight: decisionHeight) ?? DecisionDock.minCap,
                     pointsInColumn: inColumn)
+                    .disabled(isOffline)
             }
         case .decide where DoneNote.message(for: detail.case) != nil:
             // The done note heads the page; the closed decision's rows are not offered again (WAG-333).
@@ -1170,6 +1164,7 @@ struct CasePaneDetailView: View {
             showsStatus: false,
             part: part
         )
+        .disabled(isOffline)
     }
 
     /// The artifact's full page keeps the options in its bar: the open calm card plus two one-line rows; more
@@ -1226,31 +1221,5 @@ struct CasePaneDetailView: View {
         sendFlow.composer.focusDraftOnOpen = true
         // Comment in the case box leaves its page here (WAG-347); a plain Open full size leaves nothing.
         model.activateSelection(commentHandoff: liveArtifact.takeCommentHandoff(), revision: revision ?? liveArtifact.fullSizeRevision)
-    }
-
-    private var offlineBody: some View {
-        VStack(alignment: .leading, spacing: 22) {
-            HStack(spacing: 6) {
-                ForEach(OfflineChips.labels(for: detail.case), id: \.self) { chip($0) }
-            }
-            Text(detail.case.title)
-                .knockTextStyle(Theme.Typography.panelTitle22w600)
-                .foregroundColor(Theme.Colors.ink)
-                .textSelection(.enabled)
-            AgentMarkdownText(
-                text: detail.case.need, style: Theme.Typography.body13_5w400, color: Theme.Colors.ink2)
-        }
-        .padding(EdgeInsets(top: 32, leading: 32, bottom: 0, trailing: 32))
-        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
-        .opacity(0.5)
-    }
-
-    private func chip(_ label: String) -> some View {
-        Text(label)
-            .knockTextStyle(Theme.Typography.chipLabel11_5w600)
-            .foregroundColor(Theme.Colors.ink2)
-            .padding(EdgeInsets(top: 3, leading: 8, bottom: 3, trailing: 8))
-            .background(Theme.Colors.side)
-            .cornerRadius(Theme.Radius.chip)
     }
 }

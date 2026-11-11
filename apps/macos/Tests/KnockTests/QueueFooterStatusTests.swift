@@ -5,7 +5,7 @@ import Testing
 /// footer row, "Connected · N sessions" or the offline state.
 struct QueueFooterStatusTests {
     @Test func offlineIgnoresTheSessionCount() {
-        #expect(QueueFooterStatus.label(isOffline: true, sessionCount: 3) == "Daemon offline")
+        #expect(QueueFooterStatus.label(isOffline: true, sessionCount: 3) == "Paused")
     }
 
     @Test func onlineWithNoSessionsReadsSingularlyCorrect() {
