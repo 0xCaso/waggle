@@ -69,6 +69,12 @@ enum SidebarSections {
 
     /// The working card of the session that took the first job: the job's project, the job's agent, and
     /// activity since the job was sent. Nil while no such row exists (a Terminal session still starting).
+    /// Working shows its rows when the saved choice is open, and always while the onboarding
+    /// first job is in it, so a new user sees that their first job started (C11 exception).
+    static func workingShowsRows(_ rows: [WorkingRow], saved: Bool) -> Bool {
+        saved || rows.contains { $0.isFirstJob || $0.isOnboarding }
+    }
+
     static func firstJobCardId(_ overview: HomeCards.Overview, job: AgentOnIt) -> String? {
         let project = job.projectName.lowercased()
         return overview.cards.first { card in
@@ -119,20 +125,50 @@ extension Theme.Typography {
 
 // MARK: - Views
 
-/// A small sidebar header ("NEEDS YOU · 1", "WORKING · 2", "ANSWERED · 5"): one style for every section.
+/// A small sidebar header ("NEEDS YOU · 1", "WORKING · 2", "ANSWERED · 5"): one style for every section, mockup B's
+/// `.sec` (600 10.5/1, 0.06 em, caps, quiet, padding 14 16 6).
 struct SidebarSectionTitle: View {
     let text: String
 
     var body: some View {
-        Text(text)
-            .knockTextStyle(Theme.Typography.labelCaps10_5w600)
-            .foregroundColor(Theme.Colors.ink3)
-            .opacity(0.7)
+        ChromeSectionLabel(text: text)
             .frame(maxWidth: .infinity, alignment: .leading)
-            .padding(EdgeInsets(top: 14, leading: 18, bottom: 6, trailing: 18))
+            .padding(Theme.AskDoc.Chrome.sectionInset)
     }
 }
 
+/// A section header that folds: "› WORKING · 2 ... Show" closed, "⌄ WORKING · 2 ... Hide" open. Answered, Working
+/// and Decided for you use it. The label is the `.sec` caps; the word on the right is B's `.sec button` ("Show all
+/// 271": 500 12, ink3, no caps); the chevron is the case map's "›".
+struct SidebarFoldHeader: View {
+    let label: String
+    let count: Int
+    let isOpen: Bool
+    /// The whole title when it is not "LABEL · N" ("Decided for you · 3 today").
+    var title: String? = nil
+    let action: () -> Void
+
+    var body: some View {
+        Button(action: action) {
+            HStack(spacing: 5) {
+                Image(systemName: isOpen ? "chevron.down" : "chevron.right")
+                    .font(.system(size: 8, weight: .semibold))
+                    .foregroundColor(Theme.AskDoc.Colors.quiet)
+                    .frame(width: 8)
+                ChromeSectionLabel(text: title ?? SidebarSections.sectionTitle(label, count: count))
+                Spacer(minLength: 0)
+                Text(isOpen ? "Hide" : "Show")
+                    .knockTextStyle(Theme.AskDoc.Chrome.sectionButton)
+                    .foregroundColor(Theme.Colors.ink3)
+            }
+            .padding(Theme.AskDoc.Chrome.sectionInset)
+            .contentShape(Rectangle())
+        }
+        .buttonStyle(.plain).pointerCursor()
+    }
+}
+
+/// A Working or In planning row in the `.row` look; the title in 500 ink as the case map's working row.
 private struct SidebarItemRow: View {
     let dot: Color
     let pulses: Bool
@@ -144,14 +180,15 @@ private struct SidebarItemRow: View {
 
     var body: some View {
         Button(action: action) {
-            HStack(alignment: .top, spacing: 10) {
-                RowDot(color: dot, pulses: pulses).padding(.top, 5)
-                VStack(alignment: .leading, spacing: 2) {
-                    HStack(spacing: 6) {
+            HStack(alignment: .firstTextBaseline, spacing: Theme.AskDoc.Chrome.rowGap) {
+                RowDot(color: dot, pulses: pulses).sidebarDotOnBaseline()
+                VStack(alignment: .leading, spacing: Theme.AskDoc.Chrome.rowMetaGap) {
+                    HStack(alignment: .firstTextBaseline, spacing: 6) {
                         Text(title)
-                            .knockTextStyle(Theme.Typography.sidebarItem13w500)
+                            .knockTextStyle(Theme.AskDoc.Chrome.rowTitleDone)
                             .foregroundColor(Theme.Colors.ink)
-                            .lineLimit(1)
+                            .lineLimit(2)
+                            .fixedSize(horizontal: false, vertical: true)
                         if let tag {
                             Text(tag)
                                 .knockTextStyle(Theme.Typography.tagLabel10_5w500)
@@ -164,22 +201,25 @@ private struct SidebarItemRow: View {
                     }
                     if !meta.isEmpty {
                         Text(meta)
-                            .knockTextStyle(Theme.Typography.sidebarItemMeta11_5)
-                            .foregroundColor(Theme.Colors.ink3)
+                            .knockTextStyle(Theme.AskDoc.Chrome.rowMeta)
+                            .foregroundColor(Theme.AskDoc.Colors.quiet)
                             .lineLimit(1)
                     }
                 }
                 Spacer(minLength: 0)
             }
-            .padding(EdgeInsets(top: 6, leading: 18, bottom: 6, trailing: 18))
-            .background(isSelected ? Theme.Colors.win : Color.clear)
+            .padding(Theme.AskDoc.Chrome.rowInset)
+            .background(isSelected ? Theme.AskDoc.Chrome.selectedFill : Color.clear)
+            .overlay(alignment: .leading) {
+                if isSelected { Rectangle().fill(Theme.AskDoc.Chrome.selectedBar).frame(width: Theme.AskDoc.Chrome.selectedBarWidth) }
+            }
             .contentShape(Rectangle())
         }
         .buttonStyle(.plain).pointerCursor()
     }
 }
 
-/// WORKING and IN PLANNING, in that order.
+/// WORKING and IN PLANNING, in that order. Working folds (C11): closed by default, the choice saved.
 struct SidebarWorkSections: View {
     @ObservedObject var model: AppModel
     /// "Your agent is on it", or nil (WAG-344). It joins Working, on the session's row once one exists.
@@ -191,13 +231,19 @@ struct SidebarWorkSections: View {
         let plans = SidebarSections.planRows(model.activeCases)
         VStack(spacing: 0) {
             if !working.isEmpty {
-                SidebarSectionTitle(text: SidebarSections.sectionTitle("Working", count: working.count))
-                ForEach(working) { row in
-                    SidebarItemRow(
-                        dot: Theme.Colors.ds, pulses: true, title: row.name, meta: row.meta,
-                        tag: row.isFirstJob ? "First job" : nil, isSelected: false
-                    ) { open(row.openCaseId) }
-                    .accessibilityIdentifier(row.isOnboarding ? "agent-on-it-row" : "working-row")
+                let showRows = SidebarSections.workingShowsRows(working, saved: model.workingOpen)
+                SidebarFoldHeader(label: "Working", count: working.count, isOpen: showRows) {
+                    model.workingOpen = !showRows
+                }
+                .accessibilityIdentifier("working-fold")
+                if showRows {
+                    ForEach(working) { row in
+                        SidebarItemRow(
+                            dot: Theme.Colors.ds, pulses: true, title: row.name, meta: row.meta,
+                            tag: row.isFirstJob ? "First job" : nil, isSelected: false
+                        ) { open(row.openCaseId) }
+                        .accessibilityIdentifier(row.isOnboarding ? "agent-on-it-row" : "working-row")
+                    }
                 }
             }
             if !plans.isEmpty {

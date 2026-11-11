@@ -3726,6 +3726,7 @@ interface MessageRow {
   role: "agent" | "human";
   text: string;
   created_at: string;
+  working: number;
 }
 
 export interface RelayShare {
@@ -4178,6 +4179,8 @@ function rowToMessage(row: MessageRow): Message {
     role: row.role,
     text: row.text,
     created_at: row.created_at,
+    // Only a progress note carries the flag, so every other message keeps its old shape.
+    ...(row.working === 1 ? { working: true } : {}),
   };
 }
 

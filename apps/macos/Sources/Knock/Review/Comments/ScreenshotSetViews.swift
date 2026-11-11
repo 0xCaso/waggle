@@ -68,10 +68,10 @@ enum StageControl {
             .cornerRadius(Theme.Radius.columnTabsTrack)
     }
 
-    static func segment(_ label: String, isActive: Bool, action: @escaping () -> Void) -> some View {
+    static func segment(_ label: String, isActive: Bool, isEnabled: Bool = true, action: @escaping () -> Void) -> some View {
         Text(label)
             .knockTextStyle(isActive ? Theme.Typography.buttonSm12_5w600 : Theme.Typography.buttonSm12_5w500)
-            .foregroundColor(isActive ? Theme.Colors.ink : Theme.Colors.ink2)
+            .foregroundColor(!isEnabled ? Theme.Colors.ink3 : (isActive ? Theme.Colors.ink : Theme.Colors.ink2))
             .padding(EdgeInsets(top: 3, leading: 9, bottom: 3, trailing: 9))
             .background(isActive ? Theme.Colors.win : Color.clear)
             .cornerRadius(Theme.Radius.columnTabsSegment)
@@ -81,8 +81,10 @@ enum StageControl {
                 x: Theme.Shadow.columnTab.offset.width, y: Theme.Shadow.columnTab.offset.height
             )
             .contentShape(Rectangle())
-            .onTapGesture(perform: action).pointerCursor()
+            .onTapGesture { if isEnabled { action() } }.pointerCursor()
             .accessibilityAddTraits(isActive ? [.isButton, .isSelected] : .isButton)
+            .accessibilityLabel(label)
+            .accessibilityValue(isActive ? "On" : "Off")
     }
 
     static func iconSegment(_ symbol: String, label: String, action: @escaping () -> Void) -> some View {

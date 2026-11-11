@@ -1,29 +1,62 @@
 import SwiftUI
 
-/// What a request with an artifact shows on the main page. On a wide window (WAG-290, prototype "B";
-/// every ask since WAG-306) the page has two columns: the artifact at full height on the left, the question and its calm
-/// option cards on the right. A narrow window stacks them: the question scrolls, and a bar above the answers names
-/// the artifact and opens it (decision 2026-11-05).
+/// The one layout of a request page (C1, spec 2026-11-09 section 1). The decision is always a column: with an
+/// artifact, the artifact fills the left and the column is `columnWidth` on the right; when that would leave the
+/// artifact under `minArtifactWidth`, the artifact folds to the pinned bar at the top of the column; with no
+/// artifact, the column is the page, centred, at most `pageMaxWidth` wide. The column scrolls as one piece, the
+/// options in it once, and its answer box and send row are pinned at its bottom.
 enum AskLayout {
     enum Layout: Equatable {
-        /// The artifact on the left, the question on the right.
-        case sideBySide
-        /// One column: the track, the write-up, then the question.
-        case stacked
+        /// The artifact on the left, the decision column on the right.
+        case beside
+        /// The pane is too narrow for both: the artifact is the pinned bar at the top of the column.
+        case folded
+        /// No artifact: the column is the page.
+        case page
     }
 
-    /// The artifact column's share of the width.
-    static let artifactShare: CGFloat = 0.57
-    /// The right column never gets narrower than this; below it the page stacks.
-    static let minQuestionWidth: CGFloat = 320
-    /// Below this window width the page stacks.
-    static let minSideBySideWidth: CGFloat = 1000
+    /// The decision column's width beside an artifact.
+    static let columnWidth: CGFloat = 440
+    /// The artifact never gets narrower than this beside the column; below it, it folds to the pinned bar.
+    static let minArtifactWidth: CGFloat = 480
+    /// The column's widest when it is the page (no artifact, or the artifact folded), for reading.
+    static let pageMaxWidth: CGFloat = 640
 
-    /// Two columns for any ask with an artifact, in a window wide enough for both (WAG-306).
-    static func layout(width: CGFloat, hasArtifact: Bool) -> Layout {
-        guard hasArtifact else { return .stacked }
-        let questionWidth = width * (1 - artifactShare)
-        return width >= minSideBySideWidth && questionWidth >= minQuestionWidth ? .sideBySide : .stacked
+    /// `preferred` is the width the operator dragged the column to (task 13a), 440 pt by default. A column wider than
+    /// 440 gives way first as the pane narrows, down to 440; only then does the artifact fold. A narrower one folds
+    /// the artifact later, at its own width + 480.
+    static func layout(width: CGFloat, hasArtifact: Bool, preferred: CGFloat = columnWidth) -> Layout {
+        guard hasArtifact else { return .page }
+        return width - narrowestBeside(preferred) >= minArtifactWidth ? .beside : .folded
+    }
+
+    /// The narrowest the column gets beside the artifact before the artifact folds.
+    static func narrowestBeside(_ preferred: CGFloat) -> CGFloat { min(preferred, columnWidth) }
+
+    /// The column's width in `layout` for a pane `width` wide.
+    static func columnWidth(_ layout: Layout, width: CGFloat, preferred: CGFloat = columnWidth) -> CGFloat {
+        switch layout {
+        case .beside:
+            // The preferred width while the artifact keeps its minimum; less, down to `narrowestBeside`, below that.
+            min(max(0, width), max(narrowestBeside(preferred), min(preferred, width - minArtifactWidth)))
+        case .folded, .page: min(pageMaxWidth, max(0, width))
+        }
+    }
+
+    /// The widest a drag can make the column in a pane `width` wide: the artifact keeps its minimum.
+    static func dragLimit(width: CGFloat) -> CGFloat { max(0, width - minArtifactWidth) }
+
+    /// Full size (C9): the narrowest the decision column gets to leave the artifact its share of the window.
+    static let fullSizeMinColumnWidth: CGFloat = 340
+    /// Full size (C9): the artifact keeps at least this share of the window while the column can still narrow.
+    static let fullSizeArtifactShare: CGFloat = 0.6
+
+    /// The full-size column's width in a window `width` wide (C9): 440 pt while that leaves the artifact at least
+    /// 60 % of the window; narrower in step with the window below that (40 % of it), never under 340 pt. Whole
+    /// points, so the text is not typeset again at a new fraction of a point.
+    static func fullSizeColumnWidth(window width: CGFloat) -> CGFloat {
+        let share = (max(0, width) * (1 - fullSizeArtifactShare)).rounded(.down)
+        return min(columnWidth, max(fullSizeMinColumnWidth, share))
     }
 
     /// "Background write-up", or the artifact's kind in words when it is not text.
@@ -45,14 +78,16 @@ enum AskLayout {
     }
 }
 
-/// The two columns of a side-by-side ask: the artifact takes `artifactShare` of the width it is given, the
-/// question the rest. Issue 9: an `HStack` sized the artifact from the column's measured width. When the question
-/// needed a little more than its share, the stack grew past the pane, the measured width grew with it, the artifact
-/// grew again, and the page laid itself out about ten times a second without settling. This layout splits the
-/// offered width and reports the offered size, so the artifact's size never depends on its own result. It never asks
-/// the columns for a size either: the artifact holds a whole write-up, and an ideal size of it would typeset every
-/// line unwrapped.
+/// The artifact and the decision column: the column gets its width (`AskLayout.columnWidth` unless it was dragged,
+/// task 13a), the artifact the rest. Issue 9:
+/// an `HStack` sized the artifact from the column's measured width, and the page laid itself out about ten times a
+/// second without settling. This layout splits the offered width and reports the offered size, so the artifact's
+/// size never depends on its own result. It never asks the columns for a size either: the artifact holds a whole
+/// write-up, and an ideal size of it would typeset every line unwrapped.
 struct AskColumnsLayout: Layout {
+    /// The column's dragged width (task 13a).
+    var preferredColumnWidth: CGFloat = AskLayout.columnWidth
+
     func sizeThatFits(proposal: ProposedViewSize, subviews: Subviews, cache: inout ()) -> CGSize {
         proposal.replacingUnspecifiedDimensions(by: .zero)
     }
@@ -69,7 +104,7 @@ struct AskColumnsLayout: Layout {
 
     func placeSubviews(in bounds: CGRect, proposal: ProposedViewSize, subviews: Subviews, cache: inout ()) {
         var x = bounds.minX
-        for (subview, width) in zip(subviews, Self.widths(bounds.width)) {
+        for (subview, width) in zip(subviews, Self.widths(bounds.width, preferred: preferredColumnWidth)) {
             subview.place(at: CGPoint(x: x, y: bounds.minY), anchor: .topLeading,
                           proposal: ProposedViewSize(width: width, height: bounds.height))
             x += width
@@ -77,14 +112,15 @@ struct AskColumnsLayout: Layout {
     }
 
     /// Whole points, so the text in each column is not typeset again at a new fraction of a point.
-    static func widths(_ total: CGFloat) -> [CGFloat] {
-        let artifact = max(0, (total * AskLayout.artifactShare).rounded(.down))
-        return [artifact, max(0, total - artifact)]
+    static func widths(_ total: CGFloat, preferred: CGFloat = AskLayout.columnWidth) -> [CGFloat] {
+        let total = max(0, total.rounded(.down))
+        let column = AskLayout.columnWidth(.beside, width: total, preferred: preferred.rounded(.down))
+        return [total - column, column]
     }
 }
 
-/// The ask's artifact on a stacked page (decision 2026-11-05, every ask with an artifact): one bar directly above the
-/// answers, outside the scroll, so it never moves off screen. Open shows the artifact full size, with its tabs and
+/// The ask's artifact on a pane too narrow for it (`AskLayout.Layout.folded`): one bar at the top of the decision
+/// column, outside its scroll, so it never moves off screen. Open shows the artifact full size, with its tabs and
 /// comments. With several artifacts, the name is a menu that picks which one Open shows.
 struct PinnedArtifactBar: View {
     @ObservedObject var model: LiveArtifactModel

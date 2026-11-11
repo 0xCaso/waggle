@@ -26,6 +26,11 @@ extension QuestionsDocModel {
         let canDiscuss: Bool
         /// An unticked row of a pick-several point whose ticks reached `max`.
         var isLimitDimmed = false
+        /// Task 11b: the facts, the points with their gists, and the option's full text under its title.
+        var facts: [String] = []
+        var proPoints: [OptionPoint] = []
+        var conPoints: [OptionPoint] = []
+        var description: String? = nil
     }
 
     func optionRows(question: String, point: QuestionPoint) -> [OptionRow] {
@@ -38,8 +43,10 @@ extension QuestionsDocModel {
                 isRecommended: isRecommended,
                 isSelected: point.select == .many ? draft.choices.contains(option.label) : draft.choice == option.label,
                 isLeaning: draft.leaning.contains(option.label), isRuledOut: draft.ruledOut.contains(option.label),
-                note: isRecommended ? why : nil, canDiscuss: point.canDiscuss && !isLocked,
-                isLimitDimmed: !isLocked && isAtLimit(point, draft) && !draft.choices.contains(option.label))
+                note: isRecommended ? why : option.why.map(AgentMarkdown.singleLine).flatMap { $0.isEmpty ? nil : $0 },
+                canDiscuss: point.canDiscuss && !isLocked,
+                isLimitDimmed: !isLocked && isAtLimit(point, draft) && !draft.choices.contains(option.label),
+                facts: option.facts, proPoints: option.proPoints, conPoints: option.conPoints, description: option.detail)
         }
     }
 
@@ -110,6 +117,21 @@ extension QuestionsDocModel {
     /// The cards of one point, in page order: the older ask's why (first point only), then the pick or recommendation.
     func blocks(question: Question, point: QuestionPoint, pointNumber: Int? = nil) -> [PointBlock] {
         [legacyBlock(question: question, point: point), pointBlock(question: question, point: point, pointNumber: pointNumber)].compactMap { $0 }
+    }
+
+    /// The cards under a point's rows on the page: the older ask's why and a reply's suggested text. The pick or
+    /// recommendation card of a pick-one or pick-several point is left out: its rows already show the
+    /// Recommended pill, the Your answer tag and the why (C3, options show once).
+    func pageBlocks(question: Question, point: QuestionPoint, pointNumber: Int? = nil) -> [PointBlock] {
+        let reply = point.select == .reply ? pointBlock(question: question, point: point, pointNumber: pointNumber) : nil
+        return [legacyBlock(question: question, point: point), reply].compactMap { $0 }
+    }
+
+    /// `pageBlocks` for every point of a question, in page order.
+    func pagePointBlocks(of question: Question) -> [PointBlock] {
+        question.points.enumerated().flatMap { index, point in
+            pageBlocks(question: question, point: point, pointNumber: question.points.count > 1 ? index + 1 : nil)
+        }
     }
 
     /// The cards of a question's points, in page order.

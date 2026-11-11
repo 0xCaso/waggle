@@ -89,13 +89,13 @@ struct PanMirror: NSViewRepresentable {
     }
 }
 
-/// The Compare switch of the screenshot header. With no earlier revision it is off, disabled, and says why.
+/// The Compare switch of the screenshot header (C9): one segmented switch, Off · Side by side · Slider. With no
+/// earlier revision it stays on Off, disabled, and says why (beside it when there is room, else in the tooltip).
 struct CompareSwitch: View {
     @ObservedObject var compare: CompareModel
     let isAvailable: Bool
 
     var body: some View {
-        // Narrow header: the hint folds into the tooltip.
         ViewThatFits(in: .horizontal) {
             HStack(spacing: 8) {
                 if !isAvailable {
@@ -104,39 +104,38 @@ struct CompareSwitch: View {
                         .foregroundColor(Theme.Colors.ink3)
                         .lineLimit(1)
                 }
-                toggle
+                segments
             }
-            toggle
+            segments
         }
         .fixedSize()
     }
 
-    private var toggle: some View {
-        Toggle(isOn: Binding(get: { compare.isOn && isAvailable }, set: { compare.userSet($0) })) {
-                Text(CompareCopy.switchLabel)
-                    .knockTextStyle(Theme.Typography.buttonSm12_5w500)
-                    .foregroundColor(isAvailable ? Theme.Colors.ink2 : Theme.Colors.ink3)
+    private var segments: some View {
+        HStack(spacing: 6) {
+            Text(CompareCopy.switchLabel)
+                .knockTextStyle(Theme.Typography.buttonSm12_5w500)
+                .foregroundColor(isAvailable ? Theme.Colors.ink2 : Theme.Colors.ink3)
+            StageControl.track {
+                ForEach(CompareChoice.allCases, id: \.self) { choice in
+                    StageControl.segment(
+                        choice.label, isActive: (isAvailable ? compare.choice : .off) == choice, isEnabled: isAvailable
+                    ) { compare.choose(choice) }
+                }
             }
-            .toggleStyle(.switch)
-            .controlSize(.small)
-            .disabled(!isAvailable)
-            .pointerCursor()
-            .help(isAvailable ? "Show this revision next to the one before it" : CompareCopy.noEarlier)
-            .accessibilityLabel(CompareCopy.switchLabel)
+        }
+        .help(isAvailable ? "Show this revision next to the one before it" : CompareCopy.noEarlier)
+        .accessibilityElement(children: .contain)
+        .accessibilityLabel(CompareCopy.switchLabel)
     }
 }
 
-/// The row under the header while Compare is on: Side by side / Slider, and "Show what changed".
+/// The row under the header while Compare is on: "Show what changed". Side by side and Slider are in the switch.
 struct ComparePanel: View {
     @ObservedObject var compare: CompareModel
-    @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
     var body: some View {
         HStack(spacing: 14) {
-            StageControl.track {
-                StageControl.segment("Side by side", isActive: compare.layout == .sideBySide) { compare.setLayout(.sideBySide) }
-                StageControl.segment("Slider", isActive: compare.layout == .slider) { compare.setLayout(.slider) }
-            }
             Toggle(isOn: $compare.showsChanges) {
                 Text(CompareCopy.showChanges)
                     .knockTextStyle(Theme.Typography.buttonSm12_5w500)

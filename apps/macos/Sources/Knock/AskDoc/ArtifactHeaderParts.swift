@@ -102,21 +102,33 @@ struct ArtifactTabStrip: View {
     private func tabButton(_ tab: ArtifactTab) -> some View {
         let isOn = tab.id == selectedId
         return Button { onSelect(tab) } label: {
-            HStack(spacing: 5) {
-                Image(systemName: LiveArtifactBoxView.symbol(tab.kind)).font(.system(size: 10))
-                Text(tab.title).knockTextStyle(Theme.AskDoc.Typography.chip12_5).lineLimit(1).truncationMode(.tail)
-            }
-            .foregroundColor(isOn ? Theme.Colors.ink : Theme.Colors.ink3)
-            .padding(EdgeInsets(top: 5, leading: 10, bottom: 5, trailing: 10))
-            .background(isOn ? Theme.Colors.win : Color.clear)
-            .clipShape(RoundedRectangle(cornerRadius: 9))
-            .overlay(RoundedRectangle(cornerRadius: 9).stroke(isOn ? Theme.Colors.line : Color.clear, lineWidth: 1))
-            .contentShape(Rectangle())
+            ArtifactTabLabel(symbol: LiveArtifactBoxView.symbol(tab.kind), title: tab.title, isOn: isOn)
+                .contentShape(Rectangle())
         }
         .buttonStyle(.plain).pointerCursor()
         .help(tab.title)
         .accessibilityLabel(tab.title)
         .accessibilityAddTraits(isOn ? .isSelected : [])
+    }
+}
+
+/// One artifact tab, the case map's `.tab-a`: 12.5, padding 5 9, radius 6, ink3; selected: side fill, ink, 500.
+/// The kind icon (no mockup counterpart) sits before the name, in the name's color.
+struct ArtifactTabLabel: View {
+    let symbol: String
+    let title: String
+    let isOn: Bool
+
+    var body: some View {
+        HStack(spacing: 5) {
+            Image(systemName: symbol).font(.system(size: 10))
+            Text(title)
+                .knockTextStyle(isOn ? Theme.AskDoc.Chrome.artTabOn : Theme.AskDoc.Chrome.artTab)
+                .lineLimit(1).truncationMode(.tail)
+        }
+        .foregroundColor(isOn ? Theme.Colors.ink : Theme.Colors.ink3)
+        .padding(Theme.AskDoc.Chrome.artTabInset)
+        .background(RoundedRectangle(cornerRadius: Theme.AskDoc.Chrome.artTabRadius).fill(isOn ? Theme.Colors.side : Color.clear))
     }
 }
 

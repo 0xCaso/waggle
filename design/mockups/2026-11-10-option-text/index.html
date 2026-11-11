@@ -1,0 +1,592 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Option text mockup</title>
+<!-- The 440 pt decision column alone. Base = tokens and column CSS of design/mockups/2026-11-09-request-page-cases/index.html. Sample data only. -->
+<script type="application/json" id="mockup-meta">
+{
+  "title": "Request page: option text",
+  "axis": "How much option text the decision column shows at once, and how it is formatted",
+  "devices": { "column": [440, 980] },
+  "themes": ["light"],
+  "states": ["main", "steps"],
+  "view": { "theme": "light", "device": "column", "v": "all", "state": "main", "zoom": 1 }
+}
+</script>
+<style id="tokens">
+  @font-face { font-family: "Inter Tight"; src: url(fonts/InterTight-Regular.ttf); font-weight: 400; }
+  @font-face { font-family: "Inter Tight"; src: url(fonts/InterTight-Medium.ttf); font-weight: 500; }
+  @font-face { font-family: "Inter Tight"; src: url(fonts/InterTight-SemiBold.ttf); font-weight: 600; }
+  @font-face { font-family: "JetBrains Mono"; src: url(fonts/JetBrainsMono-Regular.ttf); font-weight: 400; }
+  :root {
+    --win: #fff; --side: #f3f3f3; --list: #fafafa; --sel: #ebebeb;
+    --ink: #16181a; --ink2: #4a4c50; --ink3: #6b6b6b; --quiet: #8a8a8a;
+    --line: #e6e6e6; --line2: #d9d9d9;
+    --honey300: #f9c846; --honey500: #f2b01e; --honey600: #e89a0c; --honey-soft: #fdf4da; --need-bg: #fbf3d9; --need-label: #9a6a00; --rec-text: #c98a00;
+    --open: #e0352b; --ok: #18a058; --ok-soft: #e3f5ea; --pro: #0e7a43; --watch: #c2410c; --link: #2f5bd8;
+    --sans: "Inter Tight", -apple-system, sans-serif; --mono: "JetBrains Mono", ui-monospace, monospace;
+  }
+  *, *::before, *::after { box-sizing: border-box; }
+  html, body { height: 100%; margin: 0; background: var(--win); color: var(--ink); font: 400 13px/1.45 var(--sans); }
+  body { font-variant-numeric: tabular-nums; -webkit-font-smoothing: antialiased; overflow: hidden; }
+  button { font: inherit; color: inherit; border: 0; background: none; padding: 0; }
+  html[data-state="before"] .after { display: none; }
+  html[data-state="after"] .before { display: none; }
+  .before { width: 100%; height: 100%; object-fit: contain; object-position: top left; display: block; background: #fff; }
+  .after { display: grid; grid-template-columns: 280px 1fr; height: 100%; }
+  .after.full { grid-template-columns: 1fr; }
+  .mono { font-family: var(--mono); }
+  .dot { width: 7px; height: 7px; border-radius: 50%; display: inline-block; flex: none; }
+  .dot.open { background: var(--open); } .dot.ok { background: var(--ok); } .dot.work { background: var(--link); }
+
+  .side { background: var(--side); border-right: 1px solid var(--line); display: flex; flex-direction: column; min-height: 0; }
+  .side-head { display: flex; align-items: center; gap: 8px; padding: 34px 16px 10px; }
+  .brand { display: flex; align-items: center; gap: 7px; font-weight: 500; font-size: 15px; letter-spacing: -0.03em; }
+  .mark { width: 16px; height: 16px; background: var(--honey500); clip-path: polygon(25% 3%, 75% 3%, 100% 50%, 75% 97%, 25% 97%, 0 50%); }
+  .needs { margin-left: auto; font-weight: 600; font-size: 14px; display: flex; gap: 6px; align-items: center; }
+  .count { background: var(--open); color: #fff; font-weight: 700; font-size: 11px; border-radius: 9px; padding: 1px 6px; }
+  .sec { font: 600 10.5px/1 var(--sans); letter-spacing: 0.06em; text-transform: uppercase; color: var(--quiet); padding: 14px 16px 6px; display: flex; justify-content: space-between; }
+  .sec span:last-child { letter-spacing: 0.04em; }
+  .row { display: flex; gap: 9px; padding: 8px 16px; align-items: baseline; }
+  .row .dot { transform: translateY(-1px); }
+  .row.sel { background: #fdf6e1; box-shadow: inset 3px 0 0 var(--honey500); }
+  .row-t { font-weight: 600; font-size: 13px; line-height: 1.3; }
+  .row-m { color: var(--quiet); font-size: 11.5px; margin-top: 2px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 220px; }
+  .side-foot { margin-top: auto; padding: 11px 16px; border-top: 1px solid var(--line); color: var(--ink3); font-size: 12px; display: flex; align-items: center; gap: 7px; }
+
+  .main { display: flex; flex-direction: column; min-height: 0; min-width: 0; }
+  .top { height: 46px; flex: none; display: flex; align-items: center; gap: 10px; padding: 0 18px; border-bottom: 1px solid var(--line); font: 400 11.5px/1 var(--mono); color: var(--ink3); white-space: nowrap; }
+  .top b { color: var(--ink); font-weight: 400; }
+  .top .back { font-family: var(--sans); font-size: 13px; color: var(--ink2); margin-right: 4px; }
+  .pill { display: inline-flex; align-items: center; gap: 6px; border-radius: 20px; padding: 4px 10px; font: 500 12px/1 var(--sans); }
+  .pill.closed { background: var(--side); color: var(--ink2); }
+  .pill.closed button { font-weight: 600; color: var(--ink); text-decoration: underline; text-underline-offset: 2px; }
+  .pill.waiting { background: var(--honey-soft); color: var(--need-label); }
+  .r { margin-left: auto; display: flex; gap: 12px; align-items: center; }
+  .ico { color: var(--ink3); font: 400 14px/1 var(--sans); }
+
+  .body { flex: 1; display: grid; grid-template-columns: 1fr 440px; min-height: 0; }
+  .art { padding: 14px 14px 14px 18px; min-width: 0; min-height: 0; display: flex; }
+  .card { flex: 1; border: 1px solid var(--line); border-radius: 10px; display: flex; flex-direction: column; min-height: 0; overflow: hidden; background: #fff; }
+  .card-h { height: 40px; flex: none; display: flex; align-items: center; gap: 6px; padding: 0 10px; border-bottom: 1px solid var(--line); font-size: 12.5px; }
+  .tab-a { padding: 5px 9px; border-radius: 6px; color: var(--ink3); }
+  .tab-a.on { background: var(--side); color: var(--ink); font-weight: 500; }
+  .ver { font: 400 11px/1 var(--mono); color: var(--quiet); }
+  .ver.new { color: var(--link); background: #eef2fd; border-radius: 5px; padding: 3px 6px; }
+  .btn-s { border: 1px solid var(--line2); border-radius: 7px; padding: 4px 9px; font-size: 12px; background: #fff; }
+  .card-b { flex: 1; overflow: hidden; padding: 22px 34px; }
+  .md h2 { font-size: 16px; font-weight: 600; margin: 0 0 8px; letter-spacing: -0.01em; }
+  .md h3 { font-size: 13.5px; font-weight: 600; margin: 14px 0 8px; }
+  .md p { margin: 0 0 10px; font-size: 13px; color: var(--ink2); line-height: 1.55; }
+  .md code { font: 400 11.5px var(--mono); background: var(--side); padding: 1px 4px; border-radius: 4px; }
+  table.t { width: 100%; border-collapse: collapse; font-size: 12px; margin: 4px 0 12px; }
+  .t th { background: var(--side); text-align: left; font-weight: 600; padding: 7px 10px; border: 1px solid var(--line); }
+  .t td { padding: 7px 10px; border: 1px solid var(--line); color: var(--ink2); vertical-align: top; }
+  .t a { color: var(--open); text-decoration: underline; }
+  .shot { display: block; width: 100%; border-radius: 6px; box-shadow: 0 0 0 1px var(--line); }
+  .stage-bg { background: #f6f6f7; height: 100%; display: flex; align-items: flex-start; justify-content: center; padding: 18px; }
+  .thumbs { height: 52px; flex: none; border-top: 1px solid var(--line); display: flex; gap: 6px; align-items: center; padding: 0 12px; font: 400 11px var(--mono); color: var(--ink3); }
+  .thumbs i { width: 44px; height: 30px; border-radius: 4px; background: var(--side); border: 1px solid var(--line2); display: block; }
+  .thumbs i.on { border: 2px solid var(--ink); }
+
+  /* the decision column: the same in every case */
+  .col { border-left: 1px solid var(--line); display: flex; flex-direction: column; min-height: 0; background: #fff; }
+  .tabs { flex: none; display: flex; gap: 2px; margin: 10px 14px 0; padding: 3px; background: var(--side); border-radius: 9px; }
+  .tabs span { flex: 1; text-align: center; padding: 6px 0; border-radius: 7px; font-weight: 500; color: var(--ink3); display: flex; gap: 6px; align-items: center; justify-content: center; }
+  .tabs span.on { background: #fff; color: var(--ink); box-shadow: 0 1px 2px rgb(0 0 0 / .1); }
+  .tabs .n { font: 400 11px/1 var(--mono); color: var(--quiet); }
+  .tabs .new { width: 6px; height: 6px; border-radius: 50%; background: var(--link); }
+  .cs { flex: 1; overflow: hidden; padding: 14px 18px 10px; min-height: 0; }
+  .fu { font-size: 12px; color: var(--ink3); margin-bottom: 10px; display: flex; gap: 6px; white-space: nowrap; overflow: hidden; }
+  .fu b { color: var(--ink); font-weight: 500; overflow: hidden; text-overflow: ellipsis; }
+  .fu u { color: var(--ink3); text-underline-offset: 2px; flex: none; }
+  .latest { display: flex; gap: 8px; align-items: baseline; font-size: 12px; color: var(--ink2); background: #f4f6fd; border-radius: 8px; padding: 7px 10px; margin-bottom: 12px; }
+  .latest .who { font: 400 10.5px/1 var(--mono); color: var(--link); flex: none; }
+  .latest .txt { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; flex: 1; }
+  .latest u { flex: none; color: var(--link); text-underline-offset: 2px; }
+  .track { display: flex; align-items: center; gap: 6px; font-size: 11.5px; color: var(--quiet); margin-bottom: 12px; }
+  .track .s { display: flex; gap: 5px; align-items: center; white-space: nowrap; }
+  .track .b { width: 15px; height: 15px; border-radius: 50%; border: 1px solid var(--line2); display: grid; place-items: center; font-size: 9px; }
+  .track .done .b { background: var(--ok); border-color: var(--ok); color: #fff; }
+  .track .cur { color: var(--ink); font-weight: 600; } .track .cur .b { background: var(--ink); color: #fff; border-color: var(--ink); }
+  .track hr { flex: 1; border: 0; border-top: 1px solid var(--line2); margin: 0; min-width: 8px; }
+  .steps { display: flex; gap: 6px; align-items: center; margin-bottom: 8px; font-size: 12px; }
+  .steps span { width: 24px; height: 24px; border-radius: 7px; border: 1px solid var(--line2); display: grid; place-items: center; color: var(--ink3); }
+  .steps span.ok { border-color: var(--ok); color: var(--ok); }
+  .steps span.on { background: var(--ink); color: #fff; border-color: var(--ink); }
+  .steps em { font-style: normal; color: var(--quiet); margin-left: 4px; }
+  h1 { font-weight: 600; font-size: 19px; line-height: 1.25; letter-spacing: -0.02em; margin: 0 0 10px; }
+  .need { background: var(--need-bg); border-radius: 10px; padding: 11px 13px; margin-bottom: 14px; font-size: 13px; line-height: 1.5; }
+  .need p { margin: 0 0 7px; } .need p:last-child { margin: 0; }
+  .need .q { font-weight: 600; font-size: 13.5px; }
+  .need .why { color: var(--ink3); font-size: 12px; border-top: 1px solid #efe2b8; padding-top: 7px; margin-top: 8px; }
+  .need .more { color: var(--need-label); font-size: 12px; text-decoration: underline; text-underline-offset: 2px; }
+  .ol { display: flex; justify-content: space-between; font: 600 10.5px/1 var(--sans); letter-spacing: .06em; text-transform: uppercase; color: var(--quiet); margin: 0 0 8px; }
+  .ol u { text-transform: none; letter-spacing: 0; font-weight: 500; font-size: 12px; color: var(--ink3); text-underline-offset: 2px; }
+  .choice { border: 1px solid var(--line); border-radius: 10px; margin-bottom: 6px; }
+  .choice.on { border-color: var(--honey500); box-shadow: 0 0 0 1px var(--honey500); background: #fffdf5; }
+  .ch { display: flex; align-items: center; gap: 10px; padding: 9px 12px; }
+  .radio, .box { width: 16px; height: 16px; border: 1.5px solid var(--line2); flex: none; display: grid; place-items: center; }
+  .radio { border-radius: 50%; } .box { border-radius: 4px; }
+  .on .radio { border-color: var(--honey600); } .on .radio::after { content: ""; width: 8px; height: 8px; border-radius: 50%; background: var(--honey600); }
+  .on .box { background: var(--honey600); border-color: var(--honey600); } .on .box::after { content: "✓"; color: #fff; font-size: 11px; line-height: 1; }
+  .ch b { font-size: 13.5px; font-weight: 600; }
+  .rec { font: 600 10.5px/1 var(--sans); color: var(--rec-text); background: var(--honey-soft); border-radius: 5px; padding: 3px 6px; white-space: nowrap; }
+  .key { margin-left: auto; font: 400 10.5px/1 var(--mono); color: var(--quiet); border: 1px solid var(--line2); border-radius: 5px; padding: 3px 5px; }
+  .x { padding: 0 12px 11px 38px; font-size: 12px; color: var(--ink2); }
+  .x .d { margin-bottom: 6px; }
+  .pc { display: grid; grid-template-columns: 1fr 1fr; gap: 3px 14px; }
+  .pc div::before { font-weight: 600; margin-right: 5px; }
+  .pc .p::before { content: "+"; color: var(--pro); } .pc .c::before { content: "–"; color: var(--watch); }
+  .x .because { margin-top: 7px; color: var(--ink3); border-top: 1px dashed var(--line2); padding-top: 6px; }
+  .tl { display: flex; gap: 14px; padding: 0 12px 9px 38px; font-size: 12px; color: var(--ink2); white-space: nowrap; overflow: hidden; }
+  .tl span::before { font-weight: 600; margin-right: 4px; }
+  .tl .p::before { content: "+"; color: var(--pro); } .tl .c::before { content: "–"; color: var(--watch); }
+  .tl .n { color: var(--quiet); }
+  .ch.slim { padding: 7px 12px; }
+  .ans { flex: none; border-top: 1px solid var(--line); padding: 10px 14px 12px; }
+  .ans .bar { display: flex; gap: 8px; align-items: center; }
+  .note { flex: 1; border: 1px solid var(--line2); border-radius: 9px; padding: 8px 11px; color: var(--quiet); font-size: 12.5px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .note.typed { color: var(--ink); }
+  .send { background: var(--ink); color: #fff; border-radius: 8px; padding: 8px 12px; font-weight: 600; font-size: 12.5px; white-space: nowrap; }
+  .send.off { background: var(--line2); color: #fff; }
+  .ans .tools { display: flex; gap: 14px; margin-top: 8px; font-size: 12px; color: var(--ink3); }
+  .ans .tools .k { margin-left: auto; color: var(--quiet); font-family: var(--mono); font-size: 11px; }
+
+  /* conversation tab */
+  .msg { border-radius: 10px; padding: 9px 12px; margin-bottom: 8px; font-size: 12.5px; line-height: 1.5; }
+  .msg .h { font: 400 10.5px/1 var(--mono); color: var(--quiet); margin-bottom: 6px; display: flex; justify-content: space-between; }
+  .msg.agent { background: var(--side); }
+  .msg.you { background: var(--ink); color: #fff; margin-left: 40px; }
+  .msg.you .h { color: #aaa; }
+  .msg.latestm { background: #f4f6fd; box-shadow: inset 2px 0 0 var(--link); }
+  .msg p { margin: 0 0 6px; } .msg p:last-child { margin: 0; }
+  .round { text-align: center; font: 400 10.5px/1 var(--mono); color: var(--quiet); margin: 10px 0; }
+
+  /* ===== 2026-11-10 option text: additions on top of the case map tokens (the column alone, 440 pt) ===== */
+  .col { height: 100%; border-left: 0; }
+  html[data-state="main"] .st-steps { display: none; }
+  html[data-state="steps"] .st-main { display: none; }
+  .st-main, .st-steps { display: contents; }
+  .acts { margin-left: auto; display: flex; gap: 6px; align-items: center; flex: none; }
+  .acts .ic { width: 18px; height: 18px; display: grid; place-items: center; font-size: 12px; color: var(--ink3); border-radius: 5px; }
+  .acts .key { margin-left: 0; }
+  .ch b { line-height: 1.3; }
+  /* inline rich text: code, paths, numbers, badges */
+  code { font: 400 11.5px/1.35 var(--mono); background: var(--side); border: 1px solid var(--line); border-radius: 4px; padding: 0 4px; color: var(--ink); white-space: nowrap; }
+  .path { display: inline-flex; align-items: center; gap: 5px; max-width: 100%; font: 400 11px/1.35 var(--mono); color: var(--ink); background: #fff; border: 1px solid var(--line2); border-radius: 5px; padding: 2px 7px 2px 5px; white-space: nowrap; overflow: hidden; vertical-align: middle; }
+  .path svg { flex: none; color: var(--ink3); }
+  .path .dir { color: var(--quiet); overflow: hidden; text-overflow: ellipsis; }
+  .path .file { flex: none; }
+  .num { font-weight: 600; color: var(--ink); font-variant-numeric: tabular-nums; white-space: nowrap; }
+  .badge { display: inline-flex; align-items: center; gap: 4px; font: 500 11px/1 var(--sans); border-radius: 5px; padding: 4px 6px; background: var(--side); color: var(--ink2); white-space: nowrap; }
+  .badge.money { background: #fbe9c4; color: #7a5300; }
+  .badge.users { background: #eef2fd; color: var(--link); }
+  .badge.time { background: var(--side); color: var(--ink2); }
+  .badge.risk { background: #ffede3; color: var(--watch); }
+  .src { display: inline-flex; align-items: center; gap: 5px; font: 500 11px/1 var(--sans); color: var(--ink2); background: #fff; border: 1px solid var(--line2); border-radius: 12px; padding: 3px 8px 3px 6px; white-space: nowrap; }
+  .src .sd { width: 12px; height: 12px; border-radius: 3px; background: var(--side); border: 1px solid var(--line2); font: 400 8px/10px var(--mono); text-align: center; color: var(--ink3); }
+  .need .facts { display: flex; flex-wrap: wrap; gap: 6px 8px; align-items: center; font-size: 12px; color: var(--ink2); }
+  .need .why .num { color: var(--ink2); }
+  .more-l { color: var(--ink3); font-size: 12px; text-decoration: underline; text-underline-offset: 2px; white-space: nowrap; }
+  /* hanging indent list: the sign has its own column, text never wraps under it */
+  .hl { list-style: none; margin: 0; padding: 0; display: grid; gap: 5px; }
+  .hl li { display: grid; grid-template-columns: 11px 1fr; column-gap: 6px; align-items: baseline; line-height: 1.45; }
+  .hl li::before { font-weight: 600; text-align: center; }
+  .hl li.p::before { content: "+"; color: var(--pro); }
+  .hl li.c::before { content: "–"; color: var(--watch); }
+  .hl li > span { min-width: 0; }
+  .hl li b { font-weight: 600; color: var(--ink); }
+  .clamp2 { display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+  /* answer box: field on its own row, tools left, Send right */
+  .ans .note { display: block; width: 100%; }
+  .ans .tools { align-items: center; margin-top: 9px; }
+  .ans .tools .send { margin-left: auto; color: #fff; }
+  .ans .tools .send .kb { opacity: .7; margin-left: 4px; font-weight: 400; }
+  .ans .tools { gap: 11px; font-size: 12px; }
+  .ans .tools > span { white-space: nowrap; }
+  .ans .tools .send { padding: 8px 11px; }
+
+</style>
+</head>
+<body>
+<template data-variant="tidy" data-name="A · Tidy list" data-position="Same cards and the agent's own text, but the open card shows at most 2 points per side on one line each, the description in 2 lines and the reason in 1; Show all opens the rest" data-right-when="You want less text with no change to waggle_ask: the page only cuts and formats what agents already send" data-costs="Points are cut at a word, so a long point can lose its end on the first screen; you click Show all more often">
+<style>
+  .x .d { margin-bottom: 7px; line-height: 1.5; }
+  .x .hl { gap: 3px; }
+  .x .hl + .hl { margin-top: 5px; }
+  .x .hl li { color: var(--ink2); }
+  .x .hl li > span { white-space: nowrap; overflow: hidden; }
+  .x .because { margin-top: 8px; white-space: nowrap; overflow: hidden; }
+  .x .because b { color: var(--ink2); font-weight: 600; }
+  .x .foot { margin-top: 7px; }
+  .cl { padding: 0 12px 9px 38px; font-size: 12px; color: var(--ink2); }
+  .cl .hl { gap: 2px; }
+  .cl .hl li > span { white-space: nowrap; overflow: hidden; }
+  .cl .row2 { display: flex; justify-content: space-between; gap: 8px; }
+  .cl .cnt { flex: none; color: var(--quiet); font-size: 11.5px; }
+  .need .why { white-space: nowrap; overflow: hidden; }
+</style>
+<div class="col"><div class="tabs"><span class="on">Decision</span><span>Conversation<i class="n">2</i></span><span>Comments</span></div>
+<div class="cs">
+<div class="st-main">
+  <h1>Cache test: B won 4 of 5. What next?</h1>
+  <div class="need">
+    <p class="q">Cache B beat cache A in <span class="num">4 of 5</span> cycles, with <span class="num">5</span> wrong claims against <span class="num">11</span>. Pick the next step.</p>
+    <p class="facts"><span class="path"><svg width="11" height="11" viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="1.2"><path d="M3 1.5h4l2.5 2.5v6.5h-6.5z"/><path d="M7 1.5V4h2.5"/></svg><span class="dir">~/.bench/cache/run-1108/</span><span class="file">summary.md</span></span><span>Spent <span class="num">USD 18.40</span></span><code>--max-turns 15</code></p>
+    <p class="why">Why you: the next step costs money (<span class="num">USD 40</span> or more) and sets…</p>
+  </div>
+  <div class="ol"><span>Your choice</span></div>
+  <div class="choice"><div class="ch slim"><span class="radio"></span><b>Fix the harness, run 10 more</b><span class="acts"><span class="ic" title="Lean">◐</span><span class="ic" title="Rule out">×</span><span class="key">1</span></span></div>
+    <div class="cl"><ul class="hl"><li class="p"><span>Removes the noise from the shared repo state, so every…</span></li><li class="c"><span class="row2"><span>About <span class="num">USD 40</span> and half a day of work</span><span class="cnt">+4 more</span></span></li></ul></div></div>
+  <div class="choice"><div class="ch slim"><span class="radio"></span><b>Stop testing, ship v0.4</b><span class="acts"><span class="ic" title="Lean">◐</span><span class="ic" title="Rule out">×</span><span class="key">2</span></span></div>
+    <div class="cl"><ul class="hl"><li class="p"><span>No more cost</span></li><li class="c"><span class="row2"><span>Only 5 cycles: 4 to 1 can still be chance</span><span class="cnt">+4 more</span></span></li></ul></div></div>
+  <div class="choice on"><div class="ch"><span class="radio"></span><b>Ship v0.4, then test it</b><span class="rec">★ Recommended</span><span class="acts"><span class="ic" title="Lean">◐</span><span class="ic" title="Rule out">×</span><span class="key">3</span></span></div>
+    <div class="x"><div class="d clamp2">Ship the <code>v0.4</code> release first. Then run the fixed test on the 5 old cycles and 5 new ones, to check the new rule and the cache together.</div>
+      <ul class="hl">
+        <li class="p"><span>One test run checks the new eviction rule and the…</span></li>
+        <li class="p"><span>Same cost as option 1: about <span class="num">USD 40</span></span></li>
+      </ul>
+      <ul class="hl">
+        <li class="c"><span>The release goes out before its own test, so a…</span></li>
+        <li class="c"><span>If the test fails, we must ship <code>v0.4.1</code> with a…</span></li>
+      </ul>
+      <div class="because"><b>Why I recommend it:</b> the result already favors cache B, and v0.4…</div>
+      <div class="foot"><span class="more-l">Show all · 6 points and the full reason</span></div></div></div>
+</div>
+<div class="st-steps">
+  <div class="steps"><span class="on">1</span><span>2</span><em>Question 1 of 2 · then Send</em></div>
+  <h1>How large are the dish photos on the recipe cards?</h1>
+  <div class="need">
+    <p class="q">Pick how much room the dish photos get on the recipe cards and the shop page. Open the mockup on your Mac.</p>
+    <p class="facts"><span class="path"><svg width="11" height="11" viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="1.2"><path d="M3 1.5h4l2.5 2.5v6.5h-6.5z"/><path d="M7 1.5V4h2.5"/></svg><span class="dir">design/mockups/2026-11-08-recipe-cards/</span><span class="file">index.html</span></span><span class="src"><span class="sd">✓</span>Photo list</span><span class="src"><span class="sd">&lt;/&gt;</span>docs/menu.md</span></p>
+    <p class="why">Why you: visitors see this, and only you know which dishes are…</p>
+  </div>
+  <div class="ol"><span>Your choice</span></div>
+  <div class="choice"><div class="ch slim"><span class="radio"></span><b>Thumbnail beside the title</b><span class="acts"><span class="ic" title="Lean">◐</span><span class="ic" title="Rule out">×</span><span class="key">1</span></span></div>
+    <div class="cl"><ul class="hl"><li class="p"><span>The card stays short and calm</span></li><li class="c"><span class="row2"><span>In the winter photos the plates are too small…</span><span class="cnt">+1 more</span></span></li></ul></div></div>
+  <div class="choice"><div class="ch slim"><span class="radio"></span><b>Instead of the header (stretch)</b><span class="acts"><span class="ic" title="Lean">◐</span><span class="ic" title="Rule out">×</span><span class="key">2</span></span></div>
+    <div class="cl"><ul class="hl"><li class="p"><span>The largest photos</span></li><li class="c"><span>The header goes away when you point at a card…</span></li></ul></div></div>
+  <div class="choice on"><div class="ch"><span class="radio"></span><b>Full width above the steps</b><span class="rec">★ Recommended</span><span class="acts"><span class="ic" title="Lean">◐</span><span class="ic" title="Rule out">×</span><span class="key">3</span></span></div>
+    <div class="x">
+      <ul class="hl">
+        <li class="p"><span>You see the dish as soon as you open the card</span></li>
+        <li class="p"><span>The plating is easy to see at <span class="num">400 pt</span></span></li>
+      </ul>
+      <ul class="hl">
+        <li class="c"><span>The card gets long: on a phone the ingredients…</span></li>
+      </ul>
+      <div class="because"><b>Why I recommend it:</b> the dish is easy to see and the header…</div>
+      <div class="foot"><span class="more-l">Show all · 3 points and the full reason</span></div></div></div>
+</div>
+</div>
+<div class="ans"><div class="note">Add a note, or ask something…</div><div class="tools"><span>Let's discuss</span><span>Show me more</span><span>Ask for…</span><button class="send"><span class="st-main">Send: Ship v0.4, then test it</span><span class="st-steps">Next</span><span class="kb">↵</span></button></div></div>
+</div>
+</template>
+
+<template data-variant="gist" data-name="B · Gist and facts" data-position="Each option leads with up to 3 neutral fact chips; pros and cons are short gists in two plain columns; the full sentences one click away" data-right-when="You compare options by cost and time first and want the calmest card, with one chip style and one color per sign" data-costs="Needs optional fields in waggle_ask (facts per option, a gist per point) and a guide change; old asks fall back to the first words of each point">
+<style>
+  .fx { display: flex; flex-wrap: wrap; gap: 5px; align-items: center; }
+  .fact { font: 500 11px/1 var(--sans); color: var(--ink2); background: var(--side); border-radius: 5px; padding: 4px 6px; white-space: nowrap; font-variant-numeric: tabular-nums; }
+  .cl { padding: 0 12px 9px 38px; display: flex; align-items: center; gap: 8px; }
+  .tally { margin-left: auto; display: flex; gap: 8px; font: 500 11.5px/1 var(--sans); flex: none; color: var(--quiet); }
+  .tally .s1 { color: var(--pro); } .tally .s2 { color: var(--watch); }
+  .x .d { margin: 8px 0 9px; line-height: 1.5; white-space: nowrap; overflow: hidden; }
+  .pcg { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; padding-top: 2px; }
+  .pcg h4 { margin: 0 0 6px; font: 600 10.5px/1 var(--sans); letter-spacing: .06em; text-transform: uppercase; color: var(--quiet); }
+  .pcg .hl { gap: 4px; } .pcg .hl li { color: var(--ink); line-height: 1.35; }
+  .x .because { margin-top: 9px; white-space: nowrap; overflow: hidden; }
+  .x .because b { color: var(--ink2); font-weight: 600; }
+  .x .foot { margin-top: 7px; }
+  .need .why { white-space: nowrap; overflow: hidden; }
+</style>
+<div class="col"><div class="tabs"><span class="on">Decision</span><span>Conversation<i class="n">2</i></span><span>Comments</span></div>
+<div class="cs">
+<div class="st-main">
+  <h1>Cache test: B won 4 of 5. What next?</h1>
+  <div class="need">
+    <p class="q">Cache B beat cache A in <span class="num">4 of 5</span> cycles, with <span class="num">5</span> wrong claims against <span class="num">11</span>. Pick the next step.</p>
+    <p class="facts"><span class="path"><svg width="11" height="11" viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="1.2"><path d="M3 1.5h4l2.5 2.5v6.5h-6.5z"/><path d="M7 1.5V4h2.5"/></svg><span class="dir">~/.bench/cache/run-1108/</span><span class="file">summary.md</span></span><span>Spent <span class="num">USD 18.40</span></span><code>--max-turns 15</code></p>
+    <p class="why">Why you: the next step costs money and sets the release date.</p>
+  </div>
+  <div class="ol"><span>Your choice</span></div>
+  <div class="choice"><div class="ch slim"><span class="radio"></span><b>Fix the harness, run 10 more</b><span class="acts"><span class="ic" title="Lean">◐</span><span class="ic" title="Rule out">×</span><span class="key">1</span></span></div>
+    <div class="cl"><span class="fx"><span class="fact">USD 40</span><span class="fact">½ day</span><span class="fact">10 cycles</span></span><span class="tally"><span><span class="s1">+</span>3</span><span><span class="s2">–</span>3</span></span></div></div>
+  <div class="choice"><div class="ch slim"><span class="radio"></span><b>Stop testing, ship v0.4</b><span class="acts"><span class="ic" title="Lean">◐</span><span class="ic" title="Rule out">×</span><span class="key">2</span></span></div>
+    <div class="cl"><span class="fx"><span class="fact">USD 0</span><span class="fact">today</span><span class="fact">5 cycles</span></span><span class="tally"><span><span class="s1">+</span>3</span><span><span class="s2">–</span>3</span></span></div></div>
+  <div class="choice on"><div class="ch"><span class="radio"></span><b>Ship v0.4, then test it</b><span class="rec">★ Recommended</span><span class="acts"><span class="ic" title="Lean">◐</span><span class="ic" title="Rule out">×</span><span class="key">3</span></span></div>
+    <div class="x">
+      <div class="fx"><span class="fact">USD 40</span><span class="fact">½ day</span><span class="fact">10 cycles</span></div>
+      <div class="d">Ship <code>v0.4</code> first, then test 5 old and 5 new cycles.</div>
+      <div class="pcg">
+        <div><h4>Pros</h4><ul class="hl"><li class="p"><span>One run checks both</span></li><li class="p"><span>Same cost as option 1</span></li><li class="p"><span>Fix ships this week</span></li></ul></div>
+        <div><h4>Cons</h4><ul class="hl"><li class="c"><span>Ships before its own test</span></li><li class="c"><span>A fail means <code>v0.4.1</code></span></li><li class="c"><span>Needs the harness fix</span></li></ul></div>
+      </div>
+      <div class="because"><b>Why I recommend it:</b> one run does both jobs.</div>
+      <div class="foot"><span class="more-l">Show the full points</span></div>
+    </div></div>
+</div>
+<div class="st-steps">
+  <div class="steps"><span class="on">1</span><span>2</span><em>Question 1 of 2 · then Send</em></div>
+  <h1>How large are the dish photos on the recipe cards?</h1>
+  <div class="need">
+    <p class="q">Pick how much room the dish photos get on the recipe cards and the shop page. Open the mockup on your Mac.</p>
+    <p class="facts"><span class="path"><svg width="11" height="11" viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="1.2"><path d="M3 1.5h4l2.5 2.5v6.5h-6.5z"/><path d="M7 1.5V4h2.5"/></svg><span class="dir">design/mockups/2026-11-08-recipe-cards/</span><span class="file">index.html</span></span><span class="src"><span class="sd">✓</span>Photo list</span><span class="src"><span class="sd">&lt;/&gt;</span>docs/menu.md</span></p>
+    <p class="why">Why you: visitors see this, and only you know the menu.</p>
+  </div>
+  <div class="ol"><span>Your choice</span></div>
+  <div class="choice"><div class="ch slim"><span class="radio"></span><b>Thumbnail beside the title</b><span class="acts"><span class="ic" title="Lean">◐</span><span class="ic" title="Rule out">×</span><span class="key">1</span></span></div>
+    <div class="cl"><span class="fx"><span class="fact">photo 64 pt</span><span class="fact">card +0 pt</span></span><span class="tally"><span><span class="s1">+</span>1</span><span><span class="s2">–</span>2</span></span></div></div>
+  <div class="choice"><div class="ch slim"><span class="radio"></span><b>Instead of the header (stretch)</b><span class="acts"><span class="ic" title="Lean">◐</span><span class="ic" title="Rule out">×</span><span class="key">2</span></span></div>
+    <div class="cl"><span class="fx"><span class="fact">photo 320 pt</span><span class="fact">header hides</span></span><span class="tally"><span><span class="s1">+</span>1</span><span><span class="s2">–</span>1</span></span></div></div>
+  <div class="choice on"><div class="ch"><span class="radio"></span><b>Full width above the steps</b><span class="rec">★ Recommended</span><span class="acts"><span class="ic" title="Lean">◐</span><span class="ic" title="Rule out">×</span><span class="key">3</span></span></div>
+    <div class="x">
+      <div class="fx"><span class="fact">photo 400 pt</span><span class="fact">card +240 pt</span></div>
+      <div class="pcg" style="margin-top:10px">
+        <div><h4>Pros</h4><ul class="hl"><li class="p"><span>Seen when the card opens</span></li><li class="p"><span>Plating easy to see</span></li></ul></div>
+        <div><h4>Cons</h4><ul class="hl"><li class="c"><span>Longer card on a phone</span></li></ul></div>
+      </div>
+      <div class="because"><b>Why I recommend it:</b> the dish is easy to see, the header stays.</div>
+      <div class="foot"><span class="more-l">Show the full points</span></div>
+    </div></div>
+</div>
+</div>
+<div class="ans"><div class="note">Add a note, or ask something…</div><div class="tools"><span>Let's discuss</span><span>Show me more</span><span>Ask for…</span><button class="send"><span class="st-main">Send: Ship v0.4, then test it</span><span class="st-steps">Next</span><span class="kb">↵</span></button></div></div>
+</div>
+</template>
+
+<template data-variant="grid" data-name="C · Compare grid (stretch)" data-position="The options are columns of one table: cost, time, proof, main pro and main con side by side; under it the picked option's 2 pros and 2 cons" data-right-when="Most asks compare options on the same few facts and you decide on those, with the main pro and con of every option in view" data-costs="The biggest change: needs facts with the same row names in every option and a fallback to cards for more than 4 options or no facts; titles wrap in about 110 pt columns">
+<style>
+  .cmp { display: grid; grid-template-columns: 58px repeat(3, minmax(0, 1fr)); border: 1px solid var(--line); border-radius: 10px; overflow: hidden; font-size: 12px; margin-bottom: 10px; }
+  .cmp > div { padding: 6px 8px; border-top: 1px solid var(--line); min-width: 0; }
+  .cmp > .hd { border-top: 0; padding: 8px 8px 7px; display: flex; flex-direction: column; gap: 5px; }
+  .cmp > .rl { font: 600 10px/1.3 var(--sans); letter-spacing: .05em; text-transform: uppercase; color: var(--quiet); padding-top: 8px; }
+  .cmp > .on { background: #fffdf5; box-shadow: inset 1px 0 0 var(--honey500), inset -1px 0 0 var(--honey500); }
+  .cmp > .hd.on { box-shadow: inset 1px 0 0 var(--honey500), inset -1px 0 0 var(--honey500), inset 0 2px 0 var(--honey500); }
+  .cmp > .last.on { box-shadow: inset 1px 0 0 var(--honey500), inset -1px 0 0 var(--honey500), inset 0 -1px 0 var(--honey500); }
+  .cmp .ctop { display: flex; align-items: center; gap: 4px; }
+  .cmp .ctop .acts { gap: 2px; } .cmp .ctop .acts .ic { width: 15px; }
+  .cmp .t { font-weight: 600; font-size: 12.5px; line-height: 1.3; }
+  .cmp .rec { align-self: flex-start; }
+  .cmp .v { font-weight: 600; font-variant-numeric: tabular-nums; }
+  .cmp .s { color: var(--ink3); font-size: 11.5px; }
+  .cmp .g { font-size: 11.5px; line-height: 1.35; color: var(--ink2); display: grid; grid-template-columns: 9px 1fr; column-gap: 4px; }
+  .cmp .g::before { font-weight: 600; } .cmp .g.p::before { content: "+"; color: var(--pro); } .cmp .g.c::before { content: "–"; color: var(--watch); }
+  .ol .lg { text-transform: none; letter-spacing: 0; font: 400 11.5px/1 var(--sans); color: var(--quiet); }
+  .pick { border: 1px solid var(--line); box-shadow: inset 3px 0 0 var(--honey500); border-radius: 10px; padding: 10px 12px 10px 14px; font-size: 12px; color: var(--ink2); }
+  .pick .ph { display: flex; align-items: baseline; gap: 8px; margin-bottom: 7px; }
+  .pick .ph b { font-size: 13px; color: var(--ink); }
+  .pick .ph .more-l { margin-left: auto; }
+  .pick .two { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+  .pick .hl { gap: 4px; } .pick .hl li { color: var(--ink); line-height: 1.35; }
+  .pick .because { margin-top: 8px; color: var(--ink3); border-top: 1px dashed var(--line2); padding-top: 7px; white-space: nowrap; overflow: hidden; }
+  .pick .because b { color: var(--ink2); font-weight: 600; }
+</style>
+<div class="col"><div class="tabs"><span class="on">Decision</span><span>Conversation<i class="n">2</i></span><span>Comments</span></div>
+<div class="cs">
+<div class="st-main">
+  <h1>Cache test: B won 4 of 5. What next?</h1>
+  <div class="need">
+    <p class="q">Cache B beat cache A in <span class="num">4 of 5</span> cycles, with <span class="num">5</span> wrong claims against <span class="num">11</span>. Pick the next step.</p>
+    <p class="facts"><span class="path"><svg width="11" height="11" viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="1.2"><path d="M3 1.5h4l2.5 2.5v6.5h-6.5z"/><path d="M7 1.5V4h2.5"/></svg><span class="dir">~/.bench/cache/run-1108/</span><span class="file">summary.md</span></span><span>Spent <span class="num">USD 18.40</span></span><code>--max-turns 15</code></p>
+  </div>
+  <div class="ol"><span>Your choice</span><span class="lg">◐ Lean · × Rule out</span></div>
+  <div class="cmp">
+    <div class="hd"></div>
+    <div class="hd"><div class="ctop"><span class="radio"></span><span class="acts"><span class="ic" title="Lean">◐</span><span class="ic" title="Rule out">×</span><span class="key">1</span></span></div><div class="t">Fix the harness, run 10 more</div></div>
+    <div class="hd"><div class="ctop"><span class="radio"></span><span class="acts"><span class="ic" title="Lean">◐</span><span class="ic" title="Rule out">×</span><span class="key">2</span></span></div><div class="t">Stop testing, ship v0.4</div></div>
+    <div class="hd on"><div class="ctop"><span class="radio"></span><span class="acts"><span class="ic" title="Lean">◐</span><span class="ic" title="Rule out">×</span><span class="key">3</span></span></div><div class="t">Ship v0.4, then test it</div><span class="rec">★ Recommended</span></div>
+    <div class="rl">Cost</div><div><span class="v">USD 40</span></div><div><span class="v">USD 0</span></div><div class="on"><span class="v">USD 40</span></div>
+    <div class="rl">Time</div><div><span class="v">½ day</span></div><div><span class="v">none</span></div><div class="on"><span class="v">½ day</span></div>
+    <div class="rl">Proof</div><div><span class="v">10</span> <span class="s">cycles</span></div><div><span class="v">5</span> <span class="s">cycles</span></div><div class="on"><span class="v">10</span> <span class="s">cycles</span></div>
+    <div class="rl">Main pro</div><div><span class="g p"><span>Removes repo noise</span></span></div><div><span class="g p"><span>No more cost</span></span></div><div class="on"><span class="g p"><span>One run checks both</span></span></div>
+    <div class="rl">Main con</div><div class="last"><span class="g c"><span>v0.4 waits a week</span></span></div><div class="last"><span class="g c"><span>4 to 1 can be chance</span></span></div><div class="last on"><span class="g c"><span>Ships before its test</span></span></div>
+  </div>
+  <div class="pick">
+    <div class="ph"><b>Ship v0.4, then test it</b><span class="more-l">All 6 points</span></div>
+    <div class="two">
+      <ul class="hl"><li class="p"><span>Same cost as option 1</span></li><li class="p"><span>Fix in <code>evict.ts</code> ships this week</span></li></ul>
+      <ul class="hl"><li class="c"><span>A fail means <code>v0.4.1</code></span></li><li class="c"><span>Needs the harness fix</span></li></ul>
+    </div>
+    <div class="because"><b>Why I recommend it:</b> one run does both jobs.</div>
+  </div>
+</div>
+<div class="st-steps">
+  <div class="steps"><span class="on">1</span><span>2</span><em>Question 1 of 2 · then Send</em></div>
+  <h1>How large are the dish photos on the recipe cards?</h1>
+  <div class="need">
+    <p class="q">Pick how much room the dish photos get on the recipe cards and the shop page. Open the mockup on your Mac.</p>
+    <p class="facts"><span class="path"><svg width="11" height="11" viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="1.2"><path d="M3 1.5h4l2.5 2.5v6.5h-6.5z"/><path d="M7 1.5V4h2.5"/></svg><span class="dir">design/mockups/2026-11-08-recipe-cards/</span><span class="file">index.html</span></span><span class="src"><span class="sd">✓</span>Photo list</span><span class="src"><span class="sd">&lt;/&gt;</span>docs/menu.md</span></p>
+  </div>
+  <div class="ol"><span>Your choice</span><span class="lg">◐ Lean · × Rule out</span></div>
+  <div class="cmp">
+    <div class="hd"></div>
+    <div class="hd"><div class="ctop"><span class="radio"></span><span class="acts"><span class="ic" title="Lean">◐</span><span class="ic" title="Rule out">×</span><span class="key">1</span></span></div><div class="t">Thumbnail beside the title</div></div>
+    <div class="hd"><div class="ctop"><span class="radio"></span><span class="acts"><span class="ic" title="Lean">◐</span><span class="ic" title="Rule out">×</span><span class="key">2</span></span></div><div class="t">Instead of the header (stretch)</div></div>
+    <div class="hd on"><div class="ctop"><span class="radio"></span><span class="acts"><span class="ic" title="Lean">◐</span><span class="ic" title="Rule out">×</span><span class="key">3</span></span></div><div class="t">Full width above the steps</div><span class="rec">★ Recommended</span></div>
+    <div class="rl">Photo</div><div><span class="v">64 pt</span></div><div><span class="v">320 pt</span></div><div class="on"><span class="v">400 pt</span></div>
+    <div class="rl">Card</div><div><span class="v">+0 pt</span></div><div><span class="v">+0 pt</span></div><div class="on"><span class="v">+240 pt</span></div>
+    <div class="rl">Main pro</div><div><span class="g p"><span>Short, calm card</span></span></div><div><span class="g p"><span>Largest photos</span></span></div><div class="on"><span class="g p"><span>Seen when it opens</span></span></div>
+    <div class="rl">Main con</div><div class="last"><span class="g c"><span>Plates too small</span></span></div><div class="last"><span class="g c"><span>Header hides</span></span></div><div class="last on"><span class="g c"><span>Longer on a phone</span></span></div>
+  </div>
+  <div class="pick">
+    <div class="ph"><b>Full width above the steps</b><span class="more-l">All 3 points</span></div>
+    <div class="two">
+      <ul class="hl"><li class="p"><span>Plating easy to see</span></li></ul>
+      <ul class="hl"><li class="c"><span>Ingredients below the fold</span></li></ul>
+    </div>
+    <div class="because"><b>Why I recommend it:</b> the header stays in place.</div>
+  </div>
+</div>
+</div>
+<div class="ans"><div class="note">Add a note, or ask something…</div><div class="tools"><span>Let's discuss</span><span>Show me more</span><span>Ask for…</span><button class="send"><span class="st-main">Send: Ship v0.4, then test it</span><span class="st-steps">Next</span><span class="kb">↵</span></button></div></div>
+</div>
+</template>
+
+<!-- ===== Canvas chrome below: no need to edit. It stays outside the project's design system on purpose. ===== -->
+<style>
+  :root { color-scheme: light; }
+  body.mc-canvas { margin: 0; background: #e9e9ec; color: #1d1d20; font: 13px/1.4 -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; }
+  .mc-bar { position: sticky; top: 0; z-index: 2; display: flex; flex-wrap: wrap; gap: 8px 16px; align-items: center; padding: 10px 16px; background: #f7f7f8; border-bottom: 1px solid #d4d4d8; }
+  .mc-bar h1 { margin: 0; font-size: 14px; font-weight: 600; }
+  .mc-bar .mc-axis { color: #5f5f66; }
+  .mc-group { display: flex; gap: 2px; padding: 2px; background: #e4e4e7; border-radius: 7px; }
+  .mc-group button { border: 0; background: transparent; padding: 4px 10px; border-radius: 5px; font: inherit; color: #3f3f46; cursor: pointer; min-height: 28px; }
+  .mc-group button[aria-pressed="true"] { background: #fff; color: #111; box-shadow: 0 1px 2px rgb(0 0 0 / 0.12); }
+  .mc-group button:focus-visible { outline: 2px solid #2563eb; outline-offset: 1px; }
+  .mc-board { padding: 24px; overflow-x: auto; }
+  .mc-row { display: flex; gap: 32px; align-items: flex-start; width: max-content; }
+  .mc-row + .mc-row { margin-top: 40px; }
+  .mc-frame figcaption { margin-bottom: 8px; }
+  .mc-frame figcaption strong { font-size: 14px; }
+  .mc-frame figcaption span { color: #5f5f66; margin-left: 6px; }
+  .mc-frame { margin: 0; }
+  .mc-frame iframe { display: block; border: 0; border-radius: 12px; background: #fff; box-shadow: 0 0 0 1px rgb(0 0 0 / 0.08), 0 8px 24px rgb(0 0 0 / 0.08); }
+  .mc-notes { margin: 10px 0 0; display: grid; grid-template-columns: auto 1fr; gap: 2px 8px; color: #3f3f46; max-width: 100%; }
+  .mc-notes dt { color: #71717a; }
+  .mc-notes dd { margin: 0; }
+  /* ?export=1: one bare frame, centred, for screenshots (bash shoot.sh) */
+  .mc-export .mc-bar, .mc-export figcaption, .mc-export .mc-notes { display: none; }
+  .mc-export .mc-board { padding: 0; }
+  .mc-export .mc-row { width: auto; justify-content: center; }
+  .mc-export .mc-frame iframe { border-radius: 0; box-shadow: none; }
+</style>
+<script>
+(() => {
+  const meta = JSON.parse(document.getElementById("mockup-meta").textContent);
+  const tokens = document.getElementById("tokens").outerHTML;
+  const variants = [...document.querySelectorAll("template[data-variant]")];
+  const params = new URLSearchParams(location.search);
+  const view = { ...meta.view };
+  for (const k of ["theme", "device", "v", "state", "zoom", "export"]) if (params.has(k)) view[k] = params.get(k);
+
+  document.body.classList.add("mc-canvas");
+  if (view.export) document.body.classList.add("mc-export");
+  document.title = `${meta.title} · mockup`;
+
+  const bar = document.createElement("header");
+  bar.className = "mc-bar";
+  bar.innerHTML = `<h1></h1><span class="mc-axis"></span>`;
+  bar.querySelector("h1").textContent = meta.title;
+  bar.querySelector(".mc-axis").textContent = `Axis: ${meta.axis}`;
+  const board = document.createElement("div");
+  board.className = "mc-board";
+  document.body.append(bar, board);
+
+  function group(label, key, values) {
+    if (values.length < 2) return;
+    const g = document.createElement("div");
+    g.className = "mc-group";
+    g.setAttribute("role", "group");
+    g.setAttribute("aria-label", label);
+    for (const [value, text] of values) {
+      const b = document.createElement("button");
+      b.type = "button";
+      b.textContent = text;
+      b.dataset.key = key;
+      b.dataset.value = value;
+      b.addEventListener("click", () => { view[key] = value; sync(); });
+      g.append(b);
+    }
+    bar.append(g);
+  }
+  const themes = meta.themes.map((t) => [t, t[0].toUpperCase() + t.slice(1)]);
+  if (meta.themes.length > 1) themes.push(["both", "Both"]);
+  group("Theme", "theme", themes);
+  group("Device", "device", Object.keys(meta.devices).map((d) => [d, d[0].toUpperCase() + d.slice(1)]));
+  if (!view.state && meta.states?.length) view.state = meta.states[0];
+  group("State", "state", (meta.states || []).map((s) => [s, s[0].toUpperCase() + s.slice(1)]));
+  group("Variants", "v", [["all", "All"], ...variants.map((t) => [t.dataset.variant, t.dataset.name])]);
+
+  function frame(t, theme) {
+    const [w, h] = meta.devices[view.device] || Object.values(meta.devices)[0];
+    const fig = document.createElement("figure");
+    fig.className = "mc-frame";
+    fig.style.width = `${w}px`;
+    const cap = document.createElement("figcaption");
+    cap.innerHTML = "<strong></strong><span></span>";
+    cap.querySelector("strong").textContent = t.dataset.name;
+    cap.querySelector("span").textContent = [t.dataset.position, view.theme === "both" ? theme : ""].filter(Boolean).join(", ");
+    const iframe = document.createElement("iframe");
+    iframe.title = `${t.dataset.name}, ${theme}`;
+    iframe.width = w;
+    iframe.height = h;
+    iframe.srcdoc = `<!doctype html><html class="${theme === "dark" ? "dark" : ""}" data-state="${view.state || ""}"><head><meta charset="utf-8"><meta name="viewport" content="width=${w}">${tokens}</head><body>${t.innerHTML}</body></html>`;
+    iframe.addEventListener("load", () => {
+      const doc = iframe.contentDocument;
+      if (!doc) return;
+      // Frames stay at device height and scroll inside, like a real screen (fixed docks stay visible).
+      // "grow": true in the meta makes them as tall as the content instead (long pages, landings).
+      if (!meta.grow) return;
+      const fit = () => { iframe.height = Math.max(h, doc.documentElement.scrollHeight); };
+      fit();
+      new ResizeObserver(fit).observe(doc.body);
+      doc.querySelectorAll("img").forEach((img) => img.addEventListener("load", fit));
+    });
+    fig.append(cap, iframe);
+    if (t.dataset.rightWhen || t.dataset.costs) {
+      const dl = document.createElement("dl");
+      dl.className = "mc-notes";
+      for (const [label, value] of [["Right when", t.dataset.rightWhen], ["Costs", t.dataset.costs]]) {
+        if (!value) continue;
+        const dt = document.createElement("dt"); dt.textContent = label;
+        const dd = document.createElement("dd"); dd.textContent = value;
+        dl.append(dt, dd);
+      }
+      fig.append(dl);
+    }
+    return fig;
+  }
+
+  function sync() {
+    const url = new URL(location.href);
+    for (const k of ["theme", "device", "v", "state"]) if (view[k]) url.searchParams.set(k, view[k]);
+    try { history.replaceState(null, "", url); } catch {}
+    bar.querySelectorAll("button").forEach((b) => b.setAttribute("aria-pressed", String(view[b.dataset.key] === b.dataset.value)));
+    board.replaceChildren();
+    board.style.zoom = view.zoom || 1;
+    const shown = view.v === "all" ? variants : variants.filter((t) => t.dataset.variant === view.v);
+    const rows = view.theme === "both" ? meta.themes : [view.theme];
+    for (const theme of rows) {
+      const row = document.createElement("div");
+      row.className = "mc-row";
+      for (const t of shown) row.append(frame(t, theme));
+      board.append(row);
+    }
+    if (!shown.length) console.error(`mockup canvas: no variant with id "${view.v}"`);
+  }
+
+  addEventListener("keydown", (e) => {
+    if (e.target.closest("input, textarea, select, [contenteditable]")) return;
+    const n = Number(e.key);
+    if (n >= 1 && n <= variants.length) { view.v = variants[n - 1].dataset.variant; sync(); }
+    if (e.key === "0") { view.v = "all"; sync(); }
+  });
+  sync();
+  console.log(`mockup canvas: ${variants.length} variants, theme=${view.theme}, device=${view.device}, state=${view.state || "-"}, v=${view.v}`);
+})();
+</script>
+</body>
+</html>

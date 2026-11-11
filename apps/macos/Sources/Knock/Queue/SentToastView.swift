@@ -2,9 +2,9 @@ import SwiftUI
 
 /// The toast's timer (HAIL-79), pure so tests can drive it. Hover pauses it.
 /// The fade starts 2.5 s after delivery, or early enough that the toast is
-/// gone by 10 s in total, whichever is first.
+/// gone by 5 s in total, whichever is first (C10: the status line keeps the state after that).
 struct SentToastClock: Equatable, Sendable {
-    static let cap: TimeInterval = 10
+    static let cap: TimeInterval = 5
     static let fadeDuration: TimeInterval = 0.25
     static let deliveredHold: TimeInterval = 2.5
 

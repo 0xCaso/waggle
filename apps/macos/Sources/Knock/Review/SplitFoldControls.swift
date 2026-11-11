@@ -11,7 +11,7 @@ struct SplitFoldHeaderView: View {
     let changedAt: Date?
     var roundArrivedAt: Date? = nil
     /// The question column's current width, for the header segment above it (HAIL-91).
-    var askColumnWidth: CGFloat = 430
+    var askColumnWidth: CGFloat = AskLayout.columnWidth
     /// "← Home" at the left of the header, for an ask that is not in Needs you (HAIL-121).
     var onHome: (() -> Void)? = nil
     /// The Share button of the case (WAG-387).

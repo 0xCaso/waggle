@@ -89,6 +89,11 @@ final class AppModel: ObservableObject {
     @Published var answeredOpen: Bool {
         didSet { AnsweredGroupSettings.setOpen(answeredOpen, defaults: defaults) }
     }
+    /// Whether the sidebar's "Working" group is open. Closed by default, remembered in
+    /// UserDefaults (`WorkingGroupSettings`).
+    @Published var workingOpen: Bool {
+        didSet { WorkingGroupSettings.setOpen(workingOpen, defaults: defaults) }
+    }
     /// Artifact kind keyed by case id, for the row's Prototype/Screenshot
     /// indicator. Read from each `cases.list` row's `artifact_kind` (PERF-4), written once per
     /// refresh. `artifact.path` is only the fallback for a case opened without a kind on its row.
@@ -334,6 +339,9 @@ final class AppModel: ObservableObject {
         // without writing the setting (an init assignment skips `didSet`).
         self.answeredOpen = AnsweredGroupSettings.isOpen(defaults: defaults)
             || environment["KNOCK_EVIDENCE_ANSWERED_OPEN"] == "1"
+        // `KNOCK_EVIDENCE_WORKING_OPEN=1`: the Working group starts open for one run, the setting untouched.
+        self.workingOpen = WorkingGroupSettings.isOpen(defaults: defaults)
+            || environment["KNOCK_EVIDENCE_WORKING_OPEN"] == "1"
         // `KNOCK_EVIDENCE_DECIDED_OPEN=1` (WAG-412 evidence): the "Decided for you" list starts open.
         self.autoDecidedOpen = environment["KNOCK_EVIDENCE_DECIDED_OPEN"] == "1"
         self.sendCoordinator = SendCoordinator(client: client, store: PendingReplyStore(environment: environment))
@@ -488,6 +496,15 @@ final class AppModel: ObservableObject {
     #if DEBUG
     /// Lets a view test show the connected pane without a socket (WAG-257).
     func setConnectionStateForTests(_ state: KnockClient.ConnectionState) { connectionState = state }
+    func setDeliveryStatusForTests(_ state: DeliveryState?, caseId: String) { deliveryStatusByCaseId[caseId] = state }
+    /// Lets a render test draw the whole window with sample data: the selected case and its sessions.
+    func setSelectionForTests(_ detail: CaseDetail) {
+        selectedCaseId = detail.case.id
+        selectedCaseDetail = detail
+    }
+    func setSessionsForTests(_ sessions: [SessionInfo]) {
+        sessionByTaskId = Dictionary(sessions.map { ($0.taskId, $0) }, uniquingKeysWith: { first, _ in first })
+    }
     #endif
 
     func stop() {

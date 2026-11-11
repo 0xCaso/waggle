@@ -52,19 +52,17 @@ struct ComposerCardView: View {
     /// its `maxOptionsHeight`; `nil` (no cap, no inner scroll) for
     /// `AskColumnView`, which already scrolls its whole column.
     var maxOptionsHeight: CGFloat? = nil
-    /// Tallest the reply field grows, in lines, before it scrolls inside
-    /// (HAIL-77): 6 in the case pane, 4 in the review workspace's column.
-    var maxReplyLines: Int = PromptBarLogic.paneMaxLines
     /// The decision doc's one place for options (WAG-257): each row shows the option in full, and the
     /// button reads "Decide: <option>". The page has no separate Decision card.
     var showsFullOptions = false
     /// With `showsFullOptions`, show the full text of the selected row only (WAG-276): the answers are
     /// described elsewhere on the page (the plan question), or the selected one opens in the panel.
     var fullLabelOnlyWhenSelected = false
-    /// False in the case pane: its top banner owns a failed outcome (WAG-258).
-    var showsFailure: Bool = true
-    /// Which part of the box shows (WAG-290): the plan page's right column scrolls the options with the
-    /// question and docks only the note and Decide, so it uses the box twice, once for each part.
+    /// False in the case pane: its context line holds the status line (C10), so the card draws none.
+    var showsStatus: Bool = true
+    /// Which part of the box shows. The pane's decision column (C1) uses the box twice: its option rows scroll
+    /// with the question (`.optionsOnly`), and only the answer box and the send row are pinned at the bottom
+    /// (`.replyOnly`), so the options show once and Send is always on screen.
     var part: Part = .whole
 
     enum Part: Equatable {
@@ -77,6 +75,7 @@ struct ComposerCardView: View {
 
     @State private var isDraftFocused = false
     @State private var optionsContentHeight: CGFloat = 0
+    @State private var firstOptionsContentHeight: CGFloat = 0
     /// The "First options" link (update with options) reveals the dimmed first set (HAIL-108).
     /// `KNOCK_EVIDENCE_SHOW_FIRST_OPTIONS=1` opens it for a capture (evidence only).
     @State private var showsFirstOptions = ProcessInfo.processInfo.environment["KNOCK_EVIDENCE_SHOW_FIRST_OPTIONS"] == "1"
@@ -102,20 +101,21 @@ struct ComposerCardView: View {
     ) -> (locked: Bool, pickedId: String?) {
         (isLocked || !deliveryIdle, isLocked ? yourAnswerOptionId : (yourAnswerOptionId ?? selectedOptionId))
     }
-    /// The options stay on show, so the delivery line drops its "You: <title>" bubble (a typed note keeps it).
-    private var keepsOptionsInFlight: Bool { !options.isEmpty && (lockedMessage ?? "").isEmpty }
     private var answerBox: AnswerBoxState { isLocked || sendFlow.isEditingLockedAnswer ? .original : composer.answerBox }
 
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
             if deliveryState.state == .idle {
                 if composer.isAskingForDetail {
-                    if part != .optionsOnly {
-                        AskForDetailPanelView(
-                            composer: composer,
-                            onSend: { sendFlow.askForMoreDetail() },
-                            onSendFormat: { sendFlow.askForMoreDetail(format: $0) }
-                        )
+                    // The panel takes the options' place (C5). In the pane's column it scrolls with the page and
+                    // the send row stays pinned; in a dock (`.whole`) it scrolls inside the dock's cap. The send
+                    // row stays under it, with "Ask for…" on, so Send never leaves the screen.
+                    switch part {
+                    case .optionsOnly: detailPanel
+                    case .replyOnly: replyField
+                    case .whole:
+                        scrolled(detailPanel, height: $optionsContentHeight)
+                        replyField
                     }
                 } else {
                     switch answerBox {
@@ -133,21 +133,17 @@ struct ComposerCardView: View {
             } else {
                 // The answered state keeps the options, locked, above the delivery line (WAG-306, F10).
                 if part != .replyOnly { optionsSection }
-                if part != .optionsOnly {
-                    DeliveryBannerView(
-                        state: deliveryState.state,
-                        replySummary: sendFlow.deliveryReplySummary,
-                        showsReply: !keepsOptionsInFlight,
-                        onRetry: { Task { await sendFlow.retryDelivery() } },
-                        showsFailure: showsFailure
-                    )
-                    .padding(14)
+                if part != .optionsOnly, showsStatus,
+                   let line = RequestStatus.localLine(deliveryState.state, item: composer.knockCase) {
+                    RequestStatusLineView(line: line, onAction: { if $0 == .retry { Task { await sendFlow.retryDelivery() } } })
+                        .padding(14)
                 }
             }
         }
         .boundedIdealWidth()
-        .background { if part != .optionsOnly { Theme.Colors.win.shadow(Theme.Shadow.dockUp) } }
-        .overlay(Rectangle().fill(Theme.Colors.line2).frame(height: part == .optionsOnly ? 0 : 1), alignment: .top)
+        // The answer area (mockup `.ans`): white, one plain 1 pt `line` on top, no shadow.
+        .background { if part != .optionsOnly { Theme.Colors.win } }
+        .overlay(Rectangle().fill(Theme.Colors.line).frame(height: part == .optionsOnly ? 0 : 1), alignment: .top)
         .background { if !isLocked && part != .optionsOnly { hiddenShortcuts } }
         .onAppear(perform: consumeFocusRequestIfNeeded)
         .onChange(of: composer.focusDraftOnOpen) { _, requested in
@@ -161,37 +157,54 @@ struct ComposerCardView: View {
     private var optionsSection: some View { optionsSection(withFirst: false, firstAt: nil) }
 
     /// The options, scrolling inside past the dock's cap. With `firstAt` set
-    /// (`withFirst`, an update with options) the first set follows, dimmed, under its own
-    /// divider once "First options" is open.
+    /// (`withFirst`, an update with options) the first set follows, dimmed, in its own fold under
+    /// its own divider once "First options" is open: never inside the current options' capped scroll, so
+    /// opening it never pushes the current options out of view (C3, request page spec section 3 item 4).
     @ViewBuilder
     private func optionsSection(withFirst: Bool, firstAt: Date?) -> some View {
         if !options.isEmpty {
-            let rows = VStack(alignment: .leading, spacing: 0) {
-                if let why = Self.freeTextWhy(composer.knockCase, recommendationId: mainRecommendationId), part != .replyOnly {
-                    AgentMarkdownText(text: why, style: Theme.Typography.recommendLine12w400)
-                        .foregroundColor(Theme.Colors.ink2)
-                        .frame(maxWidth: .infinity, alignment: .leading)
-                        .padding(EdgeInsets(top: 12, leading: 14, bottom: 10, trailing: 14))
-                }
-                optionRowList(options, recommendationId: mainRecommendationId, isFirstSet: false)
-                if showsReviewHint {
-                    Text(PromptBarLogic.reviewPickHint)
-                        .knockTextStyle(Theme.Typography.recommendLine12w400)
-                        .foregroundColor(Theme.Colors.ink3)
-                        .padding(EdgeInsets(top: 8, leading: 14, bottom: 8, trailing: 14))
-                }
-                if withFirst, showsFirstOptions {
-                    Text(AnswerBoxState.firstOptionsDivider(at: firstAt))
-                        .knockTextStyle(Theme.Typography.labelCaps10_5w600)
-                        .foregroundColor(Theme.Colors.ink3)
-                        .padding(EdgeInsets(top: 8, leading: 14, bottom: 6, trailing: 14))
-                        .frame(maxWidth: .infinity, alignment: .leading)
-                        .overlay(Rectangle().fill(Theme.Colors.line).frame(height: 1), alignment: .top)
-                    optionRowList(composer.firstOptions, recommendationId: composer.knockCase.firstRecommendation, isFirstSet: true)
-                }
+            currentOptions
+            if withFirst, showsFirstOptions {
+                firstOptionsFold(firstAt: firstAt)
             }
-            scrolled(rows)
         }
+    }
+
+    /// The first set of an update with options, in its own fold (and its own capped scroll in a dock).
+    private func firstOptionsFold(firstAt: Date?) -> some View {
+        VStack(alignment: .leading, spacing: 0) {
+            Text(AnswerBoxState.firstOptionsDivider(at: firstAt))
+                .knockTextStyle(Theme.Typography.labelCaps10_5w600)
+                .foregroundColor(Theme.Colors.ink3)
+                .padding(EdgeInsets(top: 8, leading: part == .optionsOnly ? 0 : 14, bottom: 6, trailing: 14))
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .overlay(Rectangle().fill(Theme.Colors.line).frame(height: 1), alignment: .top)
+            scrolled(
+                optionRowList(composer.firstOptions, recommendationId: composer.knockCase.firstRecommendation, isFirstSet: true),
+                height: $firstOptionsContentHeight)
+        }
+        .padding(.top, part == .optionsOnly ? 10 : 0)
+        .transition(.opacity)
+    }
+
+    @ViewBuilder
+    private var currentOptions: some View {
+        let rows = VStack(alignment: .leading, spacing: 0) {
+            if let why = Self.freeTextWhy(composer.knockCase, recommendationId: mainRecommendationId), part != .replyOnly {
+                AgentMarkdownText(text: why, style: Theme.Typography.recommendLine12w400)
+                    .foregroundColor(Theme.Colors.ink2)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .padding(EdgeInsets(top: 12, leading: 14, bottom: 10, trailing: 14))
+            }
+            optionRowList(options, recommendationId: mainRecommendationId, isFirstSet: false)
+            if showsReviewHint {
+                Text(PromptBarLogic.reviewPickHint)
+                    .knockTextStyle(Theme.Typography.recommendLine12w400)
+                    .foregroundColor(Theme.Colors.ink3)
+                    .padding(EdgeInsets(top: 8, leading: 14, bottom: 8, trailing: 14))
+            }
+        }
+        scrolled(rows, height: $optionsContentHeight)
     }
 
     /// A review shows its pick hint while no row is picked and the answer is open (WAG-316).
@@ -206,26 +219,26 @@ struct ComposerCardView: View {
         return why.isEmpty ? nil : why
     }
 
-    /// The chip row right above the reply field (WAG-411, was the last row of the list, HAIL-111); not once
-    /// the answer is sent.
-    @ViewBuilder
-    private var chipRow: some View {
-        if !rowsLocked, !options.isEmpty {
-            AskForDetailRowView(
-                composer: composer, onSend: { sendFlow.askForMoreDetail() },
-                onSendFormat: { sendFlow.askForMoreDetail(format: $0) },
-                onQuickReply: { sendFlow.quickReply($0) }, hasComments: sendFlow.pinnedCommentCount > 0)
-        }
+    /// The "Ask for…" panel (C5): quick replies, the ask rows, the formats and "Something else".
+    private var detailPanel: some View {
+        AskForDetailPanelView(
+            composer: composer,
+            onSend: { sendFlow.askForMoreDetail() },
+            onSendFormat: { sendFlow.askForMoreDetail(format: $0) },
+            onQuickReply: { sendFlow.quickReply($0) },
+            hasComments: sendFlow.pinnedCommentCount > 0
+        )
+        .modifier(AskForPanelCard(isCard: part == .optionsOnly))
     }
 
     /// Wraps rows in the dock's capped scroll area when the caller gave a cap.
     @ViewBuilder
-    private func scrolled<Content: View>(_ rows: Content) -> some View {
+    private func scrolled<Content: View>(_ rows: Content, height: Binding<CGFloat>) -> some View {
         if let maxOptionsHeight {
             ScrollView {
-                rows.onGeometryChange(for: CGFloat.self, of: { $0.size.height }) { optionsContentHeight = $0 }
+                rows.onGeometryChange(for: CGFloat.self, of: { $0.size.height }) { height.wrappedValue = $0 }
             }
-            .frame(height: min(max(optionsContentHeight, 1), maxOptionsHeight))
+            .frame(height: min(max(height.wrappedValue, 1), maxOptionsHeight))
             .scrollBounceBehavior(.basedOnSize)
             // Evidence only: lets the drawn tooltip of `KNOCK_EVIDENCE_OPTION_TIP` rise above the list.
             .scrollClipDisabled(ProcessInfo.processInfo.environment["KNOCK_EVIDENCE_OPTION_TIP"] != nil)
@@ -236,27 +249,38 @@ struct ComposerCardView: View {
 
     /// The folded list of an update without options (same rows as the original box).
     private func optionRows(_ list: [Option], recommendationId: String?) -> some View {
-        scrolled(optionRowList(list, recommendationId: recommendationId, isFirstSet: false))
+        scrolled(optionRowList(list, recommendationId: recommendationId, isFirstSet: false), height: $optionsContentHeight)
     }
 
     private func optionRowList(_ list: [Option], recommendationId: String?, isFirstSet: Bool) -> some View {
         let checks = multiMode && !isFirstSet
         let calm = true
-        return VStack(alignment: .leading, spacing: calm ? 8 : 0) {
-            if checks && !rowsLocked { multiHeader }
+        func picked(_ option: Option) -> Bool {
+            checks
+                ? (rowsLocked ? yourAnswerOptionIds.contains(option.id) : composer.isTicked(option.id))
+                : OptionChipView.isSelected(
+                    optionId: option.id, isLocked: rowsLocked,
+                    yourAnswerOptionId: pickedId,
+                    selectedOptionId: composer.selectedFromFirstOptions == isFirstSet ? composer.selectedOptionId : nil
+                )
+        }
+        // The pick opens in place, else the recommendation (mockup `.choice.on .x`). The older set stays closed.
+        let open = isFirstSet ? nil : CalmOption.openPosition(
+            selected: list.firstIndex(where: picked).map { $0 + 1 },
+            recommended: list.firstIndex(where: { $0.id == recommendationId }).map { $0 + 1 }, isCheckbox: checks)
+        return VStack(alignment: .leading, spacing: calm ? CalmOption.rowGap : 0) {
+            if checks && !rowsLocked {
+                multiHeader.padding(.bottom, OptionCardStyle.labelGap - CalmOption.rowGap)
+            } else if !isFirstSet {
+                OptionListLabel().padding(.bottom, OptionCardStyle.labelGap - CalmOption.rowGap)
+            }
             ForEach(Array(list.enumerated()), id: \.element.id) { index, option in
                 OptionChipView(
                     option: option,
                     position: index + 1,
                     isRecommended: checks
                         ? composer.knockCase.recommendations.contains(option.id) : option.id == recommendationId,
-                    isSelected: checks
-                        ? (rowsLocked ? yourAnswerOptionIds.contains(option.id) : composer.isTicked(option.id))
-                        : OptionChipView.isSelected(
-                            optionId: option.id, isLocked: rowsLocked,
-                            yourAnswerOptionId: pickedId,
-                            selectedOptionId: composer.selectedFromFirstOptions == isFirstSet ? composer.selectedOptionId : nil
-                        ),
+                    isSelected: picked(option),
                     isLocked: rowsLocked,
                     isFirstSetRow: isFirstSet,
                     // A tick list says "Recommended" on each row; the one reason sits in the ask, not on every row.
@@ -270,6 +294,7 @@ struct ComposerCardView: View {
                     isRuledOut: !isFirstSet && composer.isRuledOut(option.id),
                     onLean: !isFirstSet && composer.supportsDiscuss ? { composer.toggleLean(option.id) } : nil,
                     onRuleOut: !isFirstSet && composer.supportsDiscuss ? { composer.toggleRuleOut(option.id) } : nil,
+                    isOpen: open == index + 1,
                     onSelect: {
                         if isFirstSet { composer.selectFirstOption(option.id) } else { composer.selectOption(option.id) }
                     }
@@ -280,6 +305,7 @@ struct ComposerCardView: View {
             }
         }
         .padding(calm && part != .optionsOnly ? EdgeInsets(top: 10, leading: 14, bottom: 10, trailing: 14) : EdgeInsets())
+        .animation(.easeOut(duration: CalmOption.openDuration), value: open)
     }
 
     /// The pick-several header, shared with the items of a step (WAG-334).
@@ -318,7 +344,6 @@ struct ComposerCardView: View {
         if !options.isEmpty, part == .whole {
             Rectangle().fill(Theme.Colors.line).frame(height: 1)
         }
-        if !isLocked { chipRow }
         if isLocked {
             lockedReplyField
         } else {
@@ -337,9 +362,7 @@ struct ComposerCardView: View {
             files: composer.files,
             commentCount: commentCount,
             placeholder: placeholder,
-            maxLines: maxReplyLines,
             acceptsRecommendationWithComments: true,
-            showsDetailButton: false,
             onOpenReview: onOpenReview,
             decides: showsFullOptions,
             isFocused: $isDraftFocused

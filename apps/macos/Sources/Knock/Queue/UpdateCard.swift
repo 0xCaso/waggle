@@ -14,7 +14,7 @@ struct UpdateCardContent: Equatable {
 
     /// The update to show: the thread's last step, when it is an agent update, so it came after
     /// your last reply and goes away when you reply again. Only on a text ask (the one page
-    /// owns an ask with an artifact), and only while the conversation column is out of sight:
+    /// owns an ask with an artifact), and only while the Conversation tab is out of sight:
     /// an open, wide column already shows it, so the card would repeat it.
     static func content(thread: ThreadModel?, hasArtifact: Bool, isColumnVisible: Bool) -> UpdateCardContent? {
         guard let thread, !hasArtifact, !isColumnVisible,

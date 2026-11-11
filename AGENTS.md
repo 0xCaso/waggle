@@ -54,7 +54,8 @@ bash scripts/bundle-app.sh                     # wraps the app in apps/macos/.bu
 - Secrets (connector tokens, the relay device token, each shared case's owner key) live in the macOS
   Keychain, never in `knock.db` or a log.
 - Agent content is untrusted. HTML bundles follow the isolation rules in `docs/protocol-mvp.md`. Text from
-  agents renders as safe markdown only: bold, italics, inline code, lists, paragraphs. No links, no images,
+  agents renders as safe markdown only: bold, italics, inline code, lists, paragraphs, pipe tables
+  (docs/decisions/2026-11-11-tables-in-agent-text.md). No links, no images,
   no HTML.
 - Never capture the whole screen (`screencapture` without `-l <window id>`). It records the user's other
   apps. Capture one Waggle window by its CoreGraphics window id, or do not capture.

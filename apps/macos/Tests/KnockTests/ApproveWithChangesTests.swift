@@ -71,7 +71,7 @@ struct ApproveWithChangesTests {
         let narrow = PromptBarLogic.controlsPlan(rowWidth: 300, quietLabels: ["Ask for more detail"], pillLabels: forms)
         let shown = narrow.sendPillLabel
         #expect(shown != nil && forms.contains(shown!))
-        #expect(narrow.width <= 300 - PromptBarLogic.controlSize - PromptBarLogic.controlGap || narrow.ownRow)
+        #expect(narrow.width <= 300 - PromptBarLogic.attachWidth - PromptBarLogic.controlGap)
         let tight = PromptBarLogic.controlsPlan(rowWidth: 200, quietLabels: ["Ask for more detail"], pillLabels: forms)
         #expect(tight.sendPillLabel == "Approve")
     }

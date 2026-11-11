@@ -102,7 +102,4 @@ struct WAG311Tests {
         #expect(store.model.comments.count == 1)
         #expect(store.model.comments(on: capture.id).first?.text == "Too tight")
     }
-
-    // MARK: Recommended pill
-
 }

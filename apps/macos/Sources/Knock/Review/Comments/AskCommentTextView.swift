@@ -47,7 +47,8 @@ final class AskCommentTextView: NSTextView, NSTextViewDelegate {
 
     static func make() -> AskCommentTextView {
         let storage = NSTextStorage()
-        let layout = NSLayoutManager()
+        // Draws the code and path chips behind their text (task 11c).
+        let layout = ChipLayoutManager()
         let container = NSTextContainer(size: NSSize(width: 400, height: CGFloat.greatestFiniteMagnitude))
         container.lineFragmentPadding = 0
         container.widthTracksTextView = false

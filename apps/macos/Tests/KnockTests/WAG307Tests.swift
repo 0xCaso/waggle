@@ -109,7 +109,6 @@ final class WAG307Tests: XCTestCase {
         let list = CommentListModel.make(model: CommentsModel(), context: .unknown, isScreenshotsCase: false)
         XCTAssertTrue(list.isEmpty)
         XCTAssertFalse(CommentListModel.emptyLine.contains("—"))
-        XCTAssertEqual(ArtifactCommentsSection.heading(count: 2), "COMMENTS · 2")
     }
 
     // MARK: Show

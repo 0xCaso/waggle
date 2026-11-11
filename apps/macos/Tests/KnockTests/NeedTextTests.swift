@@ -18,6 +18,12 @@ struct NeedTextTests {
         #expect(NeedText.split("- one\n- two") == .init(question: "", details: "- one\n- two"))
     }
 
+    @Test func aTableIsNeverPartOfTheQuestion() {
+        let table = "| A | B |\n|---|---|\n| 1 | 2 |"
+        #expect(NeedText.split(table + "\n\nMore.") == .init(question: "", details: table + "\n\nMore."))
+        #expect(NeedText.split("Prices:\n" + table) == .init(question: "Prices:", details: table))
+    }
+
     @Test func theSectionPrefixGoesWhenTheLabelSaysIt() {
         let label = "Design · section 3 of 3"
         #expect(NeedText.split("Section 3 of 3: Which day is Today?", labelAbove: label).question == "Which day is Today?")
@@ -48,5 +54,12 @@ struct NeedTextTests {
             plan: PlanInfo(stage: stage, rounds: 1, answered: 0))
         let round = PlanRound(seq: 0, stage: stage, question: message, options: [], recommendation: "", createdAt: "2026-10-07T09:00:00Z")
         #expect(c.currentNeed(planRounds: [round]) == message)
+    }
+
+    /// A list right under the first sentence, with no blank line before it, is details, not part of the question.
+    @Test func aListUnderTheFirstSentenceIsDetails() {
+        let parts = NeedText.split("Waggle Dev runs now.\n- Waggle is closed.\n- It keeps its own settings.\n\nThe PR is a draft.")
+        #expect(parts.question == "Waggle Dev runs now.")
+        #expect(parts.details == "- Waggle is closed.\n- It keeps its own settings.\n\nThe PR is a draft.")
     }
 }

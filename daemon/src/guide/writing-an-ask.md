@@ -22,7 +22,7 @@ only when the work changes.
 ## need: the first line stands alone
 
 The queue preview shows only the need's first sentence. Put the decision there, not context.
-Need and round messages render bold, italics, inline code and lists. Bold the key words; keep the first line the question.
+Need and round messages render bold, italics, inline code, lists and pipe tables. Bold the key words; keep the first line the question.
 
 WRONG
     need: "I've been working on the checkout flow for a while and I think there might be two
@@ -79,6 +79,16 @@ effect goes in `effects`. A good or bad point stays in `pros` or `cons`.
     options: [{ id: "a", title: "Compact", label: "Compact: one screen, fewer fields",
                 pros: ["Fastest for the buyer"], cons: ["Hides billing details"],
                 effects: ["Touches the checkout form only", "Closes the two-step flow", "Needs a new address check"] }]
+
+An option may also carry `facts`: up to 3 short neutral facts (24 characters each) that Waggle shows
+as chips under the title: a time, a scope, a file. A long pro or con may be `{ gist, detail }`
+instead of a string: the gist (40 characters at most) shows on the card, and the detail is the full
+sentence the human opens with one click. A plain string still works and shows in full.
+
+    options: [{ id: "a", title: "One store file", label: "One store file: keep the cache in src/store.ts",
+                facts: ["~2 h", "no migration", "src/store.ts"],
+                pros: [{ gist: "One file to change", detail: "Only src/store.ts changes, so the review stays small" }],
+                cons: ["The cache stays in memory"] }]
 
 To link an option to a named artifact, add
 `artifact_ref` and `anchor`. Call waggle_guide({ topic: "artifacts" }) for the rules.

@@ -84,7 +84,7 @@ struct SessionClosedTests {
 
     @Test func theBannerCopiesTheStandaloneAnswer() {
         let item = makeCase(status: .waitingOnAgent, replyState: .failed, replyAt: after, endedAt: ended)
-        let line = DeliveryOutcomeBanner.copyLine(for: item)
+        let line = RequestStatus.copyLine(for: item)
         #expect(line == ClaudeCheck.standaloneAnswer(for: item))
         #expect(line?.hasPrefix("My Waggle answer to \"Pick a layout\" (case c_1):") == true)
         #expect(SessionClosedCopy.savedNote == "Your answer is saved. It reaches the agent when you next message it, or paste the copied answer in the agent's chat.")
@@ -92,22 +92,21 @@ struct SessionClosedTests {
 
     @Test func theSavedStateReplacesDeliveryFailed() {
         #expect(SessionClosedCopy.savedTitle == "Saved · delivers when the agent's session resumes")
-        #expect(DeliveryOutcomeBanner.copyLine(for: makeCase(status: .waitingOnAgent, replyState: .failed, replyAt: after, endedAt: ended)) != nil)
+        #expect(RequestStatus.copyLine(for: makeCase(status: .waitingOnAgent, replyState: .failed, replyAt: after, endedAt: ended)) != nil)
         // No Retry while the session is ended; a live session keeps it.
-        #expect(DeliveryOutcomeBanner.copyLine(for: makeCase(status: .waitingOnAgent, session: .live, replyState: .failed, replyAt: after)) == nil)
+        #expect(RequestStatus.copyLine(for: makeCase(status: .waitingOnAgent, session: .live, replyState: .failed, replyAt: after)) == nil)
         for text in [SessionClosedCopy.notice, SessionClosedCopy.mark, SessionClosedCopy.savedTitle, SessionClosedCopy.savedNote] {
             #expect(!text.contains("\u{2014}"))
         }
     }
 
-    // MARK: One banner per reply (AC 3)
+    // MARK: One status per reply (AC 3, C10)
 
-    @Test func aFailedOutcomeHasOneOwnerAndADeliveredOutcomeHasOne() {
-        #expect(DeliveryBannerSlot.slot(for: .failed(replyId: "reply_1")) == .paneTop)
-        #expect(DeliveryBannerSlot.slot(for: .delivered(at: Date())) == .footer)
-        for state: DeliveryState? in [nil, .idle, .sending, .sent, .offline] {
-            #expect(DeliveryBannerSlot.slot(for: state) == nil)
-        }
+    @Test func aFailedOutcomeShowsOnceOnTheStatusLine() {
+        let failed = makeCase(status: .waitingOnAgent, session: .disconnected, replyState: .failed, replyAt: "2026-11-09T10:00:00Z")
+        let line = RequestStatus.line(.init(item: failed, confirmed: .failed(replyId: "reply_1")))
+        #expect(line?.kind == .notDelivered)
+        #expect(line?.actions == [.retry])
     }
 
     // MARK: The wire

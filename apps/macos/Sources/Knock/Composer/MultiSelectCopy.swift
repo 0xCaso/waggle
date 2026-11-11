@@ -17,6 +17,10 @@ enum MultiSelectCopy {
         return "\(phrase) · \(count) of \(max)"
     }
 
+    /// The list label of a pick-several ask (mockup `.ol`, template `multi`): "Pick any" / "Pick up to 4". The count
+    /// is in the answer area.
+    static func listLabel(max: Int?) -> String { dockLabel(count: 0, max: max) }
+
     /// Shown in the accent colour next to the dock label once the ticks reach `max`.
     static let limitReached = "limit reached"
     static let clear = "Clear"

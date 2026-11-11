@@ -222,9 +222,9 @@ struct AppSelfRenameTests {
     // MARK: header
 
     @Test func headerLockupStartsAtTheLeftEdgeUnderTheTrafficLights() {
-        #expect(QueueHeaderLayout.leadingInset(trafficLightsMaxX: nil) == 18)
-        #expect(QueueHeaderLayout.leadingInset(trafficLightsMaxX: 68) == 18)
-        #expect(QueueHeaderLayout.topInset(trafficLightsMaxX: 68) == 30)
+        #expect(QueueHeaderLayout.leadingInset(trafficLightsMaxX: nil) == 16)
+        #expect(QueueHeaderLayout.leadingInset(trafficLightsMaxX: 68) == 16)
+        #expect(QueueHeaderLayout.topInset(trafficLightsMaxX: 68) == 40)
         #expect(QueueHeaderLayout.topInset(trafficLightsMaxX: nil) == 16)
     }
 }

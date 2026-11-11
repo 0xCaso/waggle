@@ -65,6 +65,9 @@ enum PickupFallback {
         }
     }
 
+    /// The tooltip of the status line's ⋯ menu (C10).
+    static let menuHelp = "Help the agent pick up your reply"
+
     static func copiedLine(runtime: String) -> String { "Copied. Paste it in the \(runtime) terminal." }
 
     static func noTerminalLine(runtime: String, project: String) -> String {
@@ -143,8 +146,9 @@ struct PickupFallbackView: View {
     /// `block`: the panes' column. `strip`: buttons at the trailing edge of the
     /// ask pane's status strip. `link`: one blue text action ending a queue row's
     /// status line. `compact`: small pill buttons under the NOW text of the
-    /// sessions panel, with the paste line above them.
-    enum Style { case block, strip, link, compact }
+    /// sessions panel, with the paste line above them. `menu`: one ⋯ menu at the end of the request page's status
+    /// line (C10), with what the block says as its first, disabled line.
+    enum Style { case block, strip, link, compact, menu }
 
     let item: Case
     var style: Style = .block
@@ -192,6 +196,14 @@ struct PickupFallbackView: View {
                 .buttonStyle(.plain).pointerCursor()
             }
             .fixedSize()
+        case .menu:
+            HStack(spacing: 8) {
+                if copied { copiedNote(ClaudeCheck.copiedLine(for: item)) }
+                statusMenu {
+                    Text(ClaudeCheck.notCheckingShort)
+                    Button(copied ? "Copied" : ClaudeCheck.copyReplyLabel, action: copyReply)
+                }
+            }
         case .strip, .compact:
             VStack(alignment: .leading, spacing: 6) {
                 HStack(spacing: 8) {
@@ -278,6 +290,27 @@ struct PickupFallbackView: View {
             }
         case .link:
             linkAction(phase: phase)
+        case .menu:
+            HStack(spacing: 8) {
+                if copied { copiedNote(PickupFallback.copiedLine(runtime: runtime)) }
+                if phase == .sent { nudgedLabel }
+                statusMenu {
+                    if let help = blockHelp(mode: mode, phase: phase, runtime: runtime) { Text(help) }
+                    switch phase {
+                    case .ready: Button(Nudge.nudgeLabel(runtime: runtime), action: sendNudge)
+                    case .stillAsleep: Button(Nudge.nudgeAgainLabel, action: sendNudge)
+                    case .sent, .off: EmptyView()
+                    }
+                    Button(copied ? "Copied" : "Copy prompt", action: copy)
+                    if let terminal {
+                        Button("Show the terminal") { TerminalLocator.show(startingAt: terminal) }
+                    }
+                    if let failure = Nudge.failureLine(record?.failure) { Text(failure) }
+                    if mode == .live, terminal == nil {
+                        Text(PickupFallback.noTerminalLine(runtime: runtime, project: item.project))
+                    }
+                }
+            }
         case .compact:
             VStack(alignment: .leading, spacing: 6) {
                 if let line = compactLine(mode: mode, phase: phase) {
@@ -372,6 +405,35 @@ struct PickupFallbackView: View {
         .fixedSize()
         .help(Nudge.moreLabel)
         .accessibilityLabel(Nudge.moreLabel)
+    }
+
+    /// The status line's ⋯ menu (C10): the pickup fallback's actions, with its help as the first, disabled line.
+    private func statusMenu<Items: View>(@ViewBuilder _ items: () -> Items) -> some View {
+        Menu { items() } label: {
+            Image(systemName: "ellipsis")
+                .font(.system(size: 11, weight: .semibold))
+                .foregroundColor(Theme.Colors.ink2)
+                .frame(width: 26, height: 22)
+                .background(RoundedRectangle(cornerRadius: Theme.Radius.buttonSmall).fill(Theme.Colors.win))
+                .overlay(
+                    RoundedRectangle(cornerRadius: Theme.Radius.buttonSmall).stroke(Theme.Colors.line2, lineWidth: 1))
+                .contentShape(Rectangle())
+        }
+        .menuStyle(.button)
+        .buttonStyle(.plain).pointerCursor()
+        .menuIndicator(.hidden)
+        .fixedSize()
+        .help(PickupFallback.menuHelp)
+        .accessibilityLabel(PickupFallback.menuHelp)
+        .accessibilityIdentifier("request-status-more")
+    }
+
+    private func copiedNote(_ text: String) -> some View {
+        Text(text)
+            .knockTextStyle(Theme.Typography.sessionsFoot11w400)
+            .foregroundColor(Theme.Colors.ok)
+            .lineLimit(1)
+            .fixedSize()
     }
 
     /// The queue row's one link: Nudge, "Nudged · 12s", Nudge again (each with the

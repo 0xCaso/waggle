@@ -11,7 +11,8 @@ enum DoneNote {
     }
 }
 
-/// A read only fold for the decision a done note closes. Folded at first.
+/// A read only fold for the decision a note closes, folded at first (C2): one line, "You chose B · Show". Show opens
+/// the decision in place.
 struct EarlierDecisionFold<Content: View>: View {
     var title = "Earlier decision"
     @ViewBuilder let content: () -> Content
@@ -23,25 +24,25 @@ struct EarlierDecisionFold<Content: View>: View {
             Button {
                 withAnimation(reduceMotion ? nil : .easeOut(duration: 0.15)) { isOpen.toggle() }
             } label: {
-                HStack(spacing: 8) {
+                HStack(spacing: 5) {
                     Text(title)
-                        .knockTextStyle(Theme.Typography.rowLabel12_5w500)
-                        .foregroundColor(Theme.Colors.ink)
-                    Spacer(minLength: 0)
-                    Text(isOpen ? "Hide" : "Show")
+                        .knockTextStyle(Theme.Typography.recommendLine12w400)
+                        .foregroundColor(Theme.Colors.ink2)
+                        .lineLimit(1).truncationMode(.tail)
+                    Text("·")
                         .knockTextStyle(Theme.Typography.recommendLine12w400)
                         .foregroundColor(Theme.Colors.ink3)
-                    Image(systemName: isOpen ? "chevron.up" : "chevron.down")
-                        .font(.system(size: 9, weight: .semibold))
-                        .foregroundColor(Theme.Colors.ink3)
+                    Text(isOpen ? "Hide" : "Show")
+                        .knockTextStyle(Theme.Typography.recommendLine12w400)
+                        .foregroundColor(Theme.Colors.ink)
+                        .underline()
+                        .fixedSize()
                 }
-                .padding(.horizontal, 12).padding(.vertical, 8)
-                .background(Theme.Colors.list)
-                .overlay(RoundedRectangle(cornerRadius: Theme.Radius.recommendedBlock).stroke(Theme.Colors.line, lineWidth: 1))
-                .clipShape(RoundedRectangle(cornerRadius: Theme.Radius.recommendedBlock))
+                .help(title)
                 .contentShape(Rectangle())
             }
             .buttonStyle(.plain).pointerCursor()
+            .accessibilityLabel(title)
             .accessibilityValue(isOpen ? "open" : "folded")
             if isOpen { content() }
         }

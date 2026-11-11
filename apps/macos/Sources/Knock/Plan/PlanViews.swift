@@ -1,71 +1,5 @@
 import SwiftUI
 
-/// The stage track at the top of the right column: numbered circles joined by a line. A finished stage
-/// is a green tick, the current one a dark circle.
-struct PlanStageTrackView: View {
-    let stage: PlanStageName
-    var body: some View {
-        GeometryReader { proxy in
-            track(form: PlanTrackLayout.form(width: proxy.size.width, style: .numbered, stage: stage))
-                .frame(width: proxy.size.width, alignment: .leading)
-        }
-        .frame(height: 20)
-        .accessibilityElement(children: .ignore)
-        .accessibilityLabel("Stage: \(PlanText.title(stage))")
-    }
-
-    @ViewBuilder
-    private func track(form: PlanTrackLayout.Form) -> some View {
-        switch form {
-        case .full: fullTrack
-        case .circles: circlesTrack
-        case .line: PlanTrackLineView(stage: stage, font: Theme.Typography.recommendLine12w400)
-        }
-    }
-
-    private var fullTrack: some View {
-        HStack(spacing: 0) {
-            let items = PlanText.track(current: stage)
-            ForEach(Array(items.enumerated()), id: \.offset) { index, item in
-                step(index: index, name: item.name, state: item.state, showLabel: true)
-                if index < items.count - 1 { join(done: item.state == .done, minWidth: 8, padding: 6) }
-            }
-        }
-    }
-
-    /// All four circles; only the current stage keeps its label, the others say theirs on hover.
-    private var circlesTrack: some View {
-        HStack(spacing: 0) {
-            let items = PlanText.track(current: stage)
-            ForEach(Array(items.enumerated()), id: \.offset) { index, item in
-                step(index: index, name: item.name, state: item.state, showLabel: item.state == .current)
-                    .help(PlanText.title(item.name))
-                if index < items.count - 1 { join(done: item.state == .done, minWidth: 6, padding: 4) }
-            }
-        }
-    }
-
-    private func join(done: Bool, minWidth: CGFloat, padding: CGFloat) -> some View {
-        Rectangle()
-            .fill(done ? Theme.Colors.ok : Theme.Colors.line2)
-            .frame(height: 1)
-            .frame(minWidth: minWidth, maxWidth: .infinity)
-            .padding(.horizontal, padding)
-    }
-
-    private func step(index: Int, name: PlanStageName, state: PlanText.TrackState, showLabel: Bool) -> some View {
-        HStack(spacing: 6) {
-            PlanTrackDot(index: index, state: state, size: 20)
-            if showLabel {
-                Text(PlanText.title(name))
-                    .knockTextStyle(state == .current ? Theme.Typography.rowLabel12_5w500 : Theme.Typography.recommendLine12w400)
-                    .foregroundColor(state == .upcoming ? Theme.Colors.ink3 : Theme.Colors.ink)
-                    .fixedSize()
-            }
-        }
-    }
-}
-
 /// One numbered circle of a track: a tick when done, dark when current, an outline when upcoming.
 struct PlanTrackDot: View {
     let index: Int
@@ -202,29 +136,6 @@ extension PlanText {
             RoundFoldEntry(
                 question: AgentMarkdown.singleLine(round.question), answer: answerSummary(round),
                 revision: round.revision, seeLabel: PlanArtifacts.seeLabel(round), seq: round.seq)
-        }
-    }
-}
-
-/// The plan part of the right column: the track, the progress line and the folded answers.
-struct PlanColumnHeaderView: View {
-    let plan: PlanInfo
-    let rounds: [PlanRound]
-    var viewingRevision: Int? = nil
-    var onSeeRevision: ((Int) -> Void)? = nil
-
-    var body: some View {
-        VStack(alignment: .leading, spacing: 10) {
-            // The same "Round 2" mark as an update round (WAG-335).
-            if plan.rounds > 1 { RoundTagView(text: "Round \(plan.rounds)") }
-            PlanStageTrackView(stage: plan.stage.name)
-            Text(PlanText.progressLabel(plan.stage).uppercased())
-                .knockTextStyle(Theme.Typography.labelCaps10_5w600)
-                .foregroundColor(Theme.Colors.ink3)
-            let earlier = PlanText.earlierAnswered(rounds)
-            if !earlier.isEmpty {
-                RoundFoldView(entries: PlanText.foldEntries(earlier), viewingRevision: viewingRevision, onSeeRevision: onSeeRevision)
-            }
         }
     }
 }

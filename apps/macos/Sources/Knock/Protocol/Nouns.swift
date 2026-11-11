@@ -1,5 +1,83 @@
 import Foundation
 
+/// One pro or con of an option (task 11a): the agent's full sentence (`detail`) and, from a newer agent, a short gist
+/// of it (≤ 40 chars) for the card. On the wire a point is a plain string (an older agent: `detail` only) or an object
+/// `{ "gist": "...", "detail": "..." }`. Both decode into this one type; nothing the agent sent is dropped.
+struct OptionPoint: Codable, Equatable, Hashable, Sendable, ExpressibleByStringLiteral {
+    var gist: String?
+    var detail: String
+
+    init(gist: String? = nil, detail: String) {
+        let trimmed = gist?.trimmingCharacters(in: .whitespacesAndNewlines)
+        self.gist = (trimmed?.isEmpty ?? true) ? nil : trimmed
+        self.detail = detail
+    }
+
+    init(stringLiteral value: String) { self.init(detail: value) }
+
+    /// What the open card shows: the gist, else the full point (never a cut one).
+    var shown: String { gist ?? detail }
+    /// True when the card shows less than the full point: there is a gist and it is not the detail.
+    var hasMore: Bool { gist.map { $0 != detail.trimmingCharacters(in: .whitespacesAndNewlines) } ?? false }
+
+    private enum CodingKeys: String, CodingKey { case gist, detail }
+
+    init(from decoder: Decoder) throws {
+        if let plain = try? decoder.singleValueContainer().decode(String.self) {
+            self.init(detail: plain)
+            return
+        }
+        let c = try decoder.container(keyedBy: CodingKeys.self)
+        let gist = (try? c.decodeIfPresent(String.self, forKey: .gist)) ?? nil
+        let detail = (try? c.decodeIfPresent(String.self, forKey: .detail)) ?? nil
+        // Tolerant: an object with only a gist still shows that gist, as its full text.
+        guard let text = detail ?? gist else {
+            throw DecodingError.dataCorrupted(.init(codingPath: decoder.codingPath, debugDescription: "A point needs a gist or a detail"))
+        }
+        self.init(gist: detail == nil ? nil : gist, detail: text)
+    }
+
+    /// A point with no gist goes back out as a plain string, so an older ask encodes as before.
+    func encode(to encoder: Encoder) throws {
+        guard let gist else {
+            var single = encoder.singleValueContainer()
+            try single.encode(detail)
+            return
+        }
+        var c = encoder.container(keyedBy: CodingKeys.self)
+        try c.encode(gist, forKey: .gist)
+        try c.encode(detail, forKey: .detail)
+    }
+
+    /// Decodes a pros or cons list: each entry a string or a `{ gist, detail }` object. An entry of another shape is
+    /// skipped, so one bad entry does not drop the ask.
+    static func decodeList<K: CodingKey>(_ c: KeyedDecodingContainer<K>, forKey key: K) -> [OptionPoint] {
+        guard c.contains(key), (try? c.decodeNil(forKey: key)) != true, var list = try? c.nestedUnkeyedContainer(forKey: key) else {
+            return []
+        }
+        var out: [OptionPoint] = []
+        while !list.isAtEnd {
+            if let point = try? list.decode(OptionPoint.self) {
+                out.append(point)
+            } else if (try? list.decode(SkippedValue.self)) == nil {
+                break
+            }
+        }
+        return out
+    }
+
+    /// Decodes an option's facts: strings only, blank ones left out. Anything else reads as no facts.
+    static func decodeFacts<K: CodingKey>(_ c: KeyedDecodingContainer<K>, forKey key: K) -> [String] {
+        let raw = (try? c.decodeIfPresent([String].self, forKey: key)) ?? nil
+        return (raw ?? []).map { $0.trimmingCharacters(in: .whitespacesAndNewlines) }.filter { !$0.isEmpty }
+    }
+}
+
+/// Reads past one value of any shape in an unkeyed container.
+private struct SkippedValue: Decodable {
+    init(from decoder: Decoder) throws {}
+}
+
 // One choice the human can pick in reply to a case.
 // docs/protocol-mvp.md "MCP tools", knock_ask options.
 struct Option: Codable, Equatable, Sendable, Identifiable {
@@ -9,9 +87,11 @@ struct Option: Codable, Equatable, Sendable, Identifiable {
     /// The agent's short title (1 to 6 words) for the answer box row (HAIL-85).
     /// `nil` from an older agent: `displayTitle` derives one from `label`.
     var title: String? = nil
-    /// The good and the bad of this answer, one short line each (WAG-276).
-    var pros: [String] = []
-    var cons: [String] = []
+    /// The good and the bad of this answer (WAG-276): each a full point and, from a newer agent, its gist (task 11a).
+    var proPoints: [OptionPoint] = []
+    var conPoints: [OptionPoint] = []
+    /// Up to 3 short facts (cost, time, size) the card shows as chips under the title (task 11a). Empty from an older agent.
+    var facts: [String] = []
     /// What picking this option causes: what it touches, closes or needs next (WAG-360). Neutral lines.
     var effects: [String] = []
     /// The `name` of the artifact this option is about, and an anchor inside it (WAG-276). Selecting the
@@ -21,22 +101,36 @@ struct Option: Codable, Equatable, Sendable, Identifiable {
     /// This option's own reason, shown in the calm card's grey note when the agent sent one (WAG-281).
     var why: String? = nil
 
-    var hasPoints: Bool { !pros.isEmpty || !cons.isEmpty }
+    /// The full text of each pro and con, as every older view reads them.
+    var pros: [String] {
+        get { proPoints.map(\.detail) }
+        set { proPoints = newValue.map { OptionPoint(detail: $0) } }
+    }
+    var cons: [String] {
+        get { conPoints.map(\.detail) }
+        set { conPoints = newValue.map { OptionPoint(detail: $0) } }
+    }
+
+    var hasPoints: Bool { !proPoints.isEmpty || !conPoints.isEmpty }
 
     private enum CodingKeys: String, CodingKey {
-        case id, label, title, pros, cons, effects, anchor, why
+        case id, label, title, pros, cons, facts, effects, anchor, why
         case artifactRef = "artifact_ref"
     }
 
     init(
         id: String, label: String, title: String? = nil, pros: [String] = [], cons: [String] = [],
-        effects: [String] = [], artifactRef: String? = nil, anchor: String? = nil, why: String? = nil
+        effects: [String] = [], artifactRef: String? = nil, anchor: String? = nil, why: String? = nil,
+        facts: [String] = [], proPoints: [OptionPoint]? = nil, conPoints: [OptionPoint]? = nil
     ) {
+        // `pros` and `cons` are the plain-string shorthand for points with no gist; given with `proPoints` and
+        // `conPoints`, they come after them, so nothing passed in is dropped.
         self.id = id
         self.label = label
         self.title = title
-        self.pros = pros
-        self.cons = cons
+        self.proPoints = (proPoints ?? []) + pros.map { OptionPoint(detail: $0) }
+        self.conPoints = (conPoints ?? []) + cons.map { OptionPoint(detail: $0) }
+        self.facts = facts
         self.effects = effects
         self.artifactRef = artifactRef
         self.anchor = anchor
@@ -48,8 +142,9 @@ struct Option: Codable, Equatable, Sendable, Identifiable {
         id = try c.decode(String.self, forKey: .id)
         label = try c.decode(String.self, forKey: .label)
         title = try c.decodeIfPresent(String.self, forKey: .title)
-        pros = try c.decodeIfPresent([String].self, forKey: .pros) ?? []
-        cons = try c.decodeIfPresent([String].self, forKey: .cons) ?? []
+        proPoints = OptionPoint.decodeList(c, forKey: .pros)
+        conPoints = OptionPoint.decodeList(c, forKey: .cons)
+        facts = OptionPoint.decodeFacts(c, forKey: .facts)
         effects = try c.decodeIfPresent([String].self, forKey: .effects) ?? []
         artifactRef = try c.decodeIfPresent(String.self, forKey: .artifactRef)
         anchor = try c.decodeIfPresent(String.self, forKey: .anchor)
@@ -61,8 +156,9 @@ struct Option: Codable, Equatable, Sendable, Identifiable {
         try c.encode(id, forKey: .id)
         try c.encode(label, forKey: .label)
         try c.encodeIfPresent(title, forKey: .title)
-        if !pros.isEmpty { try c.encode(pros, forKey: .pros) }
-        if !cons.isEmpty { try c.encode(cons, forKey: .cons) }
+        if !proPoints.isEmpty { try c.encode(proPoints, forKey: .pros) }
+        if !conPoints.isEmpty { try c.encode(conPoints, forKey: .cons) }
+        if !facts.isEmpty { try c.encode(facts, forKey: .facts) }
         if !effects.isEmpty { try c.encode(effects, forKey: .effects) }
         try c.encodeIfPresent(artifactRef, forKey: .artifactRef)
         try c.encodeIfPresent(anchor, forKey: .anchor)
@@ -450,9 +546,12 @@ struct Message: Codable, Equatable, Sendable, Identifiable {
     let role: Role
     let text: String
     let createdAt: String
+    /// A progress note (waggle_update with `working: true`). Optional: a daemon that does not send it leaves it nil,
+    /// and the thread then knows a working note only by the case's `working_note`.
+    var working: Bool? = nil
 
     private enum CodingKeys: String, CodingKey {
-        case id, caseId = "case_id", role, text, createdAt = "created_at"
+        case id, caseId = "case_id", role, text, createdAt = "created_at", working
     }
 }
 
@@ -807,26 +906,41 @@ struct PlanRound: Codable, Equatable, Sendable, Identifiable {
 /// The answer sent back is always the label.
 struct PointOption: Codable, Equatable, Sendable, Identifiable, ExpressibleByStringLiteral {
     let label: String
-    let pros: [String]
-    let cons: [String]
+    let proPoints: [OptionPoint]
+    let conPoints: [OptionPoint]
     let effects: [String]
+    /// The option's fact chips (task 11a).
+    var facts: [String] = []
+    /// The item option's full text under its title, and its own reason (task 11b: nothing the agent sent is dropped).
+    /// Not on the wire.
+    var detail: String? = nil
+    var why: String? = nil
     /// The id of the item option this answer stands for (WAG-315); `nil` on an answer of the old questions
     /// shape, which goes back as its label. Not on the wire.
     var optionId: String? = nil
     var id: String { label }
-    var hasPoints: Bool { !pros.isEmpty || !cons.isEmpty || !effects.isEmpty }
+    var pros: [String] { proPoints.map(\.detail) }
+    var cons: [String] { conPoints.map(\.detail) }
+    var hasPoints: Bool { !proPoints.isEmpty || !conPoints.isEmpty || !effects.isEmpty }
 
     init(stringLiteral value: String) { self.init(label: value) }
 
-    init(label: String, pros: [String] = [], cons: [String] = [], effects: [String] = [], optionId: String? = nil) {
+    init(
+        label: String, pros: [String] = [], cons: [String] = [], effects: [String] = [], optionId: String? = nil,
+        proPoints: [OptionPoint]? = nil, conPoints: [OptionPoint]? = nil, facts: [String] = [],
+        detail: String? = nil, why: String? = nil
+    ) {
         self.label = label
-        self.pros = pros
-        self.cons = cons
+        self.proPoints = (proPoints ?? []) + pros.map { OptionPoint(detail: $0) }
+        self.conPoints = (conPoints ?? []) + cons.map { OptionPoint(detail: $0) }
         self.effects = effects
         self.optionId = optionId
+        self.facts = facts
+        self.detail = detail
+        self.why = why
     }
 
-    private enum CodingKeys: String, CodingKey { case label, pros, cons, effects }
+    private enum CodingKeys: String, CodingKey { case label, pros, cons, effects, facts }
 
     init(from decoder: Decoder) throws {
         if let plain = try? decoder.singleValueContainer().decode(String.self) {
@@ -836,23 +950,24 @@ struct PointOption: Codable, Equatable, Sendable, Identifiable, ExpressibleByStr
         let c = try decoder.container(keyedBy: CodingKeys.self)
         self.init(
             label: try c.decode(String.self, forKey: .label),
-            pros: try c.decodeIfPresent([String].self, forKey: .pros) ?? [],
-            cons: try c.decodeIfPresent([String].self, forKey: .cons) ?? [],
-            effects: try c.decodeIfPresent([String].self, forKey: .effects) ?? [])
+            effects: try c.decodeIfPresent([String].self, forKey: .effects) ?? [],
+            proPoints: OptionPoint.decodeList(c, forKey: .pros), conPoints: OptionPoint.decodeList(c, forKey: .cons),
+            facts: OptionPoint.decodeFacts(c, forKey: .facts))
     }
 
     /// A plain option goes back out as a string, an option with points as an object.
     func encode(to encoder: Encoder) throws {
-        if !hasPoints {
+        if !hasPoints && facts.isEmpty {
             var single = encoder.singleValueContainer()
             try single.encode(label)
             return
         }
         var c = encoder.container(keyedBy: CodingKeys.self)
         try c.encode(label, forKey: .label)
-        if !pros.isEmpty { try c.encode(pros, forKey: .pros) }
-        if !cons.isEmpty { try c.encode(cons, forKey: .cons) }
+        if !proPoints.isEmpty { try c.encode(proPoints, forKey: .pros) }
+        if !conPoints.isEmpty { try c.encode(conPoints, forKey: .cons) }
         if !effects.isEmpty { try c.encode(effects, forKey: .effects) }
+        if !facts.isEmpty { try c.encode(facts, forKey: .facts) }
     }
 }
 

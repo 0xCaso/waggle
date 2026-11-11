@@ -132,4 +132,27 @@ final class AgentMarkdownCopyTests: XCTestCase {
         XCTAssertFalse(AgentMarkdown.looksLikeCommand("git"))
         XCTAssertFalse(AgentMarkdown.looksLikeCommand("Two paragraphs\n\ngit status -s"))
     }
+
+    func testPipeTableBecomesATable() {
+        let text = "Intro\n| Model | Price |\n|---|:--:|\n| **Alpha** | 0,50 $ |\n| Beta | 0,40 $ | extra |\n| Gamma |\n\nAfter"
+        XCTAssertEqual(
+            AgentMarkdown.blocks(text),
+            [.paragraph("Intro"),
+             .table(headers: ["Model", "Price"], rows: [["**Alpha**", "0,50 $"], ["Beta", "0,40 $"], ["Gamma", ""]]),
+             .paragraph("After")])
+    }
+
+    func testPipesWithoutSeparatorStayText() {
+        XCTAssertEqual(AgentMarkdown.blocks("a | b\nc | d"), [.paragraph("a | b c | d")])
+    }
+
+    func testEscapedPipeStaysInTheCell() {
+        XCTAssertEqual(AgentMarkdown.tableCells("| a \\| b | c |"), ["a | b", "c"])
+    }
+
+    func testTableInPlainTextAndSingleLine() {
+        let text = "| A | B |\n|---|---|\n| 1 | 2 |"
+        XCTAssertEqual(AgentMarkdown.plainText(text), "| A | B |\n| 1 | 2 |")
+        XCTAssertFalse(AgentMarkdown.singleLine(text).contains("---"))
+    }
 }

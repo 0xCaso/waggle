@@ -29,22 +29,6 @@ struct ChipFlowLayout: Layout {
     }
 }
 
-/// WAG-364: the title of the group a step's item belongs to, as the small label over the step's question.
-struct GroupHeadingView: View {
-    let title: String?
-
-    var body: some View {
-        if let title = title.map(AgentMarkdown.singleLine), !title.isEmpty {
-            Text(title)
-                .knockTextStyle(Theme.AskDoc.Typography.monoLabel10_5)
-                .textCase(.uppercase)
-                .foregroundColor(Theme.Colors.ink3)
-                .fixedSize(horizontal: false, vertical: true)
-                .accessibilityLabel("Group: \(title)")
-        }
-    }
-}
-
 /// One question of the doc: "QUESTION n OF N", the title, the artifact cards, "How it works now" folded,
 /// "TO DECIDE · n" and a card per point.
 struct QuestionSectionView: View {
@@ -95,12 +79,12 @@ struct QuestionSectionView: View {
         .frame(maxWidth: .infinity, alignment: .leading)
     }
 
-    /// The card of each point (WAG-326): the pick, or before a pick the recommendation with its why. The same
-    /// card a single decision shows.
+    /// The card of each point (WAG-326), only where the rows do not already say it: an older ask's why and a
+    /// reply's suggested text (C3).
     @ViewBuilder
     private var picks: some View {
         VStack(alignment: .leading, spacing: 10) {
-            ForEach(doc.pointBlocks(of: question), id: \.swapId) { block in
+            ForEach(doc.pagePointBlocks(of: question), id: \.swapId) { block in
                 ItemBlockView(block: block)
             }
         }
@@ -182,7 +166,7 @@ struct ItemRowsView: View {
             }
             if point.select == .reply { replyField } else { answers }
             if !inBar, let question = doc.questions.first(where: { $0.id == questionId }) {
-                ForEach(doc.blocks(question: question, point: point, pointNumber: pointCount > 1 ? number : nil), id: \.swapId) {
+                ForEach(doc.pageBlocks(question: question, point: point, pointNumber: pointCount > 1 ? number : nil), id: \.swapId) {
                     ItemBlockView(block: $0)
                 }
             }
@@ -212,22 +196,32 @@ struct ItemRowsView: View {
         }
     }
 
-    /// The rows of the point: the same row a single decision has, with the lean and rule-out icons (WAG-326).
+    /// The rows of the point: the same cards a single decision has, with the lean and rule-out icons (WAG-326).
     private var answers: some View {
         let isMany = point.select == .many
-        return VStack(alignment: .leading, spacing: 8) {
-            if isMany && !isLocked {
-                PickSeveralHeaderView(
-                    count: draft.choices.count, max: point.max, isAtLimit: doc.isAtLimit(point, draft),
-                    canTickRecommended: doc.canTickRecommended(point, question: questionId),
-                    onTickRecommended: { doc.tickRecommended(question: questionId, point: point.id) },
-                    onClear: { doc.clearTicks(question: questionId, point: point.id) })
+        let rows = doc.optionRows(question: questionId, point: point)
+        let open = CalmOption.openPosition(
+            selected: rows.first(where: \.isSelected)?.position, recommended: rows.first(where: \.isRecommended)?.position,
+            isCheckbox: isMany)
+        return VStack(alignment: .leading, spacing: CalmOption.rowGap) {
+            Group {
+                if isMany && !isLocked {
+                    PickSeveralHeaderView(
+                        count: draft.choices.count, max: point.max, isAtLimit: doc.isAtLimit(point, draft),
+                        canTickRecommended: doc.canTickRecommended(point, question: questionId),
+                        onTickRecommended: { doc.tickRecommended(question: questionId, point: point.id) },
+                        onClear: { doc.clearTicks(question: questionId, point: point.id) })
+                } else {
+                    OptionListLabel()
+                }
             }
-            ForEach(doc.optionRows(question: questionId, point: point), id: \.position) { row in
+            .padding(.bottom, OptionCardStyle.labelGap - CalmOption.rowGap)
+            ForEach(rows, id: \.position) { row in
                 let label = point.choices[row.position - 1].label
                 CompactOptionRow(
-                    position: row.position, title: row.title, pros: row.pros, cons: row.cons, effects: row.effects, note: row.note,
-                    isSelected: row.isSelected, isRecommended: row.isRecommended, isLocked: isLocked,
+                    position: row.position, title: row.title, description: row.description, pros: row.pros, cons: row.cons,
+                    effects: row.effects, note: row.note, facts: row.facts, proPoints: row.proPoints, conPoints: row.conPoints,
+                    isSelected: row.isSelected, isRecommended: row.isRecommended, isLocked: isLocked, isOpen: open == row.position,
                     isLeaning: row.isLeaning, isRuledOut: row.isRuledOut,
                     onLean: row.canDiscuss ? { doc.toggleLean(label, question: questionId, point: point.id) } : nil,
                     onRuleOut: row.canDiscuss ? { doc.toggleRuleOut(label, question: questionId, point: point.id) } : nil,
@@ -236,6 +230,7 @@ struct ItemRowsView: View {
                 }
             }
         }
+        .animation(.easeOut(duration: CalmOption.openDuration), value: open)
     }
 
     /// A reply item: the person writes the answer. The agent's suggested reply shows as the placeholder.

@@ -12,48 +12,44 @@ struct AnsweredRowView: View {
     let onDismiss: () -> Void
 
     var body: some View {
-        ZStack(alignment: .topLeading) {
-            if isSelected {
-                Rectangle()
-                    .fill(Theme.Colors.ink)
-                    .frame(width: Theme.Spacing.selectionBarWidth)
-                    .frame(maxHeight: .infinity)
+        // Mockup B `.row.done`: the green dot, the title in 500 ink2 (two lines at most), then the meta line in
+        // quiet 12: "you → B · 16m" (the answer, then the age, which was on the right before).
+        HStack(alignment: .firstTextBaseline, spacing: Theme.AskDoc.Chrome.rowGap) {
+            RowDot(color: Theme.Colors.ok, pulses: false)
+                .sidebarDotOnBaseline()
+                .accessibilityHidden(true)
+            VStack(alignment: .leading, spacing: Theme.AskDoc.Chrome.rowMetaGap) {
+                Text(item.rowTitle)
+                    .knockTextStyle(Theme.AskDoc.Chrome.rowTitleDone)
+                    .foregroundColor(Theme.Colors.ink2)
+                    .lineLimit(2)
+                    .truncationMode(.tail)
+                    .fixedSize(horizontal: false, vertical: true)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                Text(metaLine)
+                    .knockTextStyle(Theme.AskDoc.Chrome.rowMeta)
+                    .foregroundColor(Theme.AskDoc.Colors.quiet)
+                    .lineLimit(1)
+                    .truncationMode(.middle)
+                    .help(optional: ageTooltip)
             }
-            HStack(alignment: .top, spacing: 10) {
-                // A still faint grid: dozens of rows must not each animate.
-                PixelStatusGrid(pattern: AgentStatus.closed.pattern, color: AgentStatus.closed.color, cell: 2.5)
-                    .padding(.top, 3)
-                    .accessibilityHidden(true)
-                VStack(alignment: .leading, spacing: 2) {
-                    HStack(alignment: .firstTextBaseline, spacing: 8) {
-                        Text(item.rowTitle)
-                            .knockTextStyle(Theme.AskDoc.Typography.answeredRow12_5)
-                            .foregroundColor(Theme.AskDoc.Colors.quiet)
-                            .lineLimit(1)
-                            .truncationMode(.tail)
-                        Spacer(minLength: 0)
-                        Text(ageLabel)
-                            .knockTextStyle(Theme.Typography.monoMetaRow10_5w400)
-                            .foregroundColor(Theme.Colors.ink3)
-                            .fixedSize(horizontal: true, vertical: false)
-                            .help(optional: ageTooltip)
-                    }
-                    if let summary = item.answeredSummaryLine {
-                        Text(summary)
-                            .knockTextStyle(Theme.Typography.caption11_5w400)
-                            .foregroundColor(Theme.Colors.ink3)
-                            .lineLimit(1)
-                            .truncationMode(.tail)
-                    }
-                }
-            }
-            .padding(EdgeInsets(top: 8, leading: 18, bottom: 8, trailing: 18))
         }
+        .padding(Theme.AskDoc.Chrome.rowInset)
         .frame(maxWidth: .infinity, alignment: .leading)
-        .background(isSelected ? Theme.Colors.win : Color.clear)
+        .background(isSelected ? Theme.AskDoc.Chrome.selectedFill : Color.clear)
+        .overlay(alignment: .leading) {
+            if isSelected {
+                Rectangle().fill(Theme.AskDoc.Chrome.selectedBar).frame(width: Theme.AskDoc.Chrome.selectedBarWidth)
+            }
+        }
         .contextMenu {
             Button("Dismiss", action: onDismiss)
         }
+    }
+
+    /// "you → B · 16m": the answer line and the age, the age alone when there is no answer line.
+    private var metaLine: String {
+        [item.answeredSummaryLine, ageLabel.isEmpty ? nil : ageLabel].compactMap { $0 }.joined(separator: " · ")
     }
 }
 

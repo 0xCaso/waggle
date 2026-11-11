@@ -205,7 +205,7 @@ Input:
   "select": "\"one\" | \"many\", optional, default \"one\" (HAIL-123)",
   "max": "integer >= 1, optional, only with select many",
   "options": [{ "id": "a", "label": "Compact: one screen, fewer fields", "title": "Compact",
-                "pros": ["Fast to fill in"], "cons": ["Hides billing details"],
+                "pros": ["Fast to fill in"], "cons": ["Hides billing details"], "facts": ["~2 h"],
                 "artifact_ref": "Flow diagram", "anchor": "step-2" }],
   "artifact": { "type": "screenshot", "path": "./shots/a.png", "name": "Home screen" }
              | { "type": "html_bundle", "dir": "./proto", "entry": "index.html",
@@ -323,11 +323,23 @@ a path. Paths work as before; give one form, never both.
 `waggle_update` takes the same forms. See "Artifacts" for the limits and "Topic outside git" below.
 
 Option fields (WAG-276, additive: an agent that sends only `id` and `label` is unaffected). `Option` is
-`{ id, label, title?, pros?, cons?, effects?, artifact_ref?, anchor? }`, used by `waggle_ask` and `waggle_update`
-options, `Case.options`, `Case.first_options` and `PlanRound.options`. The daemon stores the option set as
+`{ id, label, title?, pros?, cons?, effects?, facts?, artifact_ref?, anchor? }`, used by `waggle_ask` and `waggle_update`
+options (top level and inside `items`), `Case.options`, `Case.first_options`, `PlanRound.options` and `Item.options`. The daemon stores the option set as
 JSON, so the new fields come back unchanged from `cases.get` and `cases.list`.
-- `pros`, `cons`: `string[]`, at most 5 items, each trimmed, 1 to 160 characters. Same meaning as the
-  pros and cons of a point option (WAG-257). Plan rounds should send them with every option.
+- `pros`, `cons`: at most 5 entries each. Same meaning as the pros and cons of a point option (WAG-257).
+  Plan rounds should send them with every option. An entry is either a string (trimmed, 1 to 160
+  characters) or, for the option card "Gist and facts" (docs/decisions/2026-11-10-option-card-gist-and-facts.md),
+  an object `{ "gist": string, "detail": string }`: `gist` trimmed, 1 to 40 characters, the short version on
+  the card; `detail` trimmed, 1 to 160 characters, the full sentence the app shows one click away. Both
+  keys are required in the object. Strings and objects may mix in one list. The daemon stores and serves
+  each entry exactly as sent (no normalisation): the app must decode an entry as `string | { gist, detail }`,
+  and treat a string as a point with no gist (shown in full). Both texts may carry source markers.
+  Example on the wire: `"pros": ["Fast to fill in", { "gist": "One file", "detail": "Changes only src/store.ts, no migration" }]`.
+- `facts`: `string[]`, at most 3 items, each trimmed, 1 to 24 characters. Short neutral facts the app shows
+  as chips under the option title, for example `"~2 h"`, `"no migration"`, `"src/store.ts"`. A point option
+  of a `questions` step takes `facts` too. Additive: an ask without it is stored and sent as before.
+  A fourth fact, an empty fact, a fact over 24 characters or a gist over 40 is refused with a field
+  message (for example `options.0.facts: an option has at most 3 facts`).
 - `effects` (WAG-360): `string[]`, at most 3 items, each trimmed, 1 to 160 characters. What picking the
   option causes: what it touches, what it closes, what it needs next. Neutral lines, not judgements (a
   good or bad point stays in `pros` or `cons`). The app shows them as "If you pick this" below Good and
@@ -395,7 +407,8 @@ Field guidance (HAIL-37): the tool schema the shim publishes for `tools/list` ca
 
 Agent text (`need`, `why`, `recommendation_why`, and the `message` of `waggle_update`) renders as
 safe markdown in the app (operator decision 29 Sep, HAIL-70): paragraphs, bullet and numbered lists,
-bold, italics and inline code. No links (they show as plain text), no images, no HTML. The app never
+bold, italics, inline code and pipe tables (a header row, a `---` row, then body rows cut or padded to the header's cells;
+docs/decisions/2026-11-11-tables-in-agent-text.md). No links (they show as plain text), no images, no HTML. The app never
 opens or loads anything from this text. The queue row and notifications show one plain line with the
 markers stripped.
 
@@ -491,8 +504,9 @@ terminal wording stays for Claude Code and Codex.
 #### Questions (multi-question decision request, WAG-257)
 
 `waggle_ask` may carry `questions[]` (1 to 12; not with `options`). Each question is
-`{ id, title, now?: string[], points: [{ id, text, options?: (string | { label, pros?: string[], cons?: string[], effects?: string[] })[] }], artifact_ref?, variants?: [{ id, label }], variant_label? }`.
-A point option is a string, or an object with `label` and up to 5 `pros` and 5 `cons`. Old string options stay
+`{ id, title, now?: string[], points: [{ id, text, options?: (string | { label, pros?: Point[], cons?: Point[], effects?: string[], facts?: string[] })[] }], artifact_ref?, variants?: [{ id, label }], variant_label? }`.
+A point option is a string, or an object with `label` and up to 5 `pros` and 5 `cons` (a `Point` is a string
+or `{ gist, detail }`, see "Option fields"). Old string options stay
 valid. The answer's `choice` is always the option label. Ids are unique in the request (point ids in their
 question). A point with no `options` takes `Yes`, `No` or `Talk with the team`. `artifact_ref` is reserved: every
 question shows the ask's own artifact today, and the app ignores the field. The daemon stores the list in
@@ -616,7 +630,7 @@ An agent cites where a claim comes from. "Agent cites, Waggle checks." Code: `da
 - `excerpt`: optional. The daemon cuts a text over 600 characters to 599 plus `…`. It never refuses the ask.
 - `ref`: optional object of optional strings: `path`, `line`, `command`, `url`, `tool`, `case_id`.
 
-**Marker.** Any agent text field (need, why, item question, option label, pros, cons, recommendation_why, the
+**Marker.** Any agent text field (need, why, item question, option label, pros, cons (both the gist and the detail of an object entry), recommendation_why, the
 update message) may hold `[[s:ID]]` or `[[s:ID,ID2]]` after a sentence. The daemon keeps a marker whose ids all name
 a cited source. It removes an unknown id from the stored text and adds one warning line to the tool result
 (`words_warning`, the same channel as the length warnings). More than 8 markers in one ask gives a warning, not a refusal.
@@ -713,7 +727,7 @@ comments. They are input, not a reply. See "Sharing a case".
 ### `waggle_update`
 
 Input `{ "case_id": "...", "message": "string", "artifact": <same as waggle_ask>?, "artifacts": <same as waggle_ask>?, "items": Item[]?, "stage": PlanStage?, "options": [{ id,
-label, title?, pros?, cons?, artifact_ref?, anchor? }]?, "recommendation": "string"?, "recommendation_why": "string"?, "done": boolean?, "reply_to_comment": { comment_id, body }? }`. Adds an agent
+label, title?, pros?, cons?, effects?, facts?, artifact_ref?, anchor? }]?, "recommendation": "string"?, "recommendation_why": "string"?, "done": boolean?, "reply_to_comment": { comment_id, body }? }`. Adds an agent
 message and, when an artifact is given, a new revision. `artifacts` (1 to 8, same rules as on `waggle_ask`: not
 with `artifact`, each with its own name) adds one revision for each, in the order given. The input is strict: an
 unknown field is rejected with "waggle_update has no field "x". To attach, use artifact (one) or artifacts (a
@@ -730,7 +744,7 @@ carries its own". `stage` needs no options and no plan case (see "Plan asks"). A
 options or items.
 
 New proposal with an update (HAIL-108, operator decision D):
-- `options` follows the waggle_ask rules (same `Option` shape with `pros`, `cons`, `artifact_ref` and `anchor`, `title` at most 80 characters, at least
+- `options` follows the waggle_ask rules (same `Option` shape with `pros`, `cons`, `effects`, `facts`, `artifact_ref` and `anchor`, `title` at most 80 characters, at least
   one option). When present, `recommendation` is required and must equal one new option `id`.
   `recommendation_why` is optional, with the same 300-character limit as waggle_ask. `recommendation`
   or `recommendation_why` without `options` is rejected. `select` and `max` (HAIL-123) follow the
@@ -802,6 +816,9 @@ Progress note (WAG-377, operator decision, case c_840b440d):
   is a progress note and the human has sent no reply since. It is null after any real round (an
   update without `working`, with items or with an artifact), a reply or a dismissal. An old app ignores
   the field.
+- `Message.working` (`true` or absent, additive) marks each stored progress note, not only the newest
+  one, so the Conversation tab can fold back-to-back notes into "Worked: N steps". Other messages omit
+  it. An old app ignores the field.
 - The app shows a pulsing "Working on it" line with the note on the agent side, and folds the earlier
   options (collapsed, not deleted). The human can still type a free reply.
 - The shim's `waggle_update` result for a progress note tells the agent to keep working and not to
@@ -1218,7 +1235,7 @@ The unified diff has 2 lines of context. The `waggle_guide` topic `after-the-rep
 "When the person edits your document, use their version as the base."
 
 Safe markdown still holds: the app saves only the supported markdown (headings, bold, italics,
-inline code, lists, paragraphs). It never writes a link, an image or HTML into the text.
+inline code, lists, paragraphs, pipe tables). It never writes a link, an image or HTML into the text.
 
 ### Errors that say what to tell the user (HAIL-38)
 

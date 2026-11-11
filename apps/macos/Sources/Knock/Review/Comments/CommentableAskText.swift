@@ -15,6 +15,8 @@ struct CommentableAskText: View {
     @ObservedObject var hub: AskCommentsHub
 
     @Environment(\.sourcesHub) private var sourcesHub
+    @Environment(\.askParagraphGap) private var paragraphGap
+    @Environment(\.askNumberColor) private var numberColor
     /// Where the text sits in the sources host, in a box rather than a `@State` point: it moves on every frame of
     /// a scroll, and a state write there re-rendered every text and laid out the whole window per frame
     /// (waggle-releases#9). The text view reads it straight from the box.
@@ -24,6 +26,8 @@ struct CommentableAskText: View {
     private func makeFace() -> AskTextFace {
         var face = AskTextFace(style: style, weight: weight, color: color)
         face.mono = mono
+        face.paragraphGap = paragraphGap
+        face.numberColor = numberColor.map { NSColor($0) }
         return face
     }
 

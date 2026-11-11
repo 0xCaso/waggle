@@ -76,7 +76,9 @@ struct ReviewWorkspaceView: View {
     @State private var sourcesHub: SourcesHub
     @State private var askHub: AskCommentsHub
     /// The question column's width, for the header segment above it (HAIL-91).
-    @State private var askColumnWidth: CGFloat = 430
+    @State private var askColumnWidth: CGFloat = AskLayout.columnWidth
+    /// The width of the artifact and the column together, for the column's width rule (C9).
+    @State private var stageWidth: CGFloat = 1440
 
     init(
         detail: CaseDetail, now: Date, client: KnockClient, sendCoordinator: SendCoordinator,
@@ -178,8 +180,10 @@ struct ReviewWorkspaceView: View {
                             viewModel: viewModel, isLocked: isAnswerLocked,
                             onOpenWindow: openTabInWindow, onOpenBrowser: openTabInBrowser)
                         rightColumn
+                            .frame(width: columnWidth)
                     }
                     .frame(maxWidth: .infinity, maxHeight: .infinity)
+                    .onGeometryChange(for: CGFloat.self, of: { $0.size.width }) { stageWidth = $0 }
                 }
             }
         }
@@ -267,6 +271,9 @@ struct ReviewWorkspaceView: View {
         }
     }
 
+    /// The column's width (C9): 440 pt, narrower when the artifact would get under 60 % of the window.
+    private var columnWidth: CGFloat { AskLayout.fullSizeColumnWidth(window: stageWidth) }
+
     /// The case's sharing state (WAG-387): the header button and the team's comments read the same model.
     private var sharing: SharingModel { SharingModels.model(for: detail.case.id, client: client) }
 
@@ -294,12 +301,14 @@ struct ReviewWorkspaceView: View {
                             onOpenWindow: openTabInWindow, onOpenBrowser: openTabInBrowser)
                 if !fold.isAskFolded {
                     rightColumn
+                        .frame(width: columnWidth)
                         .onGeometryChange(for: CGFloat.self, of: { $0.size.width }) { askColumnWidth = $0 }
                 } else {
                     AskFoldedStripView(label: AskStripCopy.label(for: detail.case), onUnfold: fold.toggleAsk)
                 }
             }
             .frame(maxWidth: .infinity, maxHeight: .infinity)
+            .onGeometryChange(for: CGFloat.self, of: { $0.size.width }) { stageWidth = $0 }
         }
         .background(
             EscapeKeyCatcher(
@@ -383,7 +392,8 @@ struct ReviewWorkspaceView: View {
                 store: viewModel.commentsStore, composer: sendFlow.composer, sendFlow: sendFlow,
                 shared: sharing,
                 tab: viewModel.tab, onSelectTab: { viewModel.selectTab($0) },
-                context: viewModel.commentViewContext, onShow: { viewModel.showComment($0) }
+                context: viewModel.commentViewContext, onShow: { viewModel.showComment($0) },
+                thread: detail.threadModel(artifactKind: nil), caseId: detail.case.id
             )
         case .interact:
             askColumn(sentCard: nil)
@@ -397,19 +407,29 @@ struct ReviewWorkspaceView: View {
             sendPrompt: LateCommentsSend.toSession(client: client, item: detail.case), showsChangeAnswer: false))
     }
 
-    /// The one page's answer area after Send: the "You picked" card, or the failed banner with
-    /// its Retry. Never a second status banner beside it.
+    /// The one page's answer area after Send: the "You picked" card, or the failed status line (C10) with
+    /// its Retry. Never a second status beside it.
     private var sentCard: AnyView {
-        if detail.case.replyLockState == .failed {
-            return AnyView(
-                DeliveryOutcomeBanner(
-                    state: .failed(replyId: detail.case.latestReplyId ?? ""), onRetry: onRetryDelivery,
-                    copyLine: DeliveryOutcomeBanner.copyLine(for: detail.case), caseId: detail.case.id))
+        if detail.case.replyLockState == .failed,
+           let line = RequestStatus.line(RequestStatus.Input(item: detail.case, confirmed: deliveryStatus)) {
+            return AnyView(RequestStatusLineView(
+                line: line.keeping(only: [.retry, .copyAnswer]), item: detail.case, onAction: performStatus))
         }
         return AnyView(
             SentAnswerCardView(
                 item: detail.case, reply: detail.replies.first { $0.id == detail.case.latestReplyId }, delivery: deliveryStatus, settled: settled,
                 onChangeAnswer: sendFlow.beginChangingAnswer, onOpenCase: onOpenCase, lateBar: lateBar))
+    }
+
+    /// A status line button in full size: Retry, Copy answer, Open the follow-up (the rest have no place here).
+    private func performStatus(_ action: RequestStatus.Action) {
+        switch action {
+        case .retry: onRetryDelivery()
+        case .copyAnswer: ClaudeCheck.copyReply(for: detail.case)
+        case .changeAnswer: sendFlow.beginChangingAnswer()
+        case .openFollowUp(let id): onOpenCase(id)
+        case .viewReview, .openReview, .continueInNewSession, .gotIt: break
+        }
     }
 
     private func askColumn(sentCard: AnyView?) -> some View {
@@ -431,6 +451,7 @@ struct ReviewWorkspaceView: View {
                 revisionArrival: viewModel.revisionArrival,
                 now: now,
                 thread: detail.threadModel(artifactKind: nil).map { ($0, detail.threadTurn($0, settled: settled)) },
+                conversation: { let c = detail.conversationModel(); return (c, detail.threadTurn(c, settled: settled)) }(),
                 onViewPriorRevision: { viewModel.viewOlderRevision() },
                 onSeePlanRevision: { viewModel.viewRevision($0) },
                 viewingRevision: viewModel.olderRevisionDisplay?.revision,
@@ -442,10 +463,6 @@ struct ReviewWorkspaceView: View {
                 onSelectTab: { viewModel.selectTab($0) },
                 sentCard: sentCard,
                 earlierAsks: earlierAsks,
-                crumb: AskCrumbs.screenLine(
-                    task: detail.task, sessionTitle: sessionTitle, runtime: detail.case.runtimeLabel,
-                    askNumber: sessionContext?.askNumber, doc: askDoc.doc),
-                crumbHelp: AskCrumbs.folderHelp(detail.task),
                 askDoc: askDoc,
                 shared: sharing
         )

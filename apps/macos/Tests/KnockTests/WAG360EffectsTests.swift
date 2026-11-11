@@ -27,9 +27,8 @@ struct WAG360EffectsTests {
         #expect(back.effects == ["x"])
     }
 
-    @Test func theCountTipReadsOneEffectOrN() {
-        #expect(CalmOption.effectsTip(1) == "1 effect")
-        #expect(CalmOption.effectsTip(3) == "3 effects")
+    @Test func effectsCountInTheRestOfAClosedCard() {
+        #expect(CalmOption.teaser(pros: ["a"], cons: ["b"], effects: ["x", "y", "z"])?.more == 3)
         #expect(CalmOption.effectsTitle == "If you pick this")
     }
 

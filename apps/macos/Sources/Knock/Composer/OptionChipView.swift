@@ -42,6 +42,8 @@ struct OptionChipView: View {
     var isRuledOut = false
     var onLean: (() -> Void)? = nil
     var onRuleOut: (() -> Void)? = nil
+    /// The card shows its details in place: the pick, else the recommendation (`CalmOption.openPosition`).
+    var isOpen = false
     let onSelect: () -> Void
 
     /// Rows are the calm card's compact rows everywhere (WAG-303); a pick-many row is the same row with a check box
@@ -74,7 +76,7 @@ struct OptionChipView: View {
                 option: option, position: position, isSelected: isSelected, isRecommended: isRecommended,
                 isLocked: isLocked, recommendationWhy: recommendationWhy,
                 isLeaning: isLeaning, isRuledOut: isRuledOut, onLean: onLean, onRuleOut: onRuleOut,
-                isCheckbox: isCheckbox, isLimitDimmed: isLimitDimmed, onSelect: onSelect)
+                isCheckbox: isCheckbox, isLimitDimmed: isLimitDimmed, isOpen: isOpen, onSelect: onSelect)
             // The older set is the same bar row, dimmed (WAG-336).
             .opacity(isFirstSetRow && !isSelected ? 0.6 : 1)
         } else {
@@ -170,29 +172,15 @@ struct OptionChipView: View {
     }
 }
 
-/// The check box of a select "many" row (Pen `mL74C`): 17 pt, radius 5, an ink fill with a white
-/// tick when ticked, a 1 pt line2 stroke when not.
+/// The check box of a select "many" row: the option card's box (mockup `.box`: 16, radius 4, 1.5 `line2`; ticked
+/// `honey600` with a white ✓ 11), in a 22 pt slot like the number badge.
 struct CheckBoxMark: View {
     let isTicked: Bool
-    static let size: CGFloat = 17
-    static let radius: CGFloat = 5
+    static let size = OptionCardStyle.markSize
+    static let radius = OptionCardStyle.boxRadius
 
     var body: some View {
-        RoundedRectangle(cornerRadius: Self.radius)
-            .fill(isTicked ? Theme.Colors.honey500 : Color.clear)
-            .frame(width: Self.size, height: Self.size)
-            .overlay(
-                RoundedRectangle(cornerRadius: Self.radius)
-                    .stroke(isTicked ? Color.clear : Theme.Colors.line2, lineWidth: 1.5)
-            )
-            .overlay {
-                if isTicked {
-                    Image(systemName: "checkmark")
-                        .font(.system(size: 9, weight: .bold))
-                        .foregroundColor(Theme.Colors.ink)
-                }
-            }
-            // Centres the 17 pt box on the first title line, in a 22 pt slot like the number badge.
+        OptionMark(isCheckbox: true, isOn: isTicked)
             .frame(width: 22, height: 22)
     }
 }

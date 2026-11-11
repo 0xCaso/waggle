@@ -41,12 +41,16 @@ extension QuestionPoint {
     /// A point for an item. The answers are the item's options by their short title; a reply item has none.
     init(item: Item, fallbackText: String) {
         var seen: [String: Int] = [:]
-        let options: [PointOption]? = item.select == .reply ? nil : item.options.map { option in
+        let options: [PointOption]? = item.select == .reply ? nil : item.options.enumerated().map { index, option in
             // Two options with one title would be one answer: the later one gets a number.
             let title = option.displayTitle
             seen[title, default: 0] += 1
             let label = seen[title] == 1 ? title : "\(title) (\(seen[title]!))"
-            return PointOption(label: label, pros: option.pros, cons: option.cons, effects: option.effects, optionId: option.id)
+            // The full text, the facts and the gists go with the answer, so the card drops nothing the agent sent.
+            return PointOption(
+                label: label, effects: option.effects, optionId: option.id,
+                proPoints: option.proPoints, conPoints: option.conPoints, facts: option.facts,
+                detail: CalmOption.description(of: option, position: index + 1), why: option.why)
         }
         let recommended: [String]
         if item.select == .reply {

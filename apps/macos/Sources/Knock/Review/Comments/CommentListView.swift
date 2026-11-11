@@ -14,6 +14,8 @@ struct CommentListView: View {
     var showsEmptyState = true
     /// WAG-397: the shared case, so the team thread joins the list. Nil: only your notes, as before.
     var sharing: SharingModel? = nil
+    /// The empty state's line; a request with no artifact passes `CommentListModel.textAskEmptyLine`.
+    var emptyLine: String = CommentListModel.emptyLine
 
     var body: some View {
         let list = CommentListModel.make(model: store.model, context: context, isScreenshotsCase: store.isScreenshotsCase)
@@ -22,7 +24,7 @@ struct CommentListView: View {
         VStack(alignment: .leading, spacing: 12) {
             if list.isEmpty && threads.isEmpty && store.draftPin == nil {
                 if showsEmptyState {
-                    Text(shared ? MergedComments.sharedEmptyLine : CommentListModel.emptyLine)
+                    Text(shared ? MergedComments.sharedEmptyLine : emptyLine)
                         .knockTextStyle(Theme.Typography.body13w400)
                         .foregroundColor(Theme.Colors.ink2)
                 }

@@ -71,7 +71,7 @@ struct AnsweredAskColumnView: View {
                 .frame(maxWidth: .infinity, alignment: .leading)
             }
         }
-        .frame(minWidth: 340, idealWidth: 430, maxWidth: 430)
+        .frame(minWidth: AskLayout.fullSizeMinColumnWidth, idealWidth: AskLayout.columnWidth, maxWidth: AskLayout.columnWidth)
         .frame(maxHeight: .infinity)
         .background(Theme.Colors.win)
     }
@@ -84,10 +84,15 @@ struct AnsweredAskColumnView: View {
         case .delivered:
             deliveredBanner
         case .failed:
-            DeliveryOutcomeBanner(
-                state: .failed(replyId: knockCase.latestReplyId ?? ""), onRetry: onRetryDelivery,
-                copyLine: DeliveryOutcomeBanner.copyLine(for: knockCase), caseId: knockCase.id
-            )
+            if let line = RequestStatus.line(RequestStatus.Input(item: knockCase)) {
+                RequestStatusLineView(line: line.keeping(only: [.retry, .copyAnswer]), item: knockCase) { action in
+                    switch action {
+                    case .retry: onRetryDelivery()
+                    case .copyAnswer: ClaudeCheck.copyReply(for: knockCase)
+                    default: break
+                    }
+                }
+            }
         case .editable:
             EmptyView()
         }

@@ -41,12 +41,6 @@ struct UpdateCardTests {
         #expect(UpdateCardContent.content(thread: thread(steps), hasArtifact: true, isColumnVisible: false) == nil)
     }
 
-    @Test func columnVisibility() {
-        // WAG-299: the column is out of sight until opened, on a wide and on a narrow pane alike.
-        #expect(!ConversationSplit.isShown(hasThread: true, isOpen: false, isBothFolded: false))
-        #expect(ConversationSplit.isShown(hasThread: true, isOpen: true, isBothFolded: false))
-    }
-
     @Test func aMessageThatIsACommandBecomesOnlyABlock() {
         let cmd = "read -rs \"K?Key: \" && printf 'X=%s\\n' \"$K\" >> .env"
         let parts = UpdateCardContent.split(cmd)

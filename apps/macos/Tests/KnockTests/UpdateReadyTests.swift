@@ -134,8 +134,8 @@ struct UpdateToastStaysTests {
                 latestReplyChoice: "a", sessionState: state,
                 createdAt: "2026-09-26T10:00:00.000Z", updatedAt: "2026-09-26T10:00:00.000Z")
         }
-        #expect(DeliveryOutcomeBanner.copyLine(for: item(.ended)) != nil)
-        #expect(DeliveryOutcomeBanner.copyLine(for: item(.live)) == nil)
-        #expect(DeliveryOutcomeBanner.copyLine(for: item(nil)) == nil)
+        #expect(RequestStatus.copyLine(for: item(.ended)) != nil)
+        #expect(RequestStatus.copyLine(for: item(.live)) == nil)
+        #expect(RequestStatus.copyLine(for: item(nil)) == nil)
     }
 }

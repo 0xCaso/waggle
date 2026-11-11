@@ -248,7 +248,10 @@ export const ItemInput = z
       .describe("What this item asks. Optional with one item (the need stands in). Required with more than one."),
     select: z.enum(["one", "many", "reply"]).optional().describe(ITEM_SELECT_DESCRIPTION),
     max: z.number().int().min(1).optional().describe(MAX_DESCRIPTION),
-    options: z.array(Option).min(2).max(12).optional().describe("2 to 12 options. Leave out with select reply."),
+    options: z.array(Option).min(2).max(12).optional().describe(
+      "2 to 12 options. Leave out with select reply. Same option fields as waggle_ask options: title, label, " +
+        "pros and cons (strings or { gist, detail }), facts (up to 3, at most 24 characters each), effects, artifact_ref, anchor.",
+    ),
     recommendation: RecommendationField.optional().describe(
       'The id of the option you recommend (a list of ids with select "many"). With select reply: the answer as the human would write it, or leave it out when only the human knows it. Never an instruction to the human.',
     ),
@@ -419,7 +422,9 @@ export const KnockAskInput = z
           "full option in label (shown in full in the Decision section). Waggle numbers them for the human (1, 2, 3…) and shows " +
           "that number, not your label's own prefix: do not write \"A · \", \"1. \" or similar " +
           "before a label, since the human would then see it numbered twice. " +
-          "An option may also carry pros and cons (up to 5 short lines each), effects (up to 3 short lines " +
+          "An option may also carry pros and cons (up to 5 short lines each; a line is a string, or " +
+          "{ gist, detail } with a gist of at most 40 characters for the card and the full sentence in detail), " +
+          "facts (up to 3 short neutral chips, at most 24 characters each, like \"~2 h\" or \"no migration\"), effects (up to 3 short lines " +
           "that say what the choice touches, closes or needs next; neutral facts, not good or bad points), and artifact_ref (the name of " +
           "an artifact you sent) with anchor (an element id in it) to link the option to that artifact.",
       ),
@@ -579,7 +584,7 @@ export const KnockUpdateInput = z
             "short title (1 to 6 words) and the full option in label, no \"A · \" or \"1. \" " +
             "prefix. These become the options the human answers with; the first options stay " +
             "available under \"First options\". Send a recommendation with them. Options may carry " +
-            "pros, cons, effects, artifact_ref and anchor, as in waggle_ask.",
+            "pros, cons (strings or { gist, detail }), facts, effects, artifact_ref and anchor, as in waggle_ask.",
         ),
       recommendation: RecommendationField.optional().describe(
         'The id of the option you recommend. Required with options. With select "many", a list of ids is allowed.',

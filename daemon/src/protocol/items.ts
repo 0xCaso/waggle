@@ -123,7 +123,7 @@ function itemFromInput(input: ItemInput, fallback: { recommendation?: string | s
 // A point option (a string, or { label, pros?, cons? }) as an Option with a derived id o1, o2, ...
 function optionFromPoint(o: PointOption, n: number): Option {
   if (typeof o === "string") return { id: `o${n}`, label: o };
-  return compact({ id: `o${n}`, label: o.label, pros: o.pros, cons: o.cons, effects: o.effects });
+  return compact({ id: `o${n}`, label: o.label, pros: o.pros, cons: o.cons, effects: o.effects, facts: o.facts });
 }
 
 // One item per point, grouped by question. The item id is "<question id>/<point id>" (up to 81 characters).
@@ -279,6 +279,11 @@ export function normalizeUpdate(input: KnockUpdateInput): NormalizedRound {
 
 // --- Items back to the legacy columns (the dual write, spec 2.6) ---
 
+// Whether an option carries anything a plain point-option string cannot hold.
+function hasPointFields(o: Option): boolean {
+  return o.pros !== undefined || o.cons !== undefined || o.effects !== undefined || o.facts !== undefined;
+}
+
 // A point of the legacy shape for one item. A "many" item degrades to a single pick, and a "reply" item to
 // the default Yes, No and Talk with the team.
 function pointOfItem(item: Item, groupId: string | undefined): QuestionPoint {
@@ -288,13 +293,13 @@ function pointOfItem(item: Item, groupId: string | undefined): QuestionPoint {
   const isDefault =
     item.options.length === POINT_DEFAULT_CHOICES.length &&
     labels.every((l, i) => l === POINT_DEFAULT_CHOICES[i]) &&
-    item.options.every((o) => o.pros === undefined && o.cons === undefined && o.effects === undefined);
+    item.options.every((o) => !hasPointFields(o));
   if (item.select === "reply" || item.options.length === 0 || isDefault) return { id, text };
   return {
     id,
     text,
-    options: item.options.map((o) => (o.pros !== undefined || o.cons !== undefined || o.effects !== undefined
-        ? compact({ label: o.label, pros: o.pros, cons: o.cons, effects: o.effects })
+    options: item.options.map((o) => (hasPointFields(o)
+        ? compact({ label: o.label, pros: o.pros, cons: o.cons, effects: o.effects, facts: o.facts })
         : o.label),
     ),
   };

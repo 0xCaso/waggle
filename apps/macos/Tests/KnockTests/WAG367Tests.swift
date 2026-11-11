@@ -42,24 +42,4 @@ struct WAG367Tests {
         #expect(recorder.records.map(\.event) == [.askMoreDetailOpened, .askMoreDetailOpened])
         #expect(recorder.records.map(\.source) == ["button", nil])
     }
-
-    /// Evidence only: `WAG367_EVIDENCE_DIR=<dir>` writes the row at four widths as PNG files.
-    @Test func theRowRendersAtWideAndNarrowWidths() throws {
-        guard let dir = ProcessInfo.processInfo.environment["WAG367_EVIDENCE_DIR"] else { return }
-        let sample = Case(
-            id: "c_1", taskId: "t_1", kind: .question, title: "Title", need: "Need", why: "Why", recommendation: "a",
-            recommendationWhy: "Because", options: [], status: .needsYou, hasArtifact: false,
-            createdAt: "2026-10-13T10:00:00.000Z", updatedAt: "2026-10-13T10:00:00.000Z")
-        for width in [860.0, 680.0, 420.0, 300.0] {
-            let row = AskForDetailRowView(composer: ComposerViewModel(knockCase: sample), onSend: {}, onSendFormat: { _ in })
-                .frame(width: width)
-                .background(Color.white)
-            let renderer = ImageRenderer(content: row)
-            renderer.scale = 2
-            let image = try #require(renderer.nsImage)
-            let rep = try #require(image.tiffRepresentation.flatMap(NSBitmapImageRep.init(data:)))
-            let png = try #require(rep.representation(using: .png, properties: [:]))
-            try png.write(to: URL(fileURLWithPath: dir).appendingPathComponent("row-\(Int(width)).png"))
-        }
-    }
 }

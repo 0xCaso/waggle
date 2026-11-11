@@ -247,7 +247,9 @@ final class SendFlowController: ObservableObject {
         choice: String?, choices: [String]? = nil, optionsSet: String?, message: String?, answers: [PointAnswer]? = nil,
         itemAnswers: [ItemAnswer]? = nil, discuss: (leaning: [String], ruledOut: [String])? = nil
     ) {
-        guard !isSending else { return }
+        // Claimed now, not inside the Task: a second Send in the same turn (a double click, ↵ right after the button)
+        // is a no-op even when the first one waits for a comment's picture before it sets `isSending`.
+        guard !isSending, !sendClaimed else { return }
         pendingItemAnswers = itemAnswers
         pendingDiscuss = discuss
         pendingAnswers = answers
@@ -261,8 +263,18 @@ final class SendFlowController: ObservableObject {
         // to the list view, and not asking me to send"; the extra step left
         // a commented reply unsent). The review screen still opens with
         // KNOCK_REVIEW_STEP=send for evidence only.
-        Task { await confirmSend() }
+        sendClaimed = true
+        Task {
+            await confirmSend()
+            sendClaimed = false
+        }
     }
+
+    /// A Send has been started and its delivery has not settled yet.
+    private var sendClaimed = false
+
+    /// A Send is claimed or delivering. Tests wait for this to clear instead of sleeping.
+    var hasSendInFlight: Bool { isSending || sendClaimed }
 
     /// M6's "Keep editing": returns to the composer without sending.
     func keepEditing() {

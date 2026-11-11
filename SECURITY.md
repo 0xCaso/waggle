@@ -24,7 +24,8 @@ Waggle is a local app. The design assumes these things.
 - HTML bundles. They render in an isolated `WKWebView`: file access only inside the bundle's own folder, every
   other URL blocked by a content rule list, no script bridge to the app, and a non-persistent data store. If an
   isolation check fails, the app shows a screenshot only. See "HTML preview isolation" in `docs/protocol-mvp.md`.
-- Agent text renders as safe markdown: bold, italics, inline code, lists and paragraphs. No links, no images,
+- Agent text renders as safe markdown: bold, italics, inline code, lists, paragraphs and pipe tables (cells hold
+  the same inline markdown). No links, no images,
   no HTML.
 - On a shared page (the relay): visitors, guests and their comments. Artifact files are served from a separate
   content origin, in a sandboxed frame with `connect-src 'none'` and a one-hour signed ticket.

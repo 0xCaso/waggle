@@ -42,7 +42,7 @@ extension DeliveryState {
     /// The case pane footer's collapsed Delivered line (docs/stories/
     /// HAIL-32.md state 3: "the footer collapses into a single line,
     /// 'Delivered ✓ HH:mm · your reply is with the agent', with no stale
-    /// Sent line") - a pure formatter, extracted out of `CaseFooterConfirmedView`
+    /// Sent line") - a pure formatter, now the status line's Delivered words (C10)
     /// so the exact copy is unit-testable without a SwiftUI host. `nil` for
     /// every case but `.delivered`.
     var footerDeliveredLine: String? {

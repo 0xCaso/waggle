@@ -16,8 +16,38 @@ import {
 
 // One choice the human can pick in reply to a case (docs/protocol-mvp.md
 // "MCP tools", waggle_ask options).
-const OptionPoints = z.array(z.string().trim().min(1).max(160)).max(5);
-const OptionEffects = z.array(z.string().trim().min(1).max(160)).max(3);
+const PointText = z.string().trim().min(1).max(160);
+// Option card "Gist and facts" (docs/decisions/2026-11-10-option-card-gist-and-facts.md): a pro or con
+// is a plain line, or { gist, detail }: a short version for the card and the full sentence one click
+// away. Stored and served exactly as the agent sent it, so an old ask (strings only) is unchanged.
+export const OPTION_GIST_MAX = 40;
+export const OPTION_FACTS_MAX = 3;
+export const OPTION_FACT_MAX = 24;
+export const OptionPointObject = z.object({
+  gist: z
+    .string()
+    .trim()
+    .min(1, "a gist needs text")
+    .max(OPTION_GIST_MAX, `a gist is at most ${OPTION_GIST_MAX} characters; put the full sentence in detail`),
+  detail: PointText,
+}).describe("gist: the short version on the card (at most 40 characters). detail: the full sentence (at most 160).");
+export const OptionPoint = z.union([PointText, OptionPointObject], {
+  error: "a pro or con is a string, or { gist, detail } with both set",
+});
+export type OptionPoint = z.infer<typeof OptionPoint>;
+const OptionPoints = z.array(OptionPoint).max(5);
+const OptionEffects = z.array(PointText).max(3);
+// Short neutral facts, shown as chips under the option title ("~2 h", "no migration", "src/store.ts").
+const OptionFacts = z
+  .array(
+    z
+      .string()
+      .trim()
+      .min(1, "a fact needs text")
+      .max(OPTION_FACT_MAX, `a fact is at most ${OPTION_FACT_MAX} characters, like "~2 h" or "no migration"`),
+  )
+  .max(OPTION_FACTS_MAX, `an option has at most ${OPTION_FACTS_MAX} facts`)
+  .describe('Up to 3 short neutral facts shown as chips, at most 24 characters each: "~2 h", "no migration", "src/store.ts".');
 export const Option = z.object({
   id: z.string(),
   // The full option text, shown in the ask's Decision section.
@@ -32,6 +62,8 @@ export const Option = z.object({
   // WAG-360: what picking this option causes (touches, closes, needs next). Neutral lines, not
   // judgements. At most 3, each 1 to 160 characters. Additive: an ask without it is unchanged.
   effects: OptionEffects.optional(),
+  // Option card "Gist and facts": 0 to 3 short neutral facts, each at most 24 characters. Additive.
+  facts: OptionFacts.optional(),
   // WAG-276: the `name` of an artifact on this case. Selecting the option switches to that tab.
   artifact_ref: z.string().trim().min(1).max(80).optional(),
   // WAG-276: an anchor inside that artifact (an element id or a data-waggle-anchor value). The app
@@ -378,6 +410,8 @@ export const Message = z.object({
   role: z.enum(["agent", "human"]),
   text: z.string(),
   created_at: z.string(),
+  // true on a progress note (waggle_update with working: true). Absent on every other message.
+  working: z.literal(true).optional(),
 });
 export type Message = z.infer<typeof Message>;
 
@@ -406,9 +440,10 @@ export const QUESTIONS_MAX = 12;
 
 export const PointOptionObject = z.object({
   label: z.string().trim().min(1).max(120),
-  pros: z.array(z.string().trim().min(1).max(160)).max(5).optional(),
-  cons: z.array(z.string().trim().min(1).max(160)).max(5).optional(),
+  pros: OptionPoints.optional(),
+  cons: OptionPoints.optional(),
   effects: OptionEffects.optional(),
+  facts: OptionFacts.optional(),
 });
 export const PointOption = z.union([z.string().trim().min(1).max(120), PointOptionObject]);
 export type PointOption = z.infer<typeof PointOption>;

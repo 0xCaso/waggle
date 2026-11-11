@@ -43,15 +43,30 @@ enum Theme {
         static let honeySoft = Color(hex: 0xFDF4DA)
         /// The one place honey is text: the "recommended" tag (AA-ish on honeySoft).
         static let recommendedTagText = Color(hex: 0xC98A00)
+
+        // MARK: Request page mockups (decision 2026-11-10, STYLE-AUDIT.md §1)
+
+        /// The need box fill (case map `--need-bg`); a touch deeper than `honeySoft`.
+        static let needFill = Color(hex: 0xFBF3D9)
+        /// The 1 pt line above "Why you" in the need box (case map `.need .why`).
+        static let needDivider = Color(hex: 0xEFE2B8)
+        /// Links and the "new" dot on the request page (case map `--link`); `ds` is the agent blue elsewhere.
+        static let link = Color(hex: 0x2F5BD8)
+        /// The picked option card's fill (mockup `.choice.on`).
+        static let pickedFill = Color(hex: 0xFFFDF5)
+        /// The latest message's fill in the conversation and the column (mockup `.latest`, `.msg.latestm`).
+        static let latestFill = Color(hex: 0xF4F6FD)
         static let accentSoft = Color(hex: 0xFDEBE9)
+        /// A failed delivery on the status line (C10): red text and icon on a soft red fill. Darker than `accent`
+        /// (4.45:1 on white) so the reason reads at 4.5:1 or more; a dark pair keeps that in a dark appearance.
+        static let statusFailedText = Color(nsColor: StatusLineColors.failedText)
+        static let statusFailedFill = Color(nsColor: StatusLineColors.failedFill)
         /// Defined but only ever drawn once in M1-M11 (M11 cached-row fill).
         static let sel = Color(hex: 0xEBEBEB)
         static let ok = Color(hex: 0x18A058)
         static let okSoft = Color(hex: 0xE3F5EA)
         static let ds = Color(hex: 0x2B59F0)
         static let dsSoft = Color(hex: 0xE8EEFE)
-        /// The split pane's conversation column fill (HAIL-71, Pen `r01vFQ`).
-        static let conversationSide = Color(hex: 0xFAFAFA)
         /// An agent update in the conversation: fill and stroke (Pen `n42ZJ`).
         static let dsUpdateFill = Color(hex: 0xF2F5FE)
         static let dsUpdateStroke = Color(hex: 0xDCE4FD)
@@ -682,9 +697,8 @@ enum Theme {
         /// Selection bar on a selected queue row (`YuTyu` → `qCj0B`): a 3pt
         /// wide rectangle the full height of the row, filled `ink`.
         static let selectionBarWidth: CGFloat = 3
-        /// Inbox list column width, fixed (docs/design/mvp-values.md §2.1,
-        /// §M3 `tHixN`/`hv5k3`, both exactly 392).
-        static let listColumnWidth: CGFloat = 392
+        /// Inbox list column width, fixed: mockup B's `.side` (300; was 392 from docs/design/mvp-values.md §2.1).
+        static let listColumnWidth: CGFloat = AskDoc.Chrome.sidebarWidth
         /// Leading space the list header reserves so its own content never
         /// sits under the real system traffic-light buttons (Amendments,
         /// KNOCK-08): header padding-left 18 + the traffic-lights frame's
@@ -762,5 +776,41 @@ extension View {
             view = AnyView(view.lineSpacing(style.size * (lineHeight - 1.0)))
         }
         return view
+    }
+}
+
+/// The status line's failed colors as appearance-aware `NSColor`s, so a test can resolve both appearances (C10).
+enum StatusLineColors {
+    static let failedText = dynamic(light: 0xB42318, dark: 0xFF9B94)
+    static let failedFill = dynamic(light: 0xFDEBE9, dark: 0x3B1614)
+
+    static func dynamic(light: UInt32, dark: UInt32) -> NSColor {
+        NSColor(name: nil) { appearance in
+            let isDark = appearance.bestMatch(from: [.aqua, .darkAqua]) == .darkAqua
+            return srgb(isDark ? dark : light)
+        }
+    }
+
+    static func srgb(_ hex: UInt32) -> NSColor {
+        NSColor(
+            srgbRed: CGFloat((hex >> 16) & 0xFF) / 255, green: CGFloat((hex >> 8) & 0xFF) / 255,
+            blue: CGFloat(hex & 0xFF) / 255, alpha: 1)
+    }
+}
+
+// MARK: - CSS line height (request page mockups, STYLE-AUDIT.md rule 1)
+
+extension Theme.Typography {
+    /// The font's own line height as a share of its size, from the bundled TTFs' hhea metrics
+    /// (ascent + descent + line gap): Inter Tight 1.21, JetBrains Mono 1.32.
+    static let sansNaturalLineHeight: CGFloat = 1.21
+    static let monoNaturalLineHeight: CGFloat = 1.32
+
+    /// The `lineSpacing` that gives a CSS `line-height: lineHeight` (a line box of `lineHeight × size`), not
+    /// `size × (lineHeight − 1)` on top of the font's own line height. Never negative: a CSS line height under
+    /// the natural one (e.g. `/1`) draws at the natural height.
+    static func cssLineSpacing(size: CGFloat, lineHeight: CGFloat, mono: Bool = false) -> CGFloat {
+        let natural = mono ? monoNaturalLineHeight : sansNaturalLineHeight
+        return max(0, size * (lineHeight - natural))
     }
 }

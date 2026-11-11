@@ -38,6 +38,8 @@ enum ThreadStep: Equatable, Sendable {
         let message: String
         let revision: NewRevision?
         let at: Date
+        /// A progress note (waggle_update with `working: true`): the Conversation tab folds it into "Worked: N steps".
+        var isWorking = false
     }
 
     case asked(Asked)
@@ -98,8 +100,7 @@ extension CaseDetail {
         } else if let artifactKind {
             askedMeta = artifactKind.indicatorLabel
         }
-        steps.append(.asked(.init(
-            need: c.need.split(whereSeparator: \.isWhitespace).joined(separator: " "), meta: askedMeta, at: askedAt)))
+        steps.append(askedStep(at: askedAt, meta: askedMeta))
 
         // A revision belongs to the update that brought it: made after the step
         // before and no later than the update (the daemon writes both in one go).
@@ -112,6 +113,8 @@ extension CaseDetail {
             return .init(n: made.0, isLatest: made.0 == latestRevision, prior: prior)
         }
 
+        // The daemon marks the newest progress note on the case; older ones need the message's own flag.
+        let workingNoteText = (c.workingNote ?? "").trimmingCharacters(in: .whitespacesAndNewlines)
         for (index, (reply, replyAt)) in liveReplies.enumerated() {
             let roundEnd = index + 1 < liveReplies.count ? liveReplies[index + 1].1 : .distantFuture
             let roundUpdates = updates.filter { $0.1 > replyAt && $0.1 <= roundEnd }
@@ -127,8 +130,10 @@ extension CaseDetail {
             for (offset, (message, messageAt)) in roundUpdates.enumerated() {
                 let previousAt = offset == 0 ? replyAt : roundUpdates[offset - 1].1
                 let revision = revisionForUpdate(after: previousAt, until: messageAt)
+                let text = message.text.trimmingCharacters(in: .whitespacesAndNewlines)
                 steps.append(.updated(.init(
-                    message: message.text.trimmingCharacters(in: .whitespacesAndNewlines), revision: revision, at: messageAt)))
+                    message: text, revision: revision, at: messageAt,
+                    isWorking: message.working ?? (!workingNoteText.isEmpty && text == workingNoteText))))
             }
         }
         let hasArtifact: Bool
@@ -138,6 +143,23 @@ extension CaseDetail {
         case nil: hasArtifact = !orderedRevisions.isEmpty
         }
         return ThreadModel(steps: steps, runtimeName: runtime, hasArtifact: hasArtifact)
+    }
+
+    /// The Conversation tab's messages (C8): the thread once you have replied, else the ask alone, so the tab
+    /// exists on every request.
+    func conversationModel(artifactKind: ArtifactKind? = nil) -> ThreadModel {
+        if let thread = threadModel(artifactKind: artifactKind) { return thread }
+        let c = self.case
+        let first = revisions.min { $0.n < $1.n }
+        let meta = first.map { ["v\($0.n)", artifactKind?.indicatorLabel].compactMap { $0 }.joined(separator: " · ") }
+            ?? artifactKind?.indicatorLabel
+        return ThreadModel(
+            steps: [askedStep(at: c.createdAtDate ?? Date(), meta: meta)], runtimeName: c.runtimeLabel,
+            hasArtifact: c.hasArtifact)
+    }
+
+    private func askedStep(at: Date, meta: String?) -> ThreadStep {
+        .asked(.init(need: self.case.need.split(whereSeparator: \.isWhitespace).joined(separator: " "), meta: meta, at: at))
     }
 
     /// The thread's last line: your turn, or the agent's status while it works.

@@ -26,7 +26,6 @@ struct AskColumnQuestionsBody: View {
         VStack(alignment: .leading, spacing: 14) {
             StepBarView(doc: binding)
             if let question = doc.currentQuestion {
-                GroupHeadingView(title: question.groupTitle)
                 Text(AgentMarkdown.singleLine(question.title))
                     .knockTextStyle(AskHeaderWidth.narrow.titleStyle)
                     .foregroundColor(Theme.Colors.ink)

@@ -277,7 +277,7 @@ struct WriteUpChangesControls: View {
                 HStack(spacing: 8) {
                     Toggle(isOn: Binding(get: { model.isOn }, set: { model.setShowChanges($0) })) {
                         Text("Show changes")
-                            .knockTextStyle(Theme.Typography.buttonSm12_5w600)
+                            .knockTextStyle(Theme.AskDoc.Chrome.smallButton)
                             .foregroundColor(Theme.Colors.ink)
                             .lineLimit(1)
                             .fixedSize()
@@ -288,7 +288,7 @@ struct WriteUpChangesControls: View {
                     .accessibilityLabel("Show changes")
                     if let title = model.countTitle {
                         Text(title)
-                            .knockTextStyle(Theme.Typography.buttonSm12_5w600)
+                            .knockTextStyle(Theme.AskDoc.Chrome.smallButton)
                             .foregroundColor(Theme.Colors.ink)
                             .lineLimit(1)
                             .truncationMode(.tail)
@@ -305,10 +305,10 @@ struct WriteUpChangesControls: View {
                 Image(systemName: symbol)
                     .font(.system(size: 11, weight: .semibold))
                     .foregroundColor(Theme.Colors.ink2)
-                    .frame(width: 28, height: 28)
+                    .frame(width: 24, height: 24)
                     .background(Theme.Colors.win)
-                    .cornerRadius(6)
-                    .overlay(RoundedRectangle(cornerRadius: 6).stroke(Theme.Colors.line2, lineWidth: 1))
+                    .cornerRadius(Theme.AskDoc.Chrome.smallButtonRadius)
+                    .overlay(RoundedRectangle(cornerRadius: Theme.AskDoc.Chrome.smallButtonRadius).stroke(Theme.Colors.line2, lineWidth: 1))
                     .contentShape(Rectangle())
             }
             .buttonStyle(.plain).pointerCursor()

@@ -86,13 +86,12 @@ struct WAG303Tests {
 
     // MARK: - Counts and tooltips
 
-    @Test func countsAreNumbersAndTooltipsHaveWords() {
-        #expect(CalmOption.chipCounts(pros: options[0].pros, cons: options[0].cons) == (3, 2))
-        #expect(CalmOption.goodTip(3) == "3 good points")
-        #expect(CalmOption.goodTip(1) == "1 good point")
-        #expect(CalmOption.watchTip(2) == "2 things to watch")
-        #expect(CalmOption.watchTip(1) == "1 thing to watch")
-        #expect(![CalmOption.goodTip(3), CalmOption.watchTip(2)].contains { $0.contains("—") })
+    @Test func aClosedCardShowsTheFirstProTheFirstConAndTheRest() {
+        // Mockup `.tl`: no ✓N ⚠N counts any more (decision 2026-11-10).
+        let teaser = CalmOption.teaser(pros: options[0].pros, cons: options[0].cons)
+        #expect(teaser == CalmOption.Teaser(pro: options[0].pros[0], con: options[0].cons[0], more: 3))
+        #expect(CalmOption.moreText(3) == "+3" && CalmOption.moreTip(3) == "3 more")
+        #expect(![CalmOption.moreText(3), CalmOption.moreTip(3)].contains { $0.contains("—") })
     }
 
     @Test func theRowTooltipStillOpensWithTheLists() {

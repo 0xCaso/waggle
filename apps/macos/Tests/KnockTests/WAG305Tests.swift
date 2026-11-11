@@ -90,11 +90,8 @@ struct WAG305Tests {
 
     // MARK: Layout
 
-    @Test func anEmptyFieldKeepsOneRowWithTheButtonWhateverTheLabel() {
-        let controls = PromptBarLogic.controlsWidth(quietLabels: ["Ask for more detail"], sendPillLabel: "Decide")
-        let layout = PromptBarLogic.layout(text: "", barWidth: 430, controlsWidth: controls, maxLines: 4)
-        #expect(!layout.isMultiline)
-        #expect(layout.fieldHeight == 28)
+    @Test func anEmptyFieldIsOneLineTall() {
+        #expect(PromptBarLogic.contentHeight(usedTextHeight: 0) == 28)
     }
 
     @Test func theControlsPlanGivesWayBeforeTheButton() {
