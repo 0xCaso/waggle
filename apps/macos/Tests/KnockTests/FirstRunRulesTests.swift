@@ -63,9 +63,10 @@ struct FirstRunRulesTests {
         #expect(FirstRunRules.caughtUpTitle == "All caught up")
         #expect(FirstRunRules.caughtUpSubtitle == "Nothing needs you right now.")
         #expect(FirstRunRules.caughtUpQuietLine == "New requests land here. To start one, tell your agent: ask me in Waggle.")
+        #expect(FirstRunRules.noSelectionLine == "Pick a request from the list to open it.")
         #expect(FirstRunRules.sampleMeta == "Sample · from Waggle · try answering it")
         #expect(FirstRunRules.sampleToolbarLine == "Sample request · nothing is sent to an agent")
-        let all = [FirstRunRules.caughtUpTitle, FirstRunRules.caughtUpSubtitle, FirstRunRules.caughtUpQuietLine, FirstRunRules.sampleMeta, FirstRunRules.sampleToolbarLine]
+        let all = [FirstRunRules.caughtUpTitle, FirstRunRules.caughtUpSubtitle, FirstRunRules.caughtUpQuietLine, FirstRunRules.noSelectionLine, FirstRunRules.sampleMeta, FirstRunRules.sampleToolbarLine]
         for text in all { #expect(!text.contains("\u{2014}")) }
     }
 }

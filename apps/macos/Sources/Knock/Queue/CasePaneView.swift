@@ -50,7 +50,7 @@ struct CasePaneView: View {
             } else {
                 VStack {
                     Spacer()
-                    Text("Select a case to see its details.")
+                    Text(FirstRunRules.noSelectionLine)
                         .knockTextStyle(Theme.Typography.body13w400)
                         .foregroundColor(Theme.Colors.ink2)
                     Spacer()

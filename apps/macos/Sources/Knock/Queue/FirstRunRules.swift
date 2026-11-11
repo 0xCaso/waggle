@@ -46,6 +46,8 @@ enum FirstRunRules {
     static let caughtUpTitle = "All caught up"
     static let caughtUpSubtitle = "Nothing needs you right now."
     static let caughtUpQuietLine = "New requests land here. To start one, tell your agent: ask me in Waggle."
+    /// The pane with no request open while the list still holds some (a paused Waggle, or nothing picked yet).
+    static let noSelectionLine = "Pick a request from the list to open it."
 
     /// Which pane the empty main window shows. The sample comes first. Otherwise the first answer decides
     /// between the explainer (not answered yet) and the caught-up pane.
