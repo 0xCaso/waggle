@@ -143,7 +143,7 @@ struct CommentCursorTagView: View {
         Text(CommentCursorTag.label)
             .knockTextStyle(Theme.Typography.badgeLabel11w500)
             .fontWeight(.semibold)
-            .foregroundColor(Theme.Colors.onFill)
+            .foregroundColor(Theme.Colors.onAccent)
             .padding(EdgeInsets(top: 4, leading: 8, bottom: 4, trailing: 8))
             .background(Theme.Colors.accent)
             .cornerRadius(6)

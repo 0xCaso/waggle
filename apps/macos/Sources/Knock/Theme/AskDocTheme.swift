@@ -7,19 +7,19 @@ extension Theme {
     enum AskDoc {
         enum Colors {
             /// "WHAT I NEED FROM YOU" label on honey soft.
-            static let needLabel = Color(hex: 0x9A6A00)
+            static let needLabel = Color(light: 0x9A6A00, dark: 0xF2B01E)
             /// Answered rows and the crumbs line.
-            static let quiet = Color(hex: 0x8A8A8A)
+            static let quiet = Color(light: 0x8A8A8A, dark: 0x9C9EA3)
             /// A pro's mark and the plus beside it.
-            static let pro = Color(hex: 0x0E7A43)
+            static let pro = Color(light: 0x0E7A43, dark: 0x4CC38A)
             /// A con's mark and the minus beside it.
-            static let con = Color(hex: 0xB3261E)
+            static let con = Color(light: 0xB3261E, dark: 0xFF8A80)
             /// "Watch out" in the calm card (WAG-281): orange-red, not the con red.
-            static let watch = Color(hex: 0xC2410C)
+            static let watch = Color(light: 0xC2410C, dark: 0xFF9A5C)
             /// The soft fill of the "Watch n" chip in the bottom bar (WAG-293).
-            static let watchSoft = Color(hex: 0xFFEDE3)
+            static let watchSoft = Color(light: 0xFFEDE3, dark: 0x3A2114)
             /// The pill count text on the honey chip of the selected variant.
-            static let variantOnText = Color(hex: 0x8A5A00)
+            static let variantOnText = Color(light: 0x8A5A00, dark: 0xF2B01E)
         }
 
         enum Radius {
@@ -155,7 +155,7 @@ extension Theme.AskDoc {
         static let messageGap: CGFloat = 8
         static let messageRadius: CGFloat = 10
         /// `.msg.you .h` (#aaa).
-        static let yourHead = Color(hex: 0xAAAAAA)
+        static let yourHead = Color(light: 0xAAAAAA, dark: 0x9C9EA3)
 
         // The status line, in Inter Tight (B: 12.5).
         static let status = css(12.5, .medium)

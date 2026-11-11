@@ -39,6 +39,11 @@ enum Theme {
         static let onAccent = Color(hex: 0xFFFFFF)
         /// Red as text on a window or soft red fill: `accent` is under 4.5:1 on a dark window.
         static let accentText = Color(light: 0xE0352B, dark: 0xFF8A80)
+        /// The track of a small switch that is off, and the knob on it.
+        static let switchOff = Color(light: 0xD0D0D0, dark: 0x3C3F44)
+        static let switchOffKnob = Color(light: 0xFFFFFF, dark: 0x9C9EA3)
+        /// The backdrop behind an image that does not fill its frame.
+        static let imageWell = Color(light: 0xF6F5F2, dark: 0x26292D)
         /// Honey is only ever a fill (mark, selected queue row, ticked answer
         /// options, notes), never a text colour. Cell W brand (HAIL-171).
         static let honey300 = Color(hex: 0xF9C846)

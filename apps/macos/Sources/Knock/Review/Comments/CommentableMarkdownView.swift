@@ -698,7 +698,7 @@ private final class MarginBadgeView: NSView {
             NSBezierPath(ovalIn: item.rect).fill()
             let label = NSAttributedString(string: "\(item.number)", attributes: [
                 .font: NSFont.systemFont(ofSize: 9.5, weight: .bold),
-                .foregroundColor: NSColor(Theme.Colors.onFill),
+                .foregroundColor: NSColor(Theme.Colors.onAccent),
             ])
             let size = label.size()
             label.draw(at: NSPoint(x: item.rect.midX - size.width / 2, y: item.rect.midY - size.height / 2))

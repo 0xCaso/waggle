@@ -71,7 +71,7 @@ enum AnnotatedCaptureRenderer {
         let string = "\(number)" as NSString
         let attributes: [NSAttributedString.Key: Any] = [
             .font: NSFont.boldSystemFont(ofSize: 11),
-            .foregroundColor: NSColor(Theme.Colors.onFill),
+            .foregroundColor: NSColor(Theme.Colors.onAccent),
         ]
         let textSize = string.size(withAttributes: attributes)
         let origin = CGPoint(x: rect.midX - textSize.width / 2, y: rect.midY - textSize.height / 2)

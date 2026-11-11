@@ -198,7 +198,7 @@ struct QueueFoldedRailView: View {
                 PanelToggleIcon(edge: .leading, pointsRight: true, hovering: hovered || PanelToggleEvidence.forceHover)
                 Text("\(count)")
                     .knockTextStyle(Theme.Typography.countBadge10_5w600)
-                    .foregroundColor(Theme.Colors.onFill)
+                    .foregroundColor(Theme.Colors.onAccent)
                     .padding(.horizontal, 6)
                     .padding(.vertical, 2)
                     .background(Capsule().fill(Theme.Colors.accent))

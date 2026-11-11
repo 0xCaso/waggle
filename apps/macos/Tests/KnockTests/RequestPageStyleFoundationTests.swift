@@ -6,12 +6,17 @@ import Testing
 /// The foundation of matching the request page to the mockups (decision 2026-11-10, STYLE-AUDIT.md):
 /// the new colour tokens, the exact Inter Tight face per weight, and the CSS line height helper.
 struct RequestPageStyleFoundationTests {
-    private func hex(_ color: Color) -> UInt32 {
-        let c = NSColor(color).usingColorSpace(.sRGB)!
-        let r = UInt32((c.redComponent * 255).rounded())
-        let g = UInt32((c.greenComponent * 255).rounded())
-        let b = UInt32((c.blueComponent * 255).rounded())
-        return r << 16 | g << 8 | b
+    private func hex(_ color: Color, dark: Bool = false) -> UInt32 {
+        var value: UInt32 = 0
+        // A token has a light and a dark value: read it under the look the test names, not the Mac's look.
+        NSAppearance(named: dark ? .darkAqua : .aqua)!.performAsCurrentDrawingAppearance {
+            let c = NSColor(color).usingColorSpace(.sRGB)!
+            let r = UInt32((c.redComponent * 255).rounded())
+            let g = UInt32((c.greenComponent * 255).rounded())
+            let b = UInt32((c.blueComponent * 255).rounded())
+            value = r << 16 | g << 8 | b
+        }
+        return value
     }
 
     @Test func mockupColourTokens() {
