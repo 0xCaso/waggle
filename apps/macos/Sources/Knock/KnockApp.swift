@@ -66,6 +66,10 @@ struct KnockApp: App {
                 // The short window closes and the main window opens on "Your agent is on it".
                 AppActivation.showMainWindow()
                 OnboardingWindowOpener.close()
+            },
+            onSkip: {
+                AppActivation.showMainWindow()
+                OnboardingWindowOpener.close()
             }
         ))
         // Start the Sparkle updater at launch so automatic checks run (KNOCK-21).

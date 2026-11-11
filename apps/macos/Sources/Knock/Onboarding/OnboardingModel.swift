@@ -131,6 +131,7 @@ final class OnboardingModel: ObservableObject {
     private let markOnboarded: () -> Void
     private let isOnboarded: () -> Bool
     private let onFirstJobStarted: () -> Void
+    private let onSkip: () -> Void
     private let resolvedKnockBinaryPath: () -> String?
     private let now: () -> Date
 
@@ -153,6 +154,7 @@ final class OnboardingModel: ObservableObject {
         markOnboarded: @escaping () -> Void,
         isOnboarded: @escaping () -> Bool = { OnboardingState.isOnboarded() },
         onFirstJobStarted: @escaping () -> Void = {},
+        onSkip: @escaping () -> Void = {},
         resolvedKnockBinaryPath: @escaping () -> String? = { KnockBinaryLocator.resolve()?.path },
         claudeApp: ClaudeAppModel = ClaudeAppModel(),
         now: @escaping () -> Date = { Date() }
@@ -170,6 +172,7 @@ final class OnboardingModel: ObservableObject {
         self.markOnboarded = markOnboarded
         self.isOnboarded = isOnboarded
         self.onFirstJobStarted = onFirstJobStarted
+        self.onSkip = onSkip
         self.resolvedKnockBinaryPath = resolvedKnockBinaryPath
         self.now = now
         claudeAppObservation = claudeApp.objectWillChange.sink { [weak self] _ in self?.objectWillChange.send() }
@@ -312,6 +315,14 @@ final class OnboardingModel: ObservableObject {
         Task { await preselectRecommendedReach(isOnboarded: wasOnboarded) }
         screen = .firstJob
         Task { await loadFirstJobData() }
+    }
+
+    /// "Skip for now": leaves setup from step 1 with or without an agent. The person counts as set up, so setup
+    /// does not come back on its own; every step stays open in Settings and in the list.
+    func skipSetup() {
+        guard ConnectStepRules.skipIsAvailable(on: screen) else { return }
+        markOnboarded()
+        onSkip()
     }
 
     /// "Back" from step 2.
