@@ -124,7 +124,7 @@ struct ComposerCardView: View {
                         if part != .optionsOnly { replyField }
                     case .updateWithOptions(let updatedAt, let firstAt):
                         if part != .replyOnly {
-                            updateHeader(updatedAt)
+                            updateHeader(updatedAt).padding(.bottom, OptionCardStyle.updateHeaderGap)
                             optionsSection(withFirst: true, firstAt: firstAt)
                         }
                         if part != .optionsOnly { replyField }

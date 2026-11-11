@@ -335,6 +335,8 @@ enum OptionCardStyle {
     static let teaserMarkGap: CGFloat = 4
     /// `.ol` margin below 8.
     static let labelGap: CGFloat = 8
+    /// Space between the blue update strip and the list label under it, so the label does not touch the strip.
+    static let updateHeaderGap: CGFloat = 10
 }
 
 extension OptionCardStyle {
