@@ -67,6 +67,8 @@ struct CasePaneDetailView: View {
     @StateObject private var continueSession = ContinueEvidence.makeModel()
     /// Failures hidden on the status line (C10).
     @ObservedObject private var hiddenStatus = HiddenStatusStore.shared
+    /// The decision column's dragged width (task 13a).
+    @ObservedObject private var paneWidths = PaneWidthStore.shared
     @Environment(\.openWindow) private var openWindow
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     /// Identifies this pane's unsent-work check in `AppModel` (HAIL-118).
@@ -395,7 +397,7 @@ struct CasePaneDetailView: View {
 
     /// The page's one layout at the pane's width (C1): artifact beside the column, folded to the pinned bar, or no artifact.
     private var pageLayout: AskLayout.Layout {
-        AskLayout.layout(width: decisionWidth, hasArtifact: detail.case.hasArtifact)
+        AskLayout.layout(width: decisionWidth, hasArtifact: detail.case.hasArtifact, preferred: paneWidths.decisionColumnWidth)
     }
 
     /// The artifact beside the column. An artifact opened in the page's own panel or full page takes its place.
@@ -417,7 +419,7 @@ struct CasePaneDetailView: View {
                 footer
             } else {
                 if showsArtifactBeside {
-                    AskColumnsLayout {
+                    AskColumnsLayout(preferredColumnWidth: paneWidths.decisionColumnWidth) {
                         DecisionArtifactView(
                             model: liveArtifact, composer: sendFlow.composer, caseKind: detail.case.kind, client: model.client,
                             onOpen: { openReview(.artifactOpenedFull) }, onInteract: { recordPreviewInteraction() },
@@ -431,6 +433,13 @@ struct CasePaneDetailView: View {
                             .frame(maxWidth: .infinity)
                             .background(Theme.Colors.win)
                             .overlay(alignment: .leading) { Rectangle().fill(Theme.Colors.line).frame(width: 1) }
+                            // Task 13a: the line moves by drag; the hit area is centred on it.
+                            .overlay(alignment: .leading) {
+                                PaneBorderHandle(
+                                    border: .decisionColumn, store: paneWidths,
+                                    limit: AskLayout.dragLimit(width: decisionWidth))
+                                    .offset(x: 0.5 - PaneBorderHandle.hitWidth / 2)
+                            }
                     }
                 } else {
                     HStack(spacing: 0) {

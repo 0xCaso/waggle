@@ -17,6 +17,8 @@ struct MainWindowView: View {
     @ObservedObject private var updatePrompt = UpdatePromptModel.shared
     /// The one-page layout's folds (HAIL-84), remembered across launches.
     @StateObject private var fold = SplitFoldState()
+    /// The sidebar's dragged width (task 13a), remembered across launches.
+    @ObservedObject private var paneWidths = PaneWidthStore.shared
     /// A document is dragged over the window (HAIL-169, WAG-248).
 
     var body: some View {
@@ -58,7 +60,16 @@ struct MainWindowView: View {
                     // The decision doc and the empty states (HAIL-89): the same queue fold.
                     HStack(spacing: 0) {
                         if !queueFolded {
-                            QueueListView(model: model, onFold: queueFoldAction(fold.toggleQueueFold), firstRun: firstRun)
+                            QueueListView(
+                                model: model, onFold: queueFoldAction(fold.toggleQueueFold), firstRun: firstRun,
+                                width: paneWidths.sidebarWidth)
+                                // Task 13a: the sidebar's 1 pt right line moves by drag; the hit area is centred on
+                                // it and sits over the case pane's edge, so it stays above the pane.
+                                .overlay(alignment: .trailing) {
+                                    PaneBorderHandle(border: .sidebar, store: paneWidths)
+                                        .offset(x: PaneBorderHandle.hitWidth / 2 - 0.5)
+                                }
+                                .zIndex(1)
                         } else {
                             QueueFoldedRailView(count: model.visibleNeedsYouCases.count, onUnfold: fold.toggleQueueFold)
                         }
@@ -69,7 +80,7 @@ struct MainWindowView: View {
                     }
                     .overlayPreferenceValue(CoachMarkAnchorKey.self) { anchors in
                         if let tour = coachMarkTour, let id = tour.activeCaseId, id == model.selectedCaseDetail?.case.id {
-                            CoachMarkOverlayView(tour: tour, anchors: anchors, queueWidth: queueFolded ? 0 : Theme.Spacing.listColumnWidth)
+                            CoachMarkOverlayView(tour: tour, anchors: anchors, queueWidth: queueFolded ? 0 : paneWidths.sidebarWidth)
                         }
                     }
                     .overlayPreferenceValue(NotificationsLineAnchorKey.self) { anchor in

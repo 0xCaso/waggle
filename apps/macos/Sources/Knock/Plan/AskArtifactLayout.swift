@@ -22,18 +22,29 @@ enum AskLayout {
     /// The column's widest when it is the page (no artifact, or the artifact folded), for reading.
     static let pageMaxWidth: CGFloat = 640
 
-    static func layout(width: CGFloat, hasArtifact: Bool) -> Layout {
+    /// `preferred` is the width the operator dragged the column to (task 13a), 440 pt by default. A column wider than
+    /// 440 gives way first as the pane narrows, down to 440; only then does the artifact fold. A narrower one folds
+    /// the artifact later, at its own width + 480.
+    static func layout(width: CGFloat, hasArtifact: Bool, preferred: CGFloat = columnWidth) -> Layout {
         guard hasArtifact else { return .page }
-        return width - columnWidth >= minArtifactWidth ? .beside : .folded
+        return width - narrowestBeside(preferred) >= minArtifactWidth ? .beside : .folded
     }
 
+    /// The narrowest the column gets beside the artifact before the artifact folds.
+    static func narrowestBeside(_ preferred: CGFloat) -> CGFloat { min(preferred, columnWidth) }
+
     /// The column's width in `layout` for a pane `width` wide.
-    static func columnWidth(_ layout: Layout, width: CGFloat) -> CGFloat {
+    static func columnWidth(_ layout: Layout, width: CGFloat, preferred: CGFloat = columnWidth) -> CGFloat {
         switch layout {
-        case .beside: min(columnWidth, max(0, width))
+        case .beside:
+            // The preferred width while the artifact keeps its minimum; less, down to `narrowestBeside`, below that.
+            min(max(0, width), max(narrowestBeside(preferred), min(preferred, width - minArtifactWidth)))
         case .folded, .page: min(pageMaxWidth, max(0, width))
         }
     }
+
+    /// The widest a drag can make the column in a pane `width` wide: the artifact keeps its minimum.
+    static func dragLimit(width: CGFloat) -> CGFloat { max(0, width - minArtifactWidth) }
 
     /// Full size (C9): the narrowest the decision column gets to leave the artifact its share of the window.
     static let fullSizeMinColumnWidth: CGFloat = 340
@@ -70,12 +81,16 @@ enum AskLayout {
     }
 }
 
-/// The artifact and the decision column: the column gets `AskLayout.columnWidth`, the artifact the rest. Issue 9:
+/// The artifact and the decision column: the column gets its width (`AskLayout.columnWidth` unless it was dragged,
+/// task 13a), the artifact the rest. Issue 9:
 /// an `HStack` sized the artifact from the column's measured width, and the page laid itself out about ten times a
 /// second without settling. This layout splits the offered width and reports the offered size, so the artifact's
 /// size never depends on its own result. It never asks the columns for a size either: the artifact holds a whole
 /// write-up, and an ideal size of it would typeset every line unwrapped.
 struct AskColumnsLayout: Layout {
+    /// The column's dragged width (task 13a).
+    var preferredColumnWidth: CGFloat = AskLayout.columnWidth
+
     func sizeThatFits(proposal: ProposedViewSize, subviews: Subviews, cache: inout ()) -> CGSize {
         proposal.replacingUnspecifiedDimensions(by: .zero)
     }
@@ -92,7 +107,7 @@ struct AskColumnsLayout: Layout {
 
     func placeSubviews(in bounds: CGRect, proposal: ProposedViewSize, subviews: Subviews, cache: inout ()) {
         var x = bounds.minX
-        for (subview, width) in zip(subviews, Self.widths(bounds.width)) {
+        for (subview, width) in zip(subviews, Self.widths(bounds.width, preferred: preferredColumnWidth)) {
             subview.place(at: CGPoint(x: x, y: bounds.minY), anchor: .topLeading,
                           proposal: ProposedViewSize(width: width, height: bounds.height))
             x += width
@@ -100,9 +115,9 @@ struct AskColumnsLayout: Layout {
     }
 
     /// Whole points, so the text in each column is not typeset again at a new fraction of a point.
-    static func widths(_ total: CGFloat) -> [CGFloat] {
+    static func widths(_ total: CGFloat, preferred: CGFloat = AskLayout.columnWidth) -> [CGFloat] {
         let total = max(0, total.rounded(.down))
-        let column = AskLayout.columnWidth(.beside, width: total)
+        let column = AskLayout.columnWidth(.beside, width: total, preferred: preferred.rounded(.down))
         return [total - column, column]
     }
 }

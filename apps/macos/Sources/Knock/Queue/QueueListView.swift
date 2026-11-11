@@ -27,10 +27,16 @@ struct QueueListView: View {
 
     /// Non-nil on the one page (HAIL-88): the chevron in the header folds the queue.
     let onFold: (() -> Void)?
+    /// The sidebar's width: 300 pt, or the width its border was dragged to (task 13a).
+    let width: CGFloat
 
-    init(model: AppModel, onFold: (() -> Void)? = nil, firstRun: GettingStartedModel = .inert) {
+    init(
+        model: AppModel, onFold: (() -> Void)? = nil, firstRun: GettingStartedModel = .inert,
+        width: CGFloat = Theme.Spacing.listColumnWidth
+    ) {
         self.model = model
         self.onFold = onFold
+        self.width = width
         _firstRun = ObservedObject(wrappedValue: firstRun)
         connection = model.sessionsModel
     }
@@ -132,7 +138,7 @@ struct QueueListView: View {
             }
             footer
         }
-        .frame(width: Theme.Spacing.listColumnWidth)
+        .frame(width: width)
         .frame(maxHeight: .infinity, alignment: .top)
         .background(Theme.AskDoc.Chrome.sidebarFill)
         .overlay(alignment: .bottomLeading) { sessionsPanel }
