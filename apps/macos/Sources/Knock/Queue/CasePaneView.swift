@@ -1231,9 +1231,7 @@ struct CasePaneDetailView: View {
     private var offlineBody: some View {
         VStack(alignment: .leading, spacing: 22) {
             HStack(spacing: 6) {
-                chip("Review")
-                chip("Blocking")
-                chip(detail.case.runtimeLabel)
+                ForEach(OfflineChips.labels(for: detail.case), id: \.self) { chip($0) }
             }
             Text(detail.case.title)
                 .knockTextStyle(Theme.Typography.panelTitle22w600)
