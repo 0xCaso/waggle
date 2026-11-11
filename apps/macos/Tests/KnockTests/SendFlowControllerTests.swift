@@ -365,9 +365,9 @@ struct SendFlowControllerTests {
         flow.send()
         flow.send()
         flow.acceptRecommendation()
-        try await waitForSend { sentCount >= 1 }
-        // Give a second delivery, if one had started, the time to reach the server.
-        try await Task.sleep(for: .milliseconds(300))
+        // The guard in `begin` is synchronous, so the second Send and the accept either claimed a delivery
+        // above or never will. Wait for every claimed delivery to settle, then count.
+        try await waitForSend { sentCount >= 1 && !flow.hasSendInFlight }
 
         #expect(sentCount == 1)
         #expect(submits.value == 1)

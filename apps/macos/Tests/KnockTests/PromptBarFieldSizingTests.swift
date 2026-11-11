@@ -203,13 +203,20 @@ struct PromptBarFieldSizingTests {
         }
     }
 
-    /// Lays out and lets the main queue run, so the field's measures reach the bar.
-    private func settle(_ host: NSView) async throws {
-        for _ in 0..<6 {
-            host.layoutSubtreeIfNeeded()
-            try await Task.sleep(for: .milliseconds(20))
-        }
+    /// Lays out and lets the main queue run until `done` holds, so the field's measures reach the bar.
+    /// Polls with a deadline (AGENTS.md): a loaded runner needs more passes, a fast one stops at once.
+    private func settle(_ host: NSView, until done: () -> Bool) async throws {
+        let deadline = ContinuousClock.now + .seconds(10)
         host.layoutSubtreeIfNeeded()
+        while !done(), ContinuousClock.now < deadline {
+            try await Task.sleep(for: .milliseconds(5))
+            host.layoutSubtreeIfNeeded()
+        }
+    }
+
+    /// Settles until the hosted field exists.
+    private func settle(_ host: NSView) async throws {
+        try await settle(host) { fieldViews(host) != nil }
     }
 
     private func fieldViews(_ root: NSView) -> (NSScrollView, PromptNSTextView)? {
@@ -240,7 +247,7 @@ struct PromptBarFieldSizingTests {
 
     @Test func theHostedFieldKeepsItsOwnRowAndGrowsWithEdits() async throws {
         let host = hosted("Short", width: 420)
-        try await settle(host)
+        try await settle(host) { fieldViews(host)?.0.frame.height == 28 }
         let (scroll, text) = try #require(fieldViews(host))
         #expect(scroll.frame.height == 28)
         // The field has its own full-width row from the start (2026-11-10), so a long text does not move it.
@@ -249,7 +256,7 @@ struct PromptBarFieldSizingTests {
         // The person types a long paragraph.
         text.setSelectedRange(NSRange(location: (text.string as NSString).length, length: 0))
         text.insertText(" " + longParagraph, replacementRange: text.selectedRange())
-        try await settle(host)
+        try await settle(host) { scroll.frame.height == text.measure().contentHeight }
         let measured = text.measure()
         // The same text view on the new row: the caret, undo and IME state stay.
         #expect(try #require(fieldViews(host)).1 === text)
@@ -259,7 +266,7 @@ struct PromptBarFieldSizingTests {
         #expect(!scroll.hasVerticalScroller)
         // Forty lines: capped at 40 % of 900 and the scroller is on screen.
         text.insertText("\n" + lines(40), replacementRange: text.selectedRange())
-        try await settle(host)
+        try await settle(host) { scroll.frame.height == 360 && scroll.hasVerticalScroller }
         #expect(scroll.frame.height == 360)
         #expect(scroll.hasVerticalScroller && !scroll.autohidesScrollers && scroll.scrollerStyle == .legacy)
     }
@@ -271,7 +278,9 @@ struct PromptBarFieldSizingTests {
         let (_, text) = try #require(fieldViews(host))
         text.setSelectedRange(NSRange(location: 0, length: 0))
         model.text = "Use this reply, please"
-        try await settle(host)
+        try await settle(host) {
+            text.string == "Use this reply, please" && text.selectedRange().location == (text.string as NSString).length
+        }
         #expect(text.string == "Use this reply, please")
         #expect(text.selectedRange() == NSRange(location: (text.string as NSString).length, length: 0))
     }

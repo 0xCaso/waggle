@@ -273,6 +273,9 @@ final class SendFlowController: ObservableObject {
     /// A Send has been started and its delivery has not settled yet.
     private var sendClaimed = false
 
+    /// A Send is claimed or delivering. Tests wait for this to clear instead of sleeping.
+    var hasSendInFlight: Bool { isSending || sendClaimed }
+
     /// M6's "Keep editing": returns to the composer without sending.
     func keepEditing() {
         isReviewingBeforeSend = false
