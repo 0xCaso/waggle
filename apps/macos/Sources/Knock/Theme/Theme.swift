@@ -237,6 +237,11 @@ enum Theme {
             font: .custom(FontFamily.sans, size: 12),
             size: 12, lineHeight: nil, letterSpacing: nil
         )
+        /// The "new" chip beside a version number: Inter 11.5/600.
+        static let chipLabel11_5w600 = TextStyle(
+            font: .custom(FontFamily.sans, size: 11.5).weight(.semibold),
+            size: 11.5, lineHeight: nil, letterSpacing: nil
+        )
         /// The check inside a tick circle (WAG-341): 8 pt bold.
         static let tickMark = TextStyle(
             font: .custom(FontFamily.sans, size: 8).weight(.bold),
