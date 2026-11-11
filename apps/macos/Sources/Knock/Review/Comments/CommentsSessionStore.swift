@@ -629,6 +629,54 @@ final class CommentsSessionStore: ObservableObject {
         if let captureId, !captureId.isEmpty { removeIfEmpty(captureId: captureId) }
     }
 
+    /// A deleted comment that Undo can still bring back, for `undoWindow`.
+    struct CommentUndo: Equatable {
+        let deleted: CommentsModel.DeletedComment
+        let image: NSImage?
+    }
+
+    /// The last comment deleted from the UI; nil once Undo ran or the window ended.
+    @Published private(set) var commentUndo: CommentUndo?
+    /// How long "Comment deleted · Undo" stays (5 s). A test sets it short.
+    var undoWindow: Duration = .seconds(5)
+    private var commentUndoTask: Task<Void, Never>?
+
+    /// A delete from the UI: the same delete, with an Undo for `undoWindow`. Only the last delete can be undone.
+    func deleteCommentWithUndo(id: String) {
+        guard let comment = model.comments.first(where: { $0.id == id }) else { return }
+        let captureIndex = model.captures.firstIndex { $0.id == comment.captureId }
+        let capture = captureIndex.map { model.captures[$0] }
+        let image = imagesByCaptureId[comment.captureId]
+        guard var deleted = model.deleteComment(id: id) else { return }
+        if selectedCommentId == id { selectedCommentId = nil }
+        if openCommentId == id { openCommentId = nil }
+        if hoveredCommentId == id { setHoveredComment(nil) }
+        if !comment.captureId.isEmpty { removeIfEmpty(captureId: comment.captureId) }
+        // Keep the capture only when this delete removed it.
+        if let capture, !model.captures.contains(where: { $0.id == capture.id }) {
+            deleted.capture = capture
+            deleted.captureIndex = captureIndex ?? 0
+        }
+        commentUndo = CommentUndo(deleted: deleted, image: image)
+        commentUndoTask?.cancel()
+        let window = undoWindow
+        commentUndoTask = Task { [weak self] in
+            try? await Task.sleep(for: window)
+            guard !Task.isCancelled else { return }
+            self?.commentUndo = nil
+        }
+    }
+
+    /// Puts the last deleted comment back with its text and number. A no-op after the window ended.
+    func undoDeleteComment() {
+        guard let undo = commentUndo else { return }
+        commentUndo = nil
+        commentUndoTask?.cancel()
+        commentUndoTask = nil
+        if let capture = undo.deleted.capture, let image = undo.image { imagesByCaptureId[capture.id] = image }
+        model.restoreComment(undo.deleted)
+    }
+
     /// Deletes a capture and its comments (HAIL-65). A base capture (the
     /// artifact's own image) keeps existing, only its comments go.
     func deleteCapture(id: String) {
