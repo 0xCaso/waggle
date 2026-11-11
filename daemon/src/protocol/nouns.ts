@@ -35,8 +35,6 @@ export const OptionPoint = z.union([PointText, OptionPointObject], {
   error: "a pro or con is a string, or { gist, detail } with both set",
 });
 export type OptionPoint = z.infer<typeof OptionPoint>;
-// The full text of a point: the string itself, or the detail of { gist, detail }.
-export const optionPointText = (p: OptionPoint): string => (typeof p === "string" ? p : p.detail);
 const OptionPoints = z.array(OptionPoint).max(5);
 const OptionEffects = z.array(PointText).max(3);
 // Short neutral facts, shown as chips under the option title ("~2 h", "no migration", "src/store.ts").
