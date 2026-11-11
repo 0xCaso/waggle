@@ -14,8 +14,9 @@ SPARKLE_BIN_DIR=<path-to-Sparkle-bin> # see "Sparkle tools" below
 ```
 
 `generate_keys` prints the public key. Save that public key: every release build passes it to the
-build as `KNOCK_SPARKLE_PUBLIC_KEY`. The private key stays in the Keychain. Never commit either key,
-and never put the private key in a file, an environment variable, or a repository.
+build as `KNOCK_SPARKLE_PUBLIC_KEY`. The private key stays in the Keychain, and one copy goes into the
+`release` environment secrets for the release workflow (see "Release on merge"). Never commit either
+key, and never put the private key in any other file, variable or repository.
 
 The same key signs every Waggle update. Generate it once, no matter how many releases you publish.
 
@@ -37,7 +38,38 @@ fetches. After you run `swift build` once, they are at
 `apps/macos/.build/artifacts/sparkle/Sparkle/bin/`. To use another copy, set `SPARKLE_BIN_DIR` to a
 directory that holds `sign_update`, `generate_appcast` and `generate_keys`.
 
-## Releasing
+## Release on merge
+
+A merge to main makes a release (docs/decisions/2026-11-10-release-on-merge.md). The workflow
+`.github/workflows/release.yml` starts when CI passes on the merge commit, and it runs `release.sh` on a
+GitHub macOS runner.
+
+The `release` environment has the maintainer as a required reviewer. Each release run waits for one
+approval (Actions, the run, Review deployments) before it loads a key. The workflow pins every action to a
+commit hash, so a changed tag cannot run with the keys.
+
+- Every merge bumps the patch (0.2.65 to 0.2.66). The PR label `release:minor` or `release:major`
+  bumps more. The label `skip-release` makes no release. Create the three labels once.
+- Notes come from `docs/release-notes/<version>.md` when the PR adds it, else from the PR title.
+- After the release, the workflow commits the bumped `daemon/package.json` and `BuildNumber` as
+  `Release v<version> [skip ci]`, pushes it to main, and pushes the tag.
+- Only the tip of main releases. When two merges land close together, the newer run releases both.
+
+One-time setup, in Settings, Environments, `release` (deployment branches: `main` only):
+
+| Secret | Value |
+| --- | --- |
+| `DEVELOPER_ID_P12_BASE64` | The Developer ID Application certificate and its private key, exported from Keychain Access as .p12, then `base64 -i devid.p12 \| pbcopy`. |
+| `DEVELOPER_ID_P12_PASSWORD` | The password you set on that export. |
+| `NOTARY_KEY_P8_BASE64` | An App Store Connect API key (Users and Access, Integrations, role Developer), `base64 -i AuthKey_<id>.p8 \| pbcopy`. |
+| `NOTARY_KEY_ID` | That key's id. |
+| `NOTARY_ISSUER_ID` | The issuer id on the same page. |
+| `SPARKLE_ED_PRIVATE_KEY` | `generate_keys -x sparkle.key`, then the file's one line. Delete the file after. |
+| `RELEASE_TOKEN` | A fine-grained token with Contents read and write on `waggle-so/waggle` and `waggle-so/waggle-releases`, and Pull requests read on `waggle-so/waggle`. If main is protected, let this token's owner bypass the rule, or the bump push fails. |
+
+The job imports the certificate and the notary key into a temporary keychain and deletes it at the end.
+
+## Releasing by hand
 
 ```bash
 scripts/release.sh 0.1.1

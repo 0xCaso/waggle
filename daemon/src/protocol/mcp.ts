@@ -438,7 +438,8 @@ export const KnockAskInput = z
     artifact: Artifact.optional().describe(
       "Attach whenever the operator must read more than a few sentences or see something: markdown " +
         "for a write-up, html_bundle for a prototype, chart, table or plan, screenshot for one image, " +
-        "screenshots for 2 to 12 images the operator flips through and comments on one at a time, " +
+        "screenshots for 2 to 12 images the operator flips through and comments on one at a time " +
+        "(with several decisions, give each image `item`, the id of its decision, so a decision shows only its images), " +
         "diagram for a flow or structure with more than 3 parts (a .mmd Mermaid file or a .svg). " +
         "For html_bundle, give the case pane a real preview with the artifact's preview field: a " +
         "small purpose-built summary of the decision, never a screenshot of the page.",

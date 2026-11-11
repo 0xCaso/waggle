@@ -134,11 +134,6 @@ struct PrototypeCanvasTests {
         #expect(PrototypeCanvas.clamped(scroll: CGPoint(x: 40, y: 40), page: CGSize(width: 300, height: 200), viewport: viewport, scale: 1) == .zero)
     }
 
-    @Test func panMovesTheScrollTheOppositeWay() {
-        let origin = PrototypeCanvas.panned(scroll: CGPoint(x: 100, y: 100), by: CGSize(width: 40, height: -20), scale: 2)
-        #expect(origin == CGPoint(x: 80, y: 110))
-    }
-
     @Test func fitFramesThePageWidth() {
         #expect(PrototypeCanvas.fitScale(viewportWidth: 800, pageWidth: 1600, minimum: 0.25, maximum: 4) == 0.5)
         #expect(PrototypeCanvas.fitScale(viewportWidth: 800, pageWidth: 600, minimum: 0.25, maximum: 4) == 1)

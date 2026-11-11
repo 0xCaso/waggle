@@ -73,6 +73,11 @@ final class CommentsSessionStore: ObservableObject {
     /// (HAIL-40). Kept out of `CommentsModel` the same way `imagesByCaptureId`
     /// is, so that model stays a plain, caption/platform-free value type.
     @Published private(set) var captionsByCaptureId: [String: String] = [:]
+    /// A `screenshots` image's decision item id (the `item` of the image), keyed by capture id.
+    private(set) var itemsByCaptureId: [String: String] = [:]
+    /// The captures of the decision on screen. While set, the filmstrip, the dots and the arrows show only these
+    /// (`galleryScreens`). `nil` shows every screen.
+    @Published private(set) var decisionGroupIds: [String]?
     /// WAG-413: a gallery screen's position (0-based) in its set, so Compare can pair a screen with the
     /// same screen of the revision before. Set when a set's captures are made and kept with them.
     private(set) var screenIndexByCaptureId: [String: Int] = [:]
@@ -127,6 +132,40 @@ final class CommentsSessionStore: ObservableObject {
     var screens: [CaptureRecord] {
         guard isScreenshotsCase, let screensRevision else { return model.captures }
         return model.captures.filter { $0.revision == screensRevision && baseCaptureIds.contains($0.id) }
+    }
+
+    /// The screens the filmstrip, the dots and the arrows show: the decision's images while a decision is on
+    /// screen, else every screen. A group that no longer matches the screens (a new revision) shows every screen.
+    var galleryScreens: [CaptureRecord] {
+        let all = screens
+        guard let ids = decisionGroupIds else { return all }
+        let group = all.filter { ids.contains($0.id) }
+        return group.isEmpty ? all : group
+    }
+
+    /// The decision on screen shows only `indexes` (0-based, in `screens`); `nil` shows every screen.
+    func showDecisionGroup(_ indexes: [Int]?) {
+        let all = screens
+        let ids = indexes.map { $0.compactMap { all.indices.contains($0) ? all[$0].id : nil } }
+        let next = ids?.isEmpty == true ? nil : ids
+        if next != decisionGroupIds { decisionGroupIds = next }
+    }
+
+    /// The `item` of each image of the set, in order, once the set is loaded. Skips a list of another length.
+    func setScreenItems(_ items: [String?]) {
+        let all = screens
+        guard items.count == all.count else { return }
+        for (capture, item) in zip(all, items) {
+            let trimmed = item?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
+            itemsByCaptureId[capture.id] = trimmed.isEmpty ? nil : trimmed
+        }
+    }
+
+    /// WAG-381: the `item` of the images of the set at `revision`, once all of them are loaded; `nil` otherwise.
+    func items(ofSet revision: Int) -> [String?]? {
+        let screens = screens
+        guard !screens.isEmpty, screens.allSatisfy({ $0.revision == revision }) else { return nil }
+        return screens.map { itemsByCaptureId[$0.id] }
     }
 
     /// WAG-381: the captions of the images of the set at `revision`, once all of them are loaded; `nil` otherwise.
@@ -321,6 +360,7 @@ final class CommentsSessionStore: ObservableObject {
             model.deleteCapture(id: capture.id)
             imagesByCaptureId[capture.id] = nil
             captionsByCaptureId[capture.id] = nil
+            itemsByCaptureId[capture.id] = nil
             screenIndexByCaptureId[capture.id] = nil
             baseCaptureIds.remove(capture.id)
         }
@@ -621,6 +661,8 @@ final class CommentsSessionStore: ObservableObject {
         model = CommentsModel()
         imagesByCaptureId = [:]
         captionsByCaptureId = [:]
+        itemsByCaptureId = [:]
+        decisionGroupIds = nil
         baseCaptureIds = []
         isScreenshotsCase = false
         screensRevision = nil

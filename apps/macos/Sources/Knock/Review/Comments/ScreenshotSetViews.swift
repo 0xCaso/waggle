@@ -112,7 +112,7 @@ struct ScreenshotFilmstrip: View {
     private static let thumbHeight: CGFloat = 36
 
     var body: some View {
-        let captures = store.screens
+        let captures = store.galleryScreens
         let current = store.currentCapture
         let index = current.flatMap { c in captures.firstIndex(where: { $0.id == c.id }) } ?? 0
         HStack(spacing: 10) {

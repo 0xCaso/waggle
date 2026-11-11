@@ -182,15 +182,6 @@ final class WebViewCaptureController: ObservableObject {
         return image
     }
 
-    /// Where the operator was scrolled to in Interact mode, 0...1 of the
-    /// full page, so Comment mode's stage can open at the same spot
-    /// (HAIL-35 contract). `0` (top) without a registered webview or a
-    /// scrollable page.
-    func currentScrollFraction() async -> Double {
-        guard let webView, let metrics = await readPageMetrics(from: webView) else { return 0 }
-        return Self.scrollFraction(scrollY: metrics.scrollY, scrollHeight: metrics.scrollHeight, viewportHeight: metrics.viewportHeight)
-    }
-
     /// Evidence-only (`takeSnapshot(scrollFractionBeforeCapture:)`, driven by
     /// `KNOCK_EVIDENCE_SCROLL_FRACTION` in `ReviewViewModel`): scrolls the
     /// live page right before a capture, so the evidence harness - no

@@ -1504,6 +1504,14 @@ CREATE INDEX idx_usage_hour ON usage(hour);
 CREATE INDEX idx_usage_ask ON usage(ask_h);
 `,
   },
+  {
+    version: 58,
+    // The case list reads "when did this session end" from the event log, once per row whose session
+    // ended. The log is append-only and had no index beyond seq, so each of those rows scanned the
+    // whole log: cases.list took ~830 ms at 1,000 cases and 30,000 events, ~33 ms with this index.
+    // Additive. An older daemon ignores the index, so a rollback is safe.
+    sql: `CREATE INDEX IF NOT EXISTS idx_events_session ON events(session_id, type, at);`,
+  },
 ];
 
 export function migrate(db: Database): void {

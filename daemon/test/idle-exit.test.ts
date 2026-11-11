@@ -55,7 +55,7 @@ function startDaemon(home: string, idleMin: string): Subprocess {
   return proc;
 }
 
-async function waitForSocket(socketPath: string, timeoutMs = 8000): Promise<void> {
+async function waitForSocket(socketPath: string, proc?: Subprocess, timeoutMs = 20000): Promise<void> {
   const start = Date.now();
   for (;;) {
     try {
@@ -63,8 +63,15 @@ async function waitForSocket(socketPath: string, timeoutMs = 8000): Promise<void
       client.close();
       return;
     } catch {
-      if (Date.now() - start > timeoutMs) {
-        throw new Error("daemon socket never became connectable");
+      if (Date.now() - start > timeoutMs || (proc !== undefined && proc.exitCode !== null)) {
+        let detail = "";
+        if (proc !== undefined) {
+          if (proc.exitCode === null) proc.kill();
+          await proc.exited;
+          const err = await new Response(proc.stderr as ReadableStream).text();
+          detail = ` (exit ${proc.exitCode}): ${err.slice(-2000)}`;
+        }
+        throw new Error(`daemon socket never became connectable${detail}`);
       }
       await new Promise((r) => setTimeout(r, 25));
     }
@@ -123,7 +130,7 @@ describe("waggle daemon idle exit", () => {
 
     const proc = startDaemon(home, "0.05");
     const socketPath = join(home, "knock.sock");
-    await waitForSocket(socketPath);
+    await waitForSocket(socketPath, proc);
 
     const code = await waitForExit(proc);
     expect(code).toBe(0);
@@ -142,7 +149,7 @@ describe("waggle daemon idle exit", () => {
     seedCaseWithQueuedReply(home);
 
     const proc = startDaemon(home, "0.05");
-    await waitForSocket(join(home, "knock.sock"));
+    await waitForSocket(join(home, "knock.sock"), proc);
 
     // Wait past several idle windows: the queued reply must hold the daemon up.
     await new Promise((r) => setTimeout(r, 800));
@@ -154,7 +161,7 @@ describe("waggle daemon idle exit", () => {
     homes.push(home);
 
     const proc = startDaemon(home, "0");
-    await waitForSocket(join(home, "knock.sock"));
+    await waitForSocket(join(home, "knock.sock"), proc);
 
     await new Promise((r) => setTimeout(r, 800));
     expect(proc.exitCode).toBeNull();

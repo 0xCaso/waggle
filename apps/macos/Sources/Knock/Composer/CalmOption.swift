@@ -5,9 +5,8 @@ import SwiftUI
 enum CalmOption {
     /// A closed row shows this many words of the description.
     static let shortWords = 8
-    /// Opening animates height over 220 ms ease-out. The panel swaps its text with a 200 ms fade.
+    /// An option card opens with a 220 ms ease-out on its height.
     static let openDuration = 0.22
-    static let swapDuration = 0.2
     static let cardRadius: CGFloat = 16
 
     /// The option cards of the decision column (decision 2026-11-10, mockup `.choice`): radius 10, 6 apart.
@@ -40,9 +39,6 @@ enum CalmOption {
     /// The tag in a tight row (WAG-311): the whole "★ Recommended" when it fits, else "★" alone with the word
     /// in its tooltip. It never shows a cut word.
     static let recommendedMark = "★"
-    static func recommendedPillText(availableWidth: CGFloat, fullWidth: CGFloat) -> String {
-        availableWidth >= fullWidth ? "\(recommendedMark) \(recommendedPill)" : recommendedMark
-    }
 
     /// True when the title on one line and the whole "★ Recommended" tag (`.rec`: 600 10.5, padding 6) fit in `room`.
     /// Before the first layout (`room` 0) the whole tag shows.
@@ -121,16 +117,6 @@ enum CalmOption {
     static func pointPick(_ point: QuestionPoint, choice: String?) -> (option: PointOption, position: Int)? {
         guard let choice, let index = point.choices.firstIndex(where: { $0.label == choice }) else { return nil }
         return (point.choices[index], index + 1)
-    }
-
-    /// The first words of the description for a closed row, with an ellipsis when it was cut.
-    static func shortLine(_ description: String?, words: Int = shortWords) -> String? {
-        guard let description else { return nil }
-        let line = AgentMarkdown.singleLine(description)
-        let parts = line.split(whereSeparator: \.isWhitespace)
-        guard !parts.isEmpty else { return nil }
-        if parts.count <= words { return parts.joined(separator: " ") }
-        return parts.prefix(words).joined(separator: " ") + "…"
     }
 
     /// The grey note: the recommendation's why on the recommended option; on the others only their own

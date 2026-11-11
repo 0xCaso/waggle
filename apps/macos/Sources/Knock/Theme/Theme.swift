@@ -24,10 +24,6 @@ enum Theme {
         /// Ask reach picker: the border and fill of a reached stop.
         static let reachBorder = Color(hex: 0xF4C2BE)
         static let reachFill = Color(hex: 0xFFFAF9)
-        /// Start-from-a-document banner wash (agent blue, near white).
-        static let dsWash = Color(hex: 0xF3F6FE)
-        /// Text on the dark update card.
-        static let updateCardText = Color(hex: 0xEDEBE6)
         static let side = Color(hex: 0xF3F3F3)
         static let list = Color(hex: 0xFAFAFA)
         static let ink = Color(hex: 0x16181A)
@@ -110,11 +106,6 @@ enum Theme {
         /// Inactive tool's key hint, e.g. "I" while Comment is active
         /// (`XMkj6`, white @ 40%).
         static let toolbarInactiveKey = Color.white.opacity(Double(0x66) / 255.0)
-        /// The toolbar's own divider before its hint text (`mUJli`, white @ 15%).
-        static let toolbarDivider = Color.white.opacity(Double(0x26) / 255.0)
-        /// The toolbar's hint text, e.g. "Click through the prototype"
-        /// (`UFplX` → `dJI11`, white @ 60%).
-        static let toolbarHint = Color.white.opacity(Double(0x99) / 255.0)
     }
 
     // MARK: - Font families
@@ -149,14 +140,6 @@ enum Theme {
         // HAIL-171 (Cell W): names and headings are Inter Tight Medium with
         // tracking -3.5% of the size; UI text stays Regular. The old weight
         // suffixes in the names below are historical.
-        static let display24w700 = TextStyle(
-            font: .custom(FontFamily.sans, size: 24).weight(.medium),
-            size: 24, lineHeight: nil, letterSpacing: -0.84
-        )
-        static let panelTitle22w650 = TextStyle(
-            font: .custom(FontFamily.sans, size: 22).weight(.medium),
-            size: 22, lineHeight: nil, letterSpacing: -0.77
-        )
         /// M11's case-pane title uses the same string at 600, not 650
         /// (confirmed on node `SyfHH` → `l4pvT`; mvp-values.md §7.1).
         static let panelTitle22w600 = TextStyle(
@@ -297,10 +280,6 @@ enum Theme {
             font: .custom(FontFamily.sans, size: 13).weight(.medium),
             size: 13, lineHeight: 1.35, letterSpacing: nil
         )
-        static let eyebrow12w400 = TextStyle(
-            font: .custom(FontFamily.mono, size: 12),
-            size: 12, lineHeight: nil, letterSpacing: 1.0
-        )
         /// The "waggle" wordmark next to the mark: Inter Tight Medium, tracking -3.5%.
         static func wordmark(size: CGFloat) -> TextStyle {
             TextStyle(
@@ -308,10 +287,6 @@ enum Theme {
                 size: size, lineHeight: nil, letterSpacing: size * headingTracking
             )
         }
-        static let flowTitle28w650 = TextStyle(
-            font: .custom(FontFamily.sans, size: 28).weight(.medium),
-            size: 28, lineHeight: 1.1, letterSpacing: -0.98
-        )
 
         // MARK: M4/M10 review workspace additions (not in the §1.2 table;
         // read directly off nodes for this story, see the report's
@@ -354,13 +329,6 @@ enum Theme {
         static let monoMeta11w400 = TextStyle(
             font: .custom(FontFamily.mono, size: 11),
             size: 11, lineHeight: nil, letterSpacing: nil
-        )
-        /// Comments-column heading status, "N drafting" (`uyrRs` → `ERGsv`
-        /// → `Crk3A`): Inter 11.5/600. Colour is `accent`, applied by the
-        /// caller, not baked into the style.
-        static let draftingStatus11_5w600 = TextStyle(
-            font: .custom(FontFamily.sans, size: 11.5).weight(.semibold),
-            size: 11.5, lineHeight: nil, letterSpacing: nil
         )
         /// A drafting comment card's "typing…  ↵ to add" status (`uyrRs` →
         /// `O8Tw6` → `RHseg` → `MRFMW`): Inter 11/400.
@@ -522,14 +490,6 @@ enum Theme {
         // MARK: M8 Delivery states additions (`Egyj0`, requirements `Ufy4A`;
         // see the report's "Design reads" section).
 
-        /// A delivery panel's case title, e.g. "Checkout layout: compact or
-        /// detailed?" (`gYsWK` and its Panel 2-4 equivalents): Inter
-        /// 13.5/650, lineHeight 1.3. Distinct from `rowTitle13_5w600` (same
-        /// size, but 600-weight and lineHeight 1.4 there).
-        static let deliveryCaseTitle13_5w650 = TextStyle(
-            font: .custom(FontFamily.sans, size: 13.5).weight(.medium),
-            size: 13.5, lineHeight: 1.3, letterSpacing: -0.473
-        )
         /// The locked reply bubble's text, "You: Go with A. Two fixes:"
         /// (`Bfg84`), and the offline banner's sub line, "Your reply is
         /// saved on this Mac." (`O6jELg`): both Inter 11.5/400, lineHeight
@@ -672,14 +632,11 @@ enum Theme {
         static let regionBox: CGFloat = 6
         static let notePopover: CGFloat = 10
         static let composer: CGFloat = 9
-        static let linearBadge: CGFloat = 4
         static let recommendedBlock: CGFloat = 8
         /// The ask thread's card (HAIL-68, Pen `u9q5bu`).
         static let threadCard: CGFloat = 10
         /// A conversation message card or bubble (HAIL-71, Pen `n42ZJ`).
         static let conversationBubble: CGFloat = 10
-        /// Option chip (`O2LGd` → `LbKDC` → `VVvfW`, cornerRadius 7).
-        static let optionChip: CGFloat = 7
         /// Comment card, saved and drafting (`uyrRs` → `OGZrm`/`O8Tw6`,
         /// cornerRadius 9).
         static let commentCard: CGFloat = 9
@@ -711,17 +668,11 @@ enum Theme {
         static let hairline = StrokeToken(color: Colors.line, width: 1)
         static let regionBox = StrokeToken(color: Colors.accent, width: 1.5)
         static let notePopover = StrokeToken(color: Colors.line2, width: 1)
-        /// Selected option chip / its radio dot (`VVvfW`, `IQGSx`): ink@1.5.
-        static let optionSelected = StrokeToken(color: Colors.ink, width: 1.5)
-        /// Unselected option's radio dot (`fsfM1` → `TIxcA`): line-2@1.5
-        /// (the chip itself uses the plain 1px `card` stroke).
-        static let radioUnselected = StrokeToken(color: Colors.line2, width: 1.5)
     }
 
     enum Shadow {
         static let window = ShadowToken(color: Color.black.opacity(hexAlpha(0x1F)), offset: CGSize(width: 0, height: 20), blur: 60)
         static let setupWindow = ShadowToken(color: Color.black.opacity(hexAlpha(0x29)), offset: CGSize(width: 0, height: 24), blur: 70)
-        static let artifactCrop = ShadowToken(color: Color.black.opacity(hexAlpha(0x14)), offset: CGSize(width: 0, height: 6), blur: 24)
         static let notePopover = ShadowToken(color: Color.black.opacity(hexAlpha(0x29)), offset: CGSize(width: 0, height: 8), blur: 24)
         /// The "Sent" toast (HAIL-79 prototype: `0 12px 30px rgba(0,0,0,.12)`).
         static let sentToast = ShadowToken(color: Color.black.opacity(hexAlpha(0x1F)), offset: CGSize(width: 0, height: 12), blur: 30)

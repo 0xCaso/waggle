@@ -2,11 +2,10 @@ import Testing
 @testable import Knock
 
 @Suite struct DecisionDockTests {
-    @Test func theOptionsAreInTheDockAndNeverInTheScrollOnEveryLayout() {
+    @Test func theOptionsAreInTheDockOnEveryLayout() {
         for layout in [DecisionLayout.single, .step, .plan] {
             #expect(DecisionDock.optionsInDock(layout), "\(layout)")
         }
-        for layout in DecisionLayout.allCases { #expect(!DecisionDock.optionsInScroll(layout), "\(layout)") }
     }
 
     @Test func theReviewStepKeepsOnlySendInTheBar() {

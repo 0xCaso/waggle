@@ -29,21 +29,6 @@ enum PlanText {
         }
     }
 
-    /// "Brainstorm · question 3 of ~5", "Design · section 1 of 3", "Spec · ready for review".
-    static func stageLine(_ stage: PlanStage) -> String {
-        func count(_ noun: String) -> String {
-            guard let step = stage.step else { return "" }
-            let total = stage.total.map { " of \(stage.totalIsEstimate == true ? "~" : "")\($0)" } ?? ""
-            return " · \(noun) \(step)\(total)"
-        }
-        switch stage.name {
-        case .questions: return "Brainstorm\(count("question"))"
-        case .approaches: return "Approaches · pick one"
-        case .design: return "Design\(count("section"))"
-        case .spec: return "Spec · ready for review"
-        }
-    }
-
     /// The small caps line over the question in the right column: "Question 3 of ~5".
     static func progressLabel(_ stage: PlanStage) -> String {
         func count(_ noun: String) -> String {
@@ -58,9 +43,6 @@ enum PlanText {
         case .spec: return "Spec"
         }
     }
-
-    /// The chip that takes the artifact chip's place on a plan row: "Plan · round 3".
-    static func roundChip(rounds: Int) -> String { "Plan · round \(rounds)" }
 
     /// The primary button for a stage's round.
     static func primaryLabel(_ name: PlanStageName) -> String {
@@ -134,78 +116,6 @@ enum PlanText {
         return knockCase.need
     }
 
-    /// A round's text read like a readme (operator, 4 Oct): a short headline, then the details.
-    struct QuestionParts: Equatable {
-        /// The bold line under the stage track. Empty when the text opens with a list.
-        var headline: String
-        /// Everything after the headline, as safe markdown in regular weight. Nil when there is none.
-        var body: String?
-    }
-
-    /// Splits a round's text. The headline is the first sentence of the first paragraph (a heading
-    /// line counts whole), so a one-line question reads as today; the rest of that paragraph and
-    /// every later block become the body. A text that opens with a list has no headline.
-    static func questionParts(_ text: String) -> QuestionParts {
-        let lines = text.replacingOccurrences(of: "\r\n", with: "\n").components(separatedBy: "\n")
-        let trimmed = lines.map { $0.trimmingCharacters(in: .whitespaces) }
-        func rest(from index: Int) -> String? {
-            guard index < lines.count else { return nil }
-            let out = lines[index...].joined(separator: "\n").trimmingCharacters(in: .whitespacesAndNewlines)
-            return out.isEmpty ? nil : out
-        }
-        guard let start = trimmed.firstIndex(where: { !$0.isEmpty }) else { return QuestionParts(headline: "", body: nil) }
-        if AgentMarkdown.listMarker(trimmed[start]) != nil {
-            return QuestionParts(headline: "", body: rest(from: start))
-        }
-        if let heading = AgentMarkdown.headingText(trimmed[start]) {
-            return QuestionParts(headline: heading, body: rest(from: start + 1))
-        }
-        var end = start
-        while end < trimmed.count, !trimmed[end].isEmpty, AgentMarkdown.listMarker(trimmed[end]) == nil,
-            AgentMarkdown.headingText(trimmed[end]) == nil
-        {
-            end += 1
-        }
-        let paragraph = trimmed[start..<end].joined(separator: " ")
-        let after = rest(from: end)
-        guard let cut = firstSentenceEnd(paragraph) else { return QuestionParts(headline: paragraph, body: after) }
-        let headline = String(paragraph[..<cut]).trimmingCharacters(in: .whitespaces)
-        let tail = String(paragraph[cut...]).trimmingCharacters(in: .whitespaces)
-        let body = [tail.isEmpty ? nil : tail, after].compactMap { $0 }.joined(separator: "\n\n")
-        return QuestionParts(headline: headline, body: body.isEmpty ? nil : body)
-    }
-
-    private static let abbreviations: Set<String> = ["e.g", "i.e", "etc", "vs", "cf", "approx", "mr", "mrs", "ms", "dr", "no"]
-
-    /// Where the first sentence of `paragraph` ends, when more text follows it: after a ".", "?" or
-    /// "!" (and any closing `*`, `_`, `)`, quote or backtick) that a space follows. Never inside
-    /// inline code or bold, and never after a common abbreviation or a single letter.
-    static func firstSentenceEnd(_ paragraph: String) -> String.Index? {
-        var index = paragraph.startIndex
-        while index < paragraph.endIndex {
-            let char = paragraph[index]
-            defer { index = paragraph.index(after: index) }
-            guard ".?!".contains(char) else { continue }
-            var end = paragraph.index(after: index)
-            while end < paragraph.endIndex, "*_)\"'\u{201D}\u{2019}`".contains(paragraph[end]) {
-                end = paragraph.index(after: end)
-            }
-            guard end < paragraph.endIndex, paragraph[end].isWhitespace else { continue }
-            let before = String(paragraph[..<end])
-            let stars = before.filter { $0 == "*" }.count
-            let bolds = before.components(separatedBy: "**").count - 1
-            guard before.filter({ $0 == "`" }).count % 2 == 0, bolds % 2 == 0, (stars - 2 * bolds) % 2 == 0 else {
-                continue
-            }
-            if char == "." {
-                let word = paragraph[..<index].split(whereSeparator: \.isWhitespace).last.map(String.init) ?? ""
-                let bare = word.lowercased().trimmingCharacters(in: CharacterSet(charactersIn: "(*_\"'"))
-                if abbreviations.contains(bare) || bare.count == 1 { continue }
-            }
-            return end
-        }
-        return nil
-    }
 }
 
 extension Case {

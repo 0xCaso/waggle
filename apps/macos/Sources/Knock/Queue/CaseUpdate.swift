@@ -31,11 +31,6 @@ extension Case {
         return CaseUpdateSummary(at: updateAt, message: message, firstLine: NoteText.firstLine(latestUpdateMessage), revision: revisions >= 2 && madeAfterReply ? revisions : nil)
     }
 
-    /// The queue row's update label: "Updated · v3" (the time sits in the row header).
-    var updateLabel: String? {
-        guard let update = pendingUpdate else { return nil }
-        return update.revision.map { "Updated · v\($0)" } ?? "Updated"
-    }
 }
 
 /// The agent's latest message when it sent a message-only update after your reply (WAG-337): no new

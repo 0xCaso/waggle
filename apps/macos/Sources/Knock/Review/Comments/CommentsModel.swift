@@ -167,11 +167,6 @@ struct CommentsModel: Equatable {
         captures.first { $0.id == comment.captureId }?.view
     }
 
-    /// Comments of `revision` that do not belong to the view the page shows now.
-    func commentsOffView(onRevision revision: Int, current: PageView?) -> [Comment] {
-        comments(onRevision: revision).filter { !PageView.shows(comment: view(of: $0), current: current) }
-    }
-
     /// Deletes a comment and renumbers the rest of the case 1..n in their
     /// original creation order (HAIL-75: no gaps).
     mutating func deleteComment(id: String) {

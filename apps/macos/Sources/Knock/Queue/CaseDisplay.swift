@@ -42,21 +42,6 @@ extension Case {
         status == .needsYou && sessionState == .live
     }
 
-    /// Whether the queue row shows the "Waiting for pickup" mini spinner
-    /// (docs/stories/HAIL-32.md state 2): the case is `waiting_on_agent` and
-    /// no `reply.state_changed` has named a delivered/failed outcome for it
-    /// yet - `deliveryStatus` only ever holds those two terminal states
-    /// (`AppModel.deliveryStatusByCaseId`), so every other value (including
-    /// `nil`, the common case right after `reply.submit`) means still
-    /// waiting.
-    func showsWaitingForPickup(deliveryStatus: DeliveryState?) -> Bool {
-        guard status == .waitingOnAgent, !isStaleQueuedReply, !isDone else { return false }
-        switch deliveryStatus {
-        case .delivered, .failed: return false
-        case .idle, .sending, .sent, .offline, .refused, .none: return true
-        }
-    }
-
     /// Whether a queued reply is stuck because the agent's session ended
     /// before any agent ever picked it up (HAIL-44 safety net): the row
     /// shows "Not picked up - the agent's session ended" instead of

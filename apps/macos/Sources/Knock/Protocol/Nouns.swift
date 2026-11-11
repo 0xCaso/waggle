@@ -171,6 +171,8 @@ struct Option: Codable, Equatable, Sendable, Identifiable {
 struct ScreenshotItem: Codable, Equatable, Sendable {
     let path: String
     let caption: String?
+    /// The decision item this image belongs to, in a request with several decisions. `nil`: every decision.
+    var item: String? = nil
 }
 
 // An artifact the agent submits with a case. A screenshot is one image path.
@@ -993,8 +995,6 @@ struct QuestionPoint: Codable, Equatable, Sendable, Identifiable {
     }
     /// The labels of `choices`.
     var choiceLabels: [String] { choices.map(\.label) }
-    /// When any option carries pros or cons, the answers show as option cards, not chips.
-    var showsOptionCards: Bool { options?.contains { $0.hasPoints } ?? false }
 }
 
 struct QuestionVariant: Codable, Equatable, Sendable, Identifiable {

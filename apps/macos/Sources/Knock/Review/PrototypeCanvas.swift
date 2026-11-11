@@ -26,12 +26,6 @@ enum PrototypeCanvas {
         return CGPoint(x: min(max(scroll.x, 0), maxX), y: min(max(scroll.y, 0), maxY))
     }
 
-    /// The scroll offset after dragging the canvas by `translation` view points.
-    static func panned(scroll: CGPoint, by translation: CGSize, scale: CGFloat) -> CGPoint {
-        guard scale > 0 else { return scroll }
-        return CGPoint(x: scroll.x - translation.width / scale, y: scroll.y - translation.height / scale)
-    }
-
     /// Fit: the whole page width in view. A page that is not wider than the view
     /// stays at 100%; a wider one shrinks to the view's width.
     static func fitScale(viewportWidth: CGFloat, pageWidth: CGFloat, minimum: CGFloat, maximum: CGFloat) -> CGFloat {

@@ -361,30 +361,6 @@ enum PromptBarLogic {
         hasChoice || hasMessage || commentCount > 0 || hasEdit || hasFiles
     }
 
-    enum SendAction: Equatable {
-        case send
-        case acceptRecommendation
-        case none
-    }
-
-    /// What the Send button (and Return) does. Nothing to send: nothing. With
-    /// the footer's `.acceptRecommendation` state (a pick equal to the
-    /// recommendation, or comments over no pick) it keeps today's rule:
-    /// the case pane's options card accepts the recommendation, the free-text
-    /// footer sends what is there.
-    static func sendAction(
-        primary: ComposerViewModel.FooterPrimaryAction,
-        canSend: Bool,
-        commentCount: Int,
-        acceptsRecommendationWithComments: Bool
-    ) -> SendAction {
-        guard canSend else { return .none }
-        if case .acceptRecommendation = primary, commentCount == 0 || acceptsRecommendationWithComments {
-            return .acceptRecommendation
-        }
-        return .send
-    }
-
     /// The quiet text buttons, left to right. There is no "Accept" button:
     /// the operator picks the recommended option and sends, or presses ⌘D.
     static let askForDetailLabel = "Ask for more detail"

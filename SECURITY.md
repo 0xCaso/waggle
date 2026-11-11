@@ -54,5 +54,7 @@ ignores them.
 ## Signing
 
 Release builds are signed with the maintainer's Developer ID, notarized by Apple and signed for Sparkle.
-These keys are never in this repository or in CI. A build from source is ad-hoc signed and cannot update a
-release install.
+These keys are never in this repository. The release workflow (`.github/workflows/release.yml`) reads
+them from the GitHub `release` environment, which only main can use, and only after CI passes on a push
+to main. A pull request, a fork included, never sees them. A build from source is ad-hoc signed and
+cannot update a release install.

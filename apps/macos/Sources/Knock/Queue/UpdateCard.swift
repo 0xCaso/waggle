@@ -94,23 +94,3 @@ struct UpdateCardContent: Equatable {
             && first.allSatisfy { $0.isLetter || $0.isNumber || "-_./".contains($0) }
     }
 }
-
-/// A shell command in a dark mono block with a Copy button (prototype `.cmd`).
-struct CommandBlockView: View {
-    let command: String
-
-    var body: some View {
-        HStack(alignment: .top, spacing: 10) {
-            Text(command)
-                .font(.custom(Theme.FontFamily.mono, size: 12))
-                .foregroundColor(Theme.Colors.updateCardText)
-                .textSelection(.enabled)
-                .fixedSize(horizontal: false, vertical: true)
-                .frame(maxWidth: .infinity, alignment: .leading)
-            CopyPill(label: "Copy", copies: command)
-        }
-        .padding(EdgeInsets(top: 9, leading: 11, bottom: 9, trailing: 8))
-        .background(Theme.Colors.ink)
-        .cornerRadius(8)
-    }
-}

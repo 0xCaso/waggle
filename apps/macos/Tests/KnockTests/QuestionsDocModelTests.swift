@@ -48,15 +48,6 @@ struct QuestionsDocModelTests {
         #expect(point.choiceLabels == ["Plain", "Cards", "Table"])
         #expect(point.options?[1].pros == ["Easy to scan"] && point.options?[1].cons == ["Takes room", "Hard on a phone"])
         #expect(point.options?[0].pros == [] && point.options?[2].cons == [])
-        #expect(point.showsOptionCards)
-    }
-
-    @Test func aPointWithOnlyStringsKeepsChips() throws {
-        let point = try JSONDecoder().decode(QuestionPoint.self, from: Data(#"{"id":"p","text":"T","options":["A","B"]}"#.utf8))
-        #expect(!point.showsOptionCards)
-        #expect(!QuestionPoint(id: "p", text: "T", options: nil).showsOptionCards)
-        // An object with an empty list of pros and cons is still a chip.
-        #expect(!QuestionPoint(id: "p", text: "T", options: [PointOption(label: "A"), PointOption(label: "B", pros: [], cons: [])]).showsOptionCards)
     }
 
     @Test func aPlainOptionEncodesAsAStringAndOneWithPointsAsAnObject() throws {
@@ -87,10 +78,8 @@ struct QuestionsDocModelTests {
     @Test func countsPointsPerQuestionAndInTotal() {
         var model = QuestionsDocModel(request: makeRequest())
         #expect(model.totalPoints == 3 && model.answeredCount == 0)
-        #expect(model.progressText == "0 of 3 points decided")
         model.choose("Two", question: "plans", point: "count")
         model.choose("Yes", question: "cta", point: "label")
-        #expect(model.answeredCount == 2 && model.progressText == "2 of 3 points decided")
         #expect(model.progress == [false, true])
     }
 
@@ -119,28 +108,12 @@ struct QuestionsDocModelTests {
         #expect(model.answers() == [PointAnswer(questionId: "q", pointId: "p", choice: "Cards", note: nil)])
     }
 
-    @Test func aNoteNeedsAChoiceAndRidesWithTheAnswer() {
-        var model = QuestionsDocModel(request: makeRequest())
-        model.setNote("early", question: "plans", point: "count")
-        #expect(model.answers().isEmpty)
-        model.choose("Three", question: "plans", point: "count")
-        model.setNote("  keep it small \n", question: "plans", point: "count")
-        model.choose("No", question: "plans", point: "badge")
-        #expect(model.answers() == [
-            PointAnswer(questionId: "plans", pointId: "count", choice: "Three", note: "keep it small"),
-            PointAnswer(questionId: "plans", pointId: "badge", choice: "No", note: nil),
-        ])
-    }
-
     // MARK: Bar
 
     @Test func theBarCountsAndLabelsTheSend() {
         var model = QuestionsDocModel(request: makeRequest())
-        #expect(model.barText == "Nothing answered yet" && model.sendLabel == "Send answers" && !model.canSend)
         model.choose("Two", question: "plans", point: "count")
-        #expect(model.barText == "1 answered" && model.sendLabel == "Send 1 answer" && model.canSend)
         model.choose("Yes", question: "cta", point: "label")
-        #expect(model.barText == "2 answered" && model.sendLabel == "Send 2 answers")
         model.note = "  "
         #expect(model.message == nil)
         model.note = "Ship it"
@@ -153,7 +126,6 @@ struct QuestionsDocModelTests {
         model.note = "   "
         #expect(!model.canSend && model.sendLabel == "Send answers")
         model.note = "The prototype should be a page one can navigate."
-        #expect(model.barText == "Nothing answered yet")
         #expect(model.canSend && model.isFeedbackOnly && model.sendLabel == "Send feedback")
         #expect(model.answers().isEmpty && model.message == "The prototype should be a page one can navigate.")
     }
@@ -230,7 +202,6 @@ struct QuestionsDocModelTests {
         let answers = [PointAnswer(questionId: "plans", pointId: "count", choice: "Three", note: "ok")]
         let model = QuestionsDocModel(request: makeRequest(status: .waitingOnAgent, answers: answers, message: "Thanks"))
         #expect(model.isLocked && model.draft("plans", "count").choice == "Three" && model.draft("plans", "count").note == "ok")
-        #expect(model.note == "Thanks" && model.barText == "1 answered")
     }
 
     @Test func freshDataKeepsYourAnswersButAnotherRequestStartsClean() {
@@ -386,21 +357,6 @@ extension QuestionsDocModelTests {
         #expect(rows.map(\.summary) == ["Yes · No", "Not decided", "No"])
         #expect(rows.map(\.isDecided) == [true, false, true])
         #expect(rows[1].title == "Comments" && rows[2].index == 2)
-    }
-
-    @Test func picksNotesAndTheStepSurviveARefresh() {
-        var model = stepped()
-        model.choose("Yes", question: "b", point: "p3")
-        model.setNote("because", question: "b", point: "p3")
-        model.note = "hello"
-        model.jump(to: 2)
-        let request = Case(
-            id: "s1", taskId: "t", kind: .question, title: "T2", need: "N", why: "W", recommendation: "R", recommendationWhy: "B",
-            options: [], status: .needsYou, hasArtifact: false, latestReplyMessage: nil, latestReplyIntent: nil,
-            createdAt: "2026-10-07T10:00:00Z", updatedAt: "2026-10-07T10:05:00Z", questions: Self.three, latestReplyAnswers: [])
-        model.refresh(with: request)
-        #expect(model.step == 2 && model.note == "hello")
-        #expect(model.draft("b", "p3") == QuestionsDocModel.Draft(choice: "Yes", note: "because"))
     }
 
     @Test func aSentAskOpensOnTheReview() {

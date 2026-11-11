@@ -912,6 +912,8 @@ describe("waggle test-ask", () => {
 
     const result = await run;
 
+    // A rare CI failure exits 1 with no output in the log: print what the command said.
+    if (result.code !== 0) console.error(`waggle test-ask exited ${result.code}\nstdout:\n${result.stdout}\nstderr:\n${result.stderr}`);
     expect(result.code).toBe(0);
     expect(result.stdout).toContain('Created test review "Pricing card: compact or detailed?"');
     expect(result.stdout).toContain("Delivered to the test session.");

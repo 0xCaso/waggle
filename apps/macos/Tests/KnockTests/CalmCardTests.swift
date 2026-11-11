@@ -77,15 +77,6 @@ struct CalmCardTests {
         #expect(CalmOption.pointPick(plain, choice: "Maybe") == nil)
     }
 
-    @Test func aClosedRowShowsTheFirstWordsOfTheDescription() {
-        let body = CalmOption.description(of: options[0], position: 1)
-        let short = CalmOption.shortLine(body)
-        #expect(short == "Rewrite the message of commit 206543af so its…")
-        #expect(CalmOption.shortLine("Keep it short") == "Keep it short")
-        #expect(CalmOption.shortLine(nil) == nil)
-        #expect(CalmOption.description(of: Option(id: "x", label: "Merge as it is", title: "Merge as it is"), position: 1) == nil)
-    }
-
     @Test func theBarRowKeepsTheDescriptionForTheTooltip() {
         let body = CalmOption.description(of: options[0], position: 1)
         #expect(body == options[0].label)
@@ -118,17 +109,6 @@ struct CalmCardTests {
         #expect(try JSONDecoder().decode(Option.self, from: json).why == "Because")
         let old = #"{"id":"a","label":"A"}"#.data(using: .utf8)!
         #expect(try JSONDecoder().decode(Option.self, from: old).why == nil)
-    }
-
-    @Test func thePanelSwapsItsDocWithThePick() {
-        let item = makeCase(options: options)
-        let first = AskPanelLayout.pickedOption(in: item, selectedId: "a")
-        let second = AskPanelLayout.pickedOption(in: item, selectedId: "c")
-        #expect(first?.id == "a" && second?.id == "c")
-        #expect(CalmOption.pickLabel(options[2], position: 3) == "YOUR PICK · 3 OPEN IT, FIX LATER")
-        #expect(CalmOption.swapDuration == 0.2 && CalmOption.openDuration == 0.22)
-        // A pick without lists still shows its description.
-        #expect(AskPanelLayout.parts(for: item, picked: options[2]).contains(.pickedPoints))
     }
 
     @Test func aPlanAndAMultiQuestionPointUseTheSameLook() {

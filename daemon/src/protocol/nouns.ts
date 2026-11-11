@@ -88,6 +88,16 @@ export const ScreenshotsItem = z
     path: z.string().optional().describe("A path to a .png or .jpg file. Give this or data_base64."),
     data_base64: z.string().optional().describe(INLINE_PNG_DESCRIPTION),
     caption: z.string().optional(),
+    item: z
+      .string()
+      .trim()
+      .min(1)
+      .max(40)
+      .optional()
+      .describe(
+        "The id of the decision item this image belongs to, in a request with several decisions. " +
+          "Waggle shows only that decision's images while it is on screen. Skip it for an image every decision shares.",
+      ),
   })
   .refine((v) => (v.path === undefined) !== (v.data_base64 === undefined), {
     message: "give exactly one of path or data_base64",
@@ -211,7 +221,6 @@ export type Artifact = z.infer<typeof Artifact>;
 // The stages of a plan ask (HAIL-151), in the order the brainstorming flow walks them.
 export const PlanStageName = z.enum(["questions", "approaches", "design", "spec"]);
 export type PlanStageName = z.infer<typeof PlanStageName>;
-export const PLAN_STAGES: PlanStageName[] = ["questions", "approaches", "design", "spec"];
 
 // Where one round of a plan ask sits. `step` counts from 1 inside the stage (question 3, design
 // section 2); `total` is how many the stage has, and `total_is_estimate` marks it as a guess.
@@ -968,7 +977,7 @@ export const ArtifactPathResult = z.object({
   kind: ArtifactKind,
   root: z.string(),
   entry: z.string(),
-  items: z.array(z.object({ path: z.string(), caption: z.string().optional() })).optional(),
+  items: z.array(z.object({ path: z.string(), caption: z.string().optional(), item: z.string().optional() })).optional(),
   viewport: Viewport.optional(),
   preview: z.object({ kind: z.enum(["html", "image"]), path: z.string() }).optional(),
 });

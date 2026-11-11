@@ -239,6 +239,8 @@ describe("replies", () => {
     const reply = store.getReply(c.latest_reply_id!)!;
     expect(reply.source).toBe("slack");
     expect(reply.idempotency_key).toBe(`slack:cb:${caseId}:0`);
+    // The ack can land just after the reply is stored: wait for it.
+    await until(() => fake.acks.some((a) => a.id === env));
     const ack = fake.acks.find((a) => a.id === env);
     expect(ack).toBeDefined();
   });

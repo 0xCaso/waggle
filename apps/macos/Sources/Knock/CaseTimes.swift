@@ -23,30 +23,6 @@ enum CaseTimes {
         return "\(totalHours / 24)d"
     }
 
-    /// The pending queue row's arrival time (docs/stories/HAIL-34.md 21:38):
-    /// "21:14" today, the weekday within 7 days ("Sat"), else "12 Sep" - full
-    /// date and time belongs in a tooltip (`arrivalTooltip`), not this label.
-    /// A fresh `Calendar`/`DateFormatter` per call, not a cached static one -
-    /// the same Sendable reasoning `KnockDateFormat` documents (this runs
-    /// from both MainActor view code and background enrichment tasks).
-    static func arrivalRowLabel(for date: Date, now: Date) -> String {
-        let calendar = Calendar.current
-        if calendar.isDate(date, inSameDayAs: now) {
-            return KnockDateFormat.shortTime(from: date)
-        }
-        let days = calendar.dateComponents(
-            [.day], from: calendar.startOfDay(for: date), to: calendar.startOfDay(for: now)
-        ).day ?? 0
-        if (1..<7).contains(days) {
-            let formatter = DateFormatter()
-            formatter.setLocalizedDateFormatFromTemplate("EEE")
-            return formatter.string(from: date)
-        }
-        let formatter = DateFormatter()
-        formatter.setLocalizedDateFormatFromTemplate("d MMM")
-        return formatter.string(from: date)
-    }
-
     /// How long ago, for queue rows (operator, 29 Sep: "i don't want
     /// 'took Xs' ... i want to know how long ago that message arrived
     /// there, or how long ago it was solved"): "just now", "5m ago",
@@ -117,15 +93,6 @@ extension CaseTimes {
 
 extension Case {
     var firstReplySubmittedAtDate: Date? { firstReplySubmittedAt.flatMap(KnockDateFormat.date(from:)) }
-
-    /// "took 16m": time to answer = the first reply's `submitted_at` (i.e.
-    /// `firstReplySubmittedAt`, never moved by a later `reply.replace` or a
-    /// later round's own reply) minus the case's own `createdAt`. `nil`
-    /// until the case has a first reply.
-    var tookLabel: String? {
-        guard let submittedAt = firstReplySubmittedAtDate, let createdAt = createdAtDate else { return nil }
-        return "took \(CaseTimes.compactDuration(submittedAt.timeIntervalSince(createdAt)))"
-    }
 
     /// `CaseTimes.headerMetaLabel` fed from this case's own dates - the
     /// opened ask's header meta, pane and review workspace alike. Never

@@ -63,66 +63,6 @@ Call waggle_guide for deeper guidance: asks, artifacts, reviews, plans, replies.
     ]
 }
 
-/// Compact "Your agents now know how to use Waggle" panel, shown in the setup
-/// window's connect step once at least one runtime is connected.
-struct AgentInstructionsPanel: View {
-    @State private var showExact = false
-
-    var body: some View {
-        VStack(alignment: .leading, spacing: 10) {
-            header
-            AgentInstructionsColumns()
-            disclosure
-        }
-        .padding(14)
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .background(Theme.Colors.list)
-        .cornerRadius(9)
-    }
-
-    private var header: some View {
-        HStack(spacing: 8) {
-            Image(systemName: "sparkles")
-                .font(.system(size: 15))
-                .foregroundColor(Theme.Colors.accent)
-            Text("Your agents now know how to use Waggle")
-                .knockTextStyle(Theme.Typography.rowTitle13_5w600)
-                .foregroundColor(Theme.Colors.ink)
-        }
-    }
-
-    private var disclosure: some View {
-        VStack(alignment: .leading, spacing: 6) {
-            Button {
-                showExact.toggle()
-            } label: {
-                HStack(spacing: 5) {
-                    Text("See the exact instructions")
-                        .knockTextStyle(Theme.Typography.micro12w600)
-                        .foregroundColor(Theme.Colors.accent)
-                    Image(systemName: "chevron.right")
-                        .font(.system(size: 11, weight: .semibold))
-                        .foregroundColor(Theme.Colors.accent)
-                        .rotationEffect(.degrees(showExact ? 90 : 0))
-                }
-            }
-            .buttonStyle(.plain).pointerCursor()
-
-            if showExact {
-                Text(AgentInstructions.text)
-                    .knockTextStyle(Theme.Typography.body12_5w400)
-                    .foregroundColor(Theme.Colors.ink2)
-                    .textSelection(.enabled)
-                    .fixedSize(horizontal: false, vertical: true)
-                    .frame(maxWidth: .infinity, alignment: .leading)
-                    .padding(10)
-                    .background(Theme.Colors.win)
-                    .cornerRadius(6)
-            }
-        }
-    }
-}
-
 /// The three columns of the preview: when they come to you, what they will not do, and what every request
 /// has (the three blocks). Shared by the panel and the "exact instructions" sheet in Settings.
 struct AgentInstructionsColumns: View {

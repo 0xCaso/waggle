@@ -9,7 +9,6 @@ import {
   ArtifactPreset,
   SettingsGetParams,
   SettingsSetParams,
-  rpcMethods,
 } from "../src/protocol";
 import type { RpcServer } from "../src/server";
 import { startRpcServer } from "../src/server";
@@ -51,8 +50,6 @@ describe("settings schemas", () => {
     expect(SettingsSetParams.safeParse({ key: "other", value: "rich" }).success).toBe(false);
     expect(SettingsSetParams.safeParse({ key: "artifactPreset", value: "rich", x: 1 }).success).toBe(false);
     expect(SettingsGetParams.safeParse({ key: "artifactPreset" }).success).toBe(true);
-    expect(Object.keys(rpcMethods)).toContain("settings.get");
-    expect(Object.keys(rpcMethods)).toContain("settings.set");
   });
 });
 

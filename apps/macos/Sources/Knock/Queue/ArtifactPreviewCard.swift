@@ -114,15 +114,6 @@ enum ArtifactPreviewPlan: Equatable {
 /// snapshot within the card's fixed width and height cap - free of any live
 /// image or view, so it is testable without rendering anything.
 enum ArtifactCardGeometry {
-    /// `.defaultDesktop`/`.viewportFull`: the displayed size when the image
-    /// scales to the card's full width, preserving aspect ratio - taller
-    /// than `cardHeight` is exactly what the card then clips, top-aligned.
-    static func fillWidth(imageSize: CGSize, cardWidth: CGFloat) -> CGSize {
-        guard imageSize.width > 0 else { return .zero }
-        let scale = cardWidth / imageSize.width
-        return CGSize(width: cardWidth, height: imageSize.height * scale)
-    }
-
     /// `.viewportPhone`: the displayed size when the image fits inside the
     /// card's height, preserving aspect ratio, so the phone frame never
     /// stretches.
@@ -164,40 +155,6 @@ enum ArtifactPreviewState {
     /// timing problem, not a settings/isolation one, so the card offers its
     /// own "Preview is taking long" copy rather than "preview off".
     case timedOut
-}
-
-/// Which display mode a staged artifact gets in the case pane (HAIL-45
-/// contract: "a full-width reading view in the pane for markdown and HTML
-/// write-ups"). A `markdown` artifact always reads inline, full width - a
-/// six-line excerpt in a 280 pt card was never legible for a real write-up.
-/// An `html_bundle` reads inline too, but only for a question ask: a review
-/// ask's prototype keeps today's small preview by default, since Comment
-/// mode and pinning still live behind "Open review", and a live, full-width
-/// prototype sitting in the pane would invite clicking through it there
-/// instead of in the review workspace. A screenshot or screenshots artifact
-/// always uses the small card - neither reads any easier at pane width.
-/// Pure and free of any loader state, so the rule itself is testable without
-/// a live artifact fetch.
-enum ArtifactDisplayMode: Equatable {
-    case card
-    case markdownReading
-}
-
-enum ArtifactDisplayRule {
-    static func mode(artifactKind: ArtifactKind, caseKind: Case.Kind) -> ArtifactDisplayMode {
-        switch artifactKind {
-        case .markdown:
-            return .markdownReading
-        case .htmlBundle:
-            // Always the still card (operator, 29 Sep: "the preview should not
-            // scroll, but click and open"): the live page HAIL-45 put in
-            // question asks caught the scroll wheel, so the pane would not
-            // scroll over it. Click opens it full size.
-            return .card
-        case .screenshot, .screenshots, .diagram:
-            return .card
-        }
-    }
 }
 
 /// One in-memory snapshot per case, revision and card-width bucket

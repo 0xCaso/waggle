@@ -140,6 +140,17 @@ describe("screenshots artifact", () => {
     expect(result.success).toBe(true);
   });
 
+  test("trims `item` and rejects an empty or a 41-character one", () => {
+    const parse = (item: string) =>
+      Artifact.safeParse({ type: "screenshots", items: screenshotItems(2).map((s) => ({ ...s, item })) });
+    const ok = parse("  ring  ");
+    expect(ok.success).toBe(true);
+    if (ok.success && ok.data.type === "screenshots") expect(ok.data.items[0]!.item).toBe("ring");
+    expect(parse("   ").success).toBe(false);
+    expect(parse("x".repeat(40)).success).toBe(true);
+    expect(parse("x".repeat(41)).success).toBe(false);
+  });
+
   test("rejects 1 item", () => {
     expect(Artifact.safeParse({ type: "screenshots", items: screenshotItems(1) }).success).toBe(false);
   });

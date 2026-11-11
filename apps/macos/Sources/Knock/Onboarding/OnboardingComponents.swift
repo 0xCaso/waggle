@@ -289,24 +289,3 @@ struct OnboardingRuntimeRowView: View {
         }
     }
 }
-
-/// The orange numbered pill + caption shown below every screen's card
-/// (design: "Caption" rows, e.g. `yt27R` on O1).
-struct OnboardingCaptionRow: View {
-    let number: String
-    let text: String
-
-    var body: some View {
-        HStack(alignment: .top, spacing: 10) {
-            ZStack {
-                Circle().fill(Theme.Colors.accent).frame(width: 24, height: 24)
-                Text(number)
-                    .knockTextStyle(Theme.Typography.buttonSm12_5w500)
-                    .foregroundColor(Theme.Colors.win)
-            }
-            Text(text)
-                .knockTextStyle(Theme.Typography.body13_5w400)
-                .foregroundColor(Theme.Colors.ink2)
-        }
-    }
-}
