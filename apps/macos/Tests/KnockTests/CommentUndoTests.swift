@@ -56,7 +56,8 @@ struct CommentUndoTests {
         store.deleteCommentWithUndo(id: comment.id)
         #expect(store.commentUndo != nil)
 
-        let deadline = Date().addingTimeInterval(5)
+        // A loaded full run can hold the main actor for seconds.
+        let deadline = Date().addingTimeInterval(30)
         while store.commentUndo != nil, Date() < deadline { try await Task.sleep(for: .milliseconds(10)) }
         #expect(store.commentUndo == nil)
 

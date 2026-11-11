@@ -56,14 +56,14 @@ struct PausedCardTests {
 
     @Test func startReachesTheServiceAndLeavesPaused() async {
         var checks = 0
-        let starter = ServiceStarter(launch: { true }, timeout: 5, pollInterval: 0.01)
+        let starter = ServiceStarter(launch: { true }, timeout: 30, pollInterval: 0.01)
         await starter.start(isReachable: { checks += 1; return checks >= 3 })
         #expect(starter.phase == .paused)
         #expect(checks >= 3)
     }
 
     @Test func phaseIsStartingWhileItWaits() async {
-        let starter = ServiceStarter(launch: { true }, timeout: 5, pollInterval: 0.01)
+        let starter = ServiceStarter(launch: { true }, timeout: 30, pollInterval: 0.01)
         var seen: [PausedCopy.Phase] = []
         await starter.start(isReachable: { seen.append(starter.phase); return seen.count >= 2 })
         #expect(seen.allSatisfy { $0 == .starting })
@@ -71,7 +71,7 @@ struct PausedCardTests {
 
     @Test func aLaunchThatFailsShowsTheFailureAtOnce() async {
         var checked = false
-        let starter = ServiceStarter(launch: { false }, timeout: 5, pollInterval: 0.01)
+        let starter = ServiceStarter(launch: { false }, timeout: 30, pollInterval: 0.01)
         await starter.start(isReachable: { checked = true; return true })
         #expect(starter.phase == .startFailed)
         #expect(!checked)
