@@ -50,7 +50,7 @@ extension QuestionPoint {
             return PointOption(
                 label: label, effects: option.effects, optionId: option.id,
                 proPoints: option.proPoints, conPoints: option.conPoints, facts: option.facts,
-                description: CalmOption.description(of: option, position: index + 1), why: option.why)
+                detail: CalmOption.description(of: option, position: index + 1), why: option.why)
         }
         let recommended: [String]
         if item.select == .reply {

@@ -71,7 +71,7 @@ struct OptionGistTests {
         #expect(option.proPoints == [OptionPoint(gist: "Fast", detail: "It ships today")])
         #expect(option.facts == ["today"])
         #expect(option.why == "It is the smallest step")
-        #expect(option.description != nil)
+        #expect(option.detail != nil)
     }
 
     // MARK: - Closed card

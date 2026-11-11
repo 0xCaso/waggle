@@ -46,7 +46,7 @@ extension QuestionsDocModel {
                 note: isRecommended ? why : option.why.map(AgentMarkdown.singleLine).flatMap { $0.isEmpty ? nil : $0 },
                 canDiscuss: point.canDiscuss && !isLocked,
                 isLimitDimmed: !isLocked && isAtLimit(point, draft) && !draft.choices.contains(option.label),
-                facts: option.facts, proPoints: option.proPoints, conPoints: option.conPoints, description: option.description)
+                facts: option.facts, proPoints: option.proPoints, conPoints: option.conPoints, description: option.detail)
         }
     }
 

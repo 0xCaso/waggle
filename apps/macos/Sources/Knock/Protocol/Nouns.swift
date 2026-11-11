@@ -123,11 +123,13 @@ struct Option: Codable, Equatable, Sendable, Identifiable {
         effects: [String] = [], artifactRef: String? = nil, anchor: String? = nil, why: String? = nil,
         facts: [String] = [], proPoints: [OptionPoint]? = nil, conPoints: [OptionPoint]? = nil
     ) {
+        // `pros` and `cons` are the plain-string shorthand for points with no gist; given with `proPoints` and
+        // `conPoints`, they come after them, so nothing passed in is dropped.
         self.id = id
         self.label = label
         self.title = title
-        self.proPoints = proPoints ?? pros.map { OptionPoint(detail: $0) }
-        self.conPoints = conPoints ?? cons.map { OptionPoint(detail: $0) }
+        self.proPoints = (proPoints ?? []) + pros.map { OptionPoint(detail: $0) }
+        self.conPoints = (conPoints ?? []) + cons.map { OptionPoint(detail: $0) }
         self.facts = facts
         self.effects = effects
         self.artifactRef = artifactRef
@@ -911,7 +913,7 @@ struct PointOption: Codable, Equatable, Sendable, Identifiable, ExpressibleByStr
     var facts: [String] = []
     /// The item option's full text under its title, and its own reason (task 11b: nothing the agent sent is dropped).
     /// Not on the wire.
-    var description: String? = nil
+    var detail: String? = nil
     var why: String? = nil
     /// The id of the item option this answer stands for (WAG-315); `nil` on an answer of the old questions
     /// shape, which goes back as its label. Not on the wire.
@@ -926,15 +928,15 @@ struct PointOption: Codable, Equatable, Sendable, Identifiable, ExpressibleByStr
     init(
         label: String, pros: [String] = [], cons: [String] = [], effects: [String] = [], optionId: String? = nil,
         proPoints: [OptionPoint]? = nil, conPoints: [OptionPoint]? = nil, facts: [String] = [],
-        description: String? = nil, why: String? = nil
+        detail: String? = nil, why: String? = nil
     ) {
         self.label = label
-        self.proPoints = proPoints ?? pros.map { OptionPoint(detail: $0) }
-        self.conPoints = conPoints ?? cons.map { OptionPoint(detail: $0) }
+        self.proPoints = (proPoints ?? []) + pros.map { OptionPoint(detail: $0) }
+        self.conPoints = (conPoints ?? []) + cons.map { OptionPoint(detail: $0) }
         self.effects = effects
         self.optionId = optionId
         self.facts = facts
-        self.description = description
+        self.detail = detail
         self.why = why
     }
 
