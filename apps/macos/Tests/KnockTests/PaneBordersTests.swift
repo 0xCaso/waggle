@@ -146,6 +146,17 @@ struct PaneBordersTests {
         #expect(store.sidebarWidth == 240)
     }
 
+    @Test func aDragStepMovesTheWidthWithoutSavingAndTheEndSavesIt() {
+        let defaults = freshDefaults()
+        let store = PaneWidthStore(defaults: defaults)
+        store.set(.sidebar, 350, save: false)
+        store.set(.sidebar, 360, save: false)
+        #expect(store.sidebarWidth == 360)
+        #expect(defaults.object(forKey: PaneBorder.sidebar.defaultsKey) == nil)
+        store.save(.sidebar)
+        #expect(PaneWidthStore(defaults: defaults).sidebarWidth == 360)
+    }
+
     @Test func aDoubleClickSetsTheDefaultAgainAndForgetsTheSavedWidth() {
         let defaults = freshDefaults()
         let store = PaneWidthStore(defaults: defaults)

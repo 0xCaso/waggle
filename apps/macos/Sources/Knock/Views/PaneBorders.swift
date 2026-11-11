@@ -76,15 +76,21 @@ final class PaneWidthStore: ObservableObject {
         }
     }
 
-    /// Sets the border's width (clamped) and saves it.
-    func set(_ border: PaneBorder, _ width: CGFloat) {
+    /// Sets the border's width (clamped) and, unless `save` is false, saves it. A drag moves the width with
+    /// `save: false` on every step and calls `save(_:)` once when it ends.
+    func set(_ border: PaneBorder, _ width: CGFloat, save: Bool = true) {
         let width = border.clamp(width)
         guard width != self.width(border) else { return }
         switch border {
         case .sidebar: sidebarWidth = width
         case .decisionColumn: decisionColumnWidth = width
         }
-        defaults.set(Double(width), forKey: border.defaultsKey)
+        if save { self.save(border) }
+    }
+
+    /// Saves the border's current width.
+    func save(_ border: PaneBorder) {
+        defaults.set(Double(width(border)), forKey: border.defaultsKey)
     }
 
     /// The double click: the default width again, and nothing saved.
@@ -130,10 +136,13 @@ struct PaneBorderHandle: View {
                 .onChanged { value in
                     let start = dragStart ?? store.width(border)
                     if dragStart == nil { dragStart = start }
-                    store.set(border, border.dragged(from: start, translation: value.translation.width, limit: limit))
+                    store.set(
+                        border, border.dragged(from: start, translation: value.translation.width, limit: limit),
+                        save: false)
                     updateCursor()
                 }
                 .onEnded { _ in
+                    if dragStart != nil { store.save(border) }
                     dragStart = nil
                     updateCursor()
                 }
