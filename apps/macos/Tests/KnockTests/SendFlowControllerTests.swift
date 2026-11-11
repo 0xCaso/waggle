@@ -840,7 +840,10 @@ struct SendFlowControllerTests {
         flow.composer.beginAskingForDetail()
         flow.composer.fillDetailChip("Show me the numbers")
         flow.askForMoreDetail()
-        try await waitForSend { captured.value != nil && flow.deliveryReplySummary != nil }
+        // The summary is set before the send finishes; wait for the whole send, not only its first effect.
+        try await waitForSend {
+            captured.value != nil && flow.deliveryReplySummary != nil && sentCount == 1 && !flow.composer.isAskingForDetail
+        }
 
         #expect(captured.value == "more_detail|nil|Show me the numbers")
         #expect(flow.deliveryReplySummary == "Asked for more detail · Show me the numbers")
