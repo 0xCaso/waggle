@@ -324,28 +324,3 @@ extension ArtifactKind {
         }
     }
 }
-
-/// The chips over a saved request on the offline page: its kind, where it stands, and the client.
-/// Pure, so a test can pin the words. The words match the online page: "Review" and "Decision" are
-/// the names its column tab and crumb use for the two kinds, and "Needs you" and "Answered" are the
-/// sidebar's section names for the status.
-enum OfflineChips {
-    static func labels(for item: Case) -> [String] {
-        [kind(item.kind), status(item.status), item.runtimeLabel]
-    }
-
-    static func kind(_ kind: Case.Kind) -> String {
-        switch kind {
-        case .review: return "Review"
-        case .question: return "Decision"
-        }
-    }
-
-    static func status(_ status: CaseStatus) -> String {
-        switch status {
-        case .needsYou: return "Needs you"
-        case .waitingOnAgent: return "Answered"
-        case .resolved: return "Done"
-        }
-    }
-}
