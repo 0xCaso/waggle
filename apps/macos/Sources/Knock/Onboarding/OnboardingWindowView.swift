@@ -14,6 +14,7 @@ struct OnboardingWindowView: View {
             TestCopyStripView()
             OnboardingCardView(model: model)
         }
+            .background(Theme.Colors.win)
             .background(OpaqueWhiteWindowBackground())
             .task {
                 model.start()

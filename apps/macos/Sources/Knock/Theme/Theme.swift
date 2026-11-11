@@ -100,15 +100,15 @@ enum Theme {
         static let terminalApplying = Color(hex: 0x8FBFA0)
 
         // MARK: HAIL-56 Canvas toolbar additions (frames `ovd06`/`PPM9l`,
-        // node `p4VxgR`/`pmToc` "Canvas tools"). White-on-ink alphas with no
-        // named design variable of their own, read directly off the nodes.
+        // node `p4VxgR`/`pmToc` "Canvas tools"). Alphas of `onFill`, the text colour on the ink
+        // toolbar: white on ink in the light look, ink on a light toolbar in the dark look.
 
         /// Inactive tool's icon/label, e.g. "Interact" while Comment is
-        /// active (`Y8aDW`, white @ 70%).
-        static let toolbarInactiveText = Color.white.opacity(Double(0xB3) / 255.0)
+        /// active (`Y8aDW`, 70%).
+        static let toolbarInactiveText = onFill.opacity(Double(0xB3) / 255.0)
         /// Inactive tool's key hint, e.g. "I" while Comment is active
-        /// (`XMkj6`, white @ 40%).
-        static let toolbarInactiveKey = Color.white.opacity(Double(0x66) / 255.0)
+        /// (`XMkj6`, 40%).
+        static let toolbarInactiveKey = onFill.opacity(Double(0x66) / 255.0)
     }
 
     // MARK: - Font families

@@ -47,6 +47,13 @@ none
   switch at the bottom of the Settings sidebar, above the version. No page is about the look, and there the
   change shows on each page.
 
+- Closed 2026-11-11 (task 5): the main window, the request page, Settings, first run, the paused card, the
+  Sent toast and the caught-up pane were checked in both looks in a dev build with a temporary KNOCK_HOME. One
+  fix came from it: the Interact and Comment switch over an artifact had white text on its light dark-look fill.
+  A test holds the dark text colours at 4.5 to 1 or more on each surface.
+- Agent's call, open to review in the pull request: agent pages (HTML bundles) always render in the light look,
+  so a page written for a white canvas reads the same when Waggle is dark.
+
 ## Sources
 - Case c_a7df3a60-77de-4579-add7-69980736bb63 (the choice).
 - apps/macos/Sources/Knock/Theme/Theme.swift: 48 colour tokens, each with one light value.
