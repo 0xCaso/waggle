@@ -23,6 +23,8 @@ final class OnboardingModel: ObservableObject {
         var status: Status
         /// HAIL-134: how Claude Code reaches Waggle, from the same doctor run.
         var plugin: PluginState = .none
+        /// A short plain line when the last Connect failed; `nil` otherwise. The row also shows Connect again.
+        var error: String?
         var id: Runtime { runtime }
     }
 
@@ -234,9 +236,22 @@ final class OnboardingModel: ObservableObject {
             didRegisterDevelopmentBuildPath = true
         }
         Task {
-            _ = await runner.run(["install", runtime.rawValue], onLine: { _ in })
-            applyConnectRows(await runDoctorRows())
+            let code = await runner.run(["install", runtime.rawValue], onLine: { _ in })
+            var refreshed = await runDoctorRows()
+            // A failed install says so on its row. If doctor still finds the agent connected, nothing failed for the person.
+            if code != 0, let index = refreshed.firstIndex(where: { $0.runtime == runtime }), refreshed[index].status != .connected {
+                refreshed[index].status = .notConnected
+                refreshed[index].error = Self.installFailureMessage(runtime: runtime, exitCode: code)
+            }
+            applyConnectRows(refreshed)
         }
+    }
+
+    /// The error line under a row after `waggle install` fails. A negative code means the process did not start.
+    static func installFailureMessage(runtime: Runtime, exitCode: Int32) -> String {
+        exitCode < 0
+            ? "Couldn't start the setup for \(runtime.displayName). Try again."
+            : "Couldn't connect \(runtime.displayName). Try again."
     }
 
     /// Evidence only: `KNOCK_EVIDENCE_ONBOARDING_SCREEN=firstjob` opens step 2 without a connected agent.

@@ -209,6 +209,12 @@ struct OnboardingRuntimeRowView: View {
                         .foregroundColor(Theme.Colors.ink)
                     statusChip
                 }
+                if let error = row.error, row.status == .notConnected {
+                    Text(error)
+                        .knockTextStyle(Theme.Typography.monoMeta11_5w400)
+                        .foregroundColor(Theme.Colors.accent)
+                        .fixedSize(horizontal: false, vertical: true)
+                }
                 // HAIL-134: how Claude Code reaches Knock, under the name.
                 if row.plugin != .none, row.status == .connected {
                     Text("Installed as \(row.runtime.displayName) plugin")
