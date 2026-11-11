@@ -27,18 +27,15 @@ struct SettingsMergeTests {
         #expect(!SettingsPage.visible(sharingAvailable: false).contains(.sharing))
     }
 
-    @Test func oldPageNamesOpenTheNewPlace() {
+    @Test func oldPageNamesOpenTheNewPlace() async throws {
         #expect(SettingsPage.initial(environment: ["KNOCK_SETTINGS_PAGE": "askLess"]) == .asks)
         #expect(SettingsPage.initial(environment: ["KNOCK_SETTINGS_PAGE": "previews"]) == .artifacts)
         #expect(SettingsPage.page(named: "nope") == nil)
         let navigation = SettingsNavigationModel(environment: [:])
         NotificationCenter.default.post(name: .knockShowSettingsPage, object: "askLess")
-        let deadline = Date().addingTimeInterval(5)
-        while navigation.selected != .asks, Date() < deadline { RunLoop.main.run(until: Date().addingTimeInterval(0.01)) }
-        #expect(navigation.selected == .asks)
+        #expect(try await pollUntil(.seconds(10)) { navigation.selected == .asks })
         NotificationCenter.default.post(name: .knockShowSettingsPage, object: "previews")
-        while navigation.selected != .artifacts, Date() < deadline { RunLoop.main.run(until: Date().addingTimeInterval(0.01)) }
-        #expect(navigation.selected == .artifacts)
+        #expect(try await pollUntil(.seconds(10)) { navigation.selected == .artifacts })
     }
 
     @Test func askLessStillWritesTheAskLessKey() async throws {
