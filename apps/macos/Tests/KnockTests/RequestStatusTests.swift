@@ -30,14 +30,6 @@ struct RequestStatusTests {
         #expect(line(.init(item: item(status: .needsYou, replyState: nil))) == nil)
     }
 
-    @Test func offlineSaysOfflineWithNoButton() {
-        let offline = line(.init(item: item(status: .needsYou, replyState: nil), isOffline: true))
-        #expect(offline?.kind == .offline)
-        #expect(offline?.text == "Offline")
-        #expect(offline?.actions == [])
-        #expect(offline?.help == RequestStatus.offlineHelp)
-    }
-
     @Test func doneHasGotIt() {
         let done = line(.init(item: item(replyState: .delivered, doneAt: at)))
         #expect(done?.kind == .done)

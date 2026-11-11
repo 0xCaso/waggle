@@ -147,6 +147,11 @@ struct MainWindowView: View {
 
     @ViewBuilder
     private func reviewWorkspace(detail: CaseDetail, embedded: Bool = false) -> some View {
+        reviewWorkspaceContent(detail: detail, embedded: embedded)
+            .environment(\.pausedAnswerLine, model.connectionState == .connected ? nil : PausedCopy.answerLine)
+    }
+
+    private func reviewWorkspaceContent(detail: CaseDetail, embedded: Bool) -> some View {
         ReviewWorkspaceView(
             detail: detail, now: model.now, client: model.client, sendCoordinator: model.sendCoordinator,
             onBack: { model.closeReview() },

@@ -51,6 +51,20 @@ enum ServiceControl {
         launch(knockBinaryPath(), ["daemon"])
     }
 
+    /// The same launch as `startDaemon`, and it says whether the process began. The Paused card needs that to
+    /// tell a start that failed at once from one that is slow.
+    static func launchDaemon() -> Bool {
+        let process = Process()
+        process.executableURL = URL(fileURLWithPath: knockBinaryPath())
+        process.arguments = ["daemon"]
+        do {
+            try process.run()
+            return true
+        } catch {
+            return false
+        }
+    }
+
     private static func defaultLaunch(_ executablePath: String, _ arguments: [String]) {
         let process = Process()
         process.executableURL = URL(fileURLWithPath: executablePath)

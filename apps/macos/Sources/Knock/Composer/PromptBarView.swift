@@ -291,6 +291,8 @@ struct PromptBarCore: View {
 
     /// Height of the column or pane the bar sits in; the field grows to 40 % of it (C6).
     @Environment(\.answerBoxAvailableHeight) private var availableHeight
+    /// Set while the service is paused: the bar is off and this line says why.
+    @Environment(\.pausedAnswerLine) private var pausedLine
     @State private var barWidth: CGFloat = 0
     /// What the field's own text view last measured; `nil` before its first measure.
     @State private var fieldMetrics: PromptBarLogic.FieldMetrics?
@@ -333,8 +335,15 @@ struct PromptBarCore: View {
             Color.clear
                 .frame(height: 0)
                 .onGeometryChange(for: CGFloat.self, of: { $0.size.width }) { barWidth = $0 }
+            if let pausedLine {
+                Text(pausedLine)
+                    .knockTextStyle(PromptBarStyle.note)
+                    .foregroundColor(Theme.Colors.ink3)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .padding(EdgeInsets(top: PromptBarLogic.barTopPadding, leading: PromptBarLogic.barPadding, bottom: 0, trailing: PromptBarLogic.barPadding))
+            }
             if let files { AttachmentChipsRow(files: files) }
-            barContent(plan)
+            barContent(plan).disabled(pausedLine != nil)
         }
         .background(alignment: .topLeading) { labelProbe }
         .modifier(OptionalAttachDrop(files: files))
@@ -487,7 +496,7 @@ struct PromptBarCore: View {
             .padding(.horizontal, pill == nil ? 0 : PromptBarLogic.sendHorizontalPadding)
             .frame(minWidth: PromptBarLogic.sendHeight)
             .frame(height: PromptBarLogic.sendHeight)
-            .background(canSend ? Theme.Colors.ink : Theme.Colors.line2)
+            .background(canSend && pausedLine == nil ? Theme.Colors.ink : Theme.Colors.line2)
             .cornerRadius(Theme.Radius.promptButton)
             .contentShape(Rectangle())
         }
