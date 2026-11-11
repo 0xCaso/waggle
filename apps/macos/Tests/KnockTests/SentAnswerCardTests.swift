@@ -43,7 +43,7 @@ struct SentAnswerCardTests {
     @Test func theOnePageKeepsTheQuestionOnceSentButTheFullReviewKeepsTheRecap() {
         func kind(_ lock: ReplyLockState, onePage: Bool, editing: Bool = false) -> ReviewWorkspaceView.RightColumnKind {
             ReviewWorkspaceView.rightColumnKind(
-                lockState: lock, isEditingLockedAnswer: editing, isReviewingBeforeSend: false, tab: .question,
+                lockState: lock, isEditingLockedAnswer: editing, tab: .question,
                 isOnePage: onePage)
         }
         for lock in [ReplyLockState.queued, .delivered, .failed] {

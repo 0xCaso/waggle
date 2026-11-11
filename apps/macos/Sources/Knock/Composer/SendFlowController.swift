@@ -11,7 +11,6 @@ import Foundation
 /// `ComposerViewModel` and `CommentsSessionStore`).
 @MainActor
 final class SendFlowController: ObservableObject {
-    @Published private(set) var isReviewingBeforeSend = false
     @Published private(set) var isSending = false
     @Published private(set) var errorMessage: String?
     /// One capture that will be sent, with its own annotated thumbnail and
@@ -118,8 +117,7 @@ final class SendFlowController: ObservableObject {
         draftStore: ComposerDraftStore = .shared,
         usage: UsageReporter? = nil,
         onSent: @escaping () -> Void,
-        onAnswerSent: @escaping (String) -> Void = { _ in },
-        environment: [String: String] = ProcessInfo.processInfo.environment
+        onAnswerSent: @escaping (String) -> Void = { _ in }
     ) {
         self.knockCase = knockCase
         self.replies = replies
@@ -136,14 +134,6 @@ final class SendFlowController: ObservableObject {
         self.onAnswerSent = onAnswerSent
         // The answers bar counts the pinned comments (WAG-285), so a pin or a removal redraws it.
         commentsObserver = commentsStore.objectWillChange.sink { [weak self] _ in self?.objectWillChange.send() }
-        // `KNOCK_REVIEW_STEP=send` (Amendments): opens the review-before-send
-        // step directly, since the orchestrator cannot send the Send action
-        // itself. A seeded draft/comments is fine to skip per the
-        // amendment - this only needs the screen to render, the operator's
-        // own manual run covers a real reply.
-        if environment["KNOCK_REVIEW_STEP"] == "send" {
-            isReviewingBeforeSend = true
-        }
     }
 
     /// An update changed the case under the open pane (HAIL-108): the composer
@@ -261,8 +251,7 @@ final class SendFlowController: ObservableObject {
         // Send sends, comments included - no second "You're sending"
         // confirmation (operator, 29 Sep: "after sending, it should go back
         // to the list view, and not asking me to send"; the extra step left
-        // a commented reply unsent). The review screen still opens with
-        // KNOCK_REVIEW_STEP=send for evidence only.
+        // a commented reply unsent).
         sendClaimed = true
         Task {
             await confirmSend()
@@ -275,11 +264,6 @@ final class SendFlowController: ObservableObject {
 
     /// A Send is claimed or delivering. Tests wait for this to clear instead of sleeping.
     var hasSendInFlight: Bool { isSending || sendClaimed }
-
-    /// M6's "Keep editing": returns to the composer without sending.
-    func keepEditing() {
-        isReviewingBeforeSend = false
-    }
 
     /// "Ask" ⌘↵ (HAIL-33): sends a `more_detail` reply with the optional
     /// question from the inline field, straight through - no review-before-
@@ -348,7 +332,6 @@ final class SendFlowController: ObservableObject {
         switch await deliveryState.send(reply) {
         case .sent:
             composer.cancelAskingForDetail()
-            isReviewingBeforeSend = false
             clearAfterSend()
             onSent()
         case .offline:
@@ -406,7 +389,6 @@ final class SendFlowController: ObservableObject {
         )
         switch await deliveryState.send(reply) {
         case .sent:
-            isReviewingBeforeSend = false
             clearAfterSend()
             onSent()
             onAnswerSent(deliveryReplySummary)
@@ -439,7 +421,6 @@ final class SendFlowController: ObservableObject {
                 editRevision: attachedEdit?.revision, attachments: composer.files.wireInputs() ?? []
             )
             if case .sent = outcome {
-                isReviewingBeforeSend = false
                 isEditingLockedAnswer = false
                 self.replaceReplyId = nil
                 clearAfterSend()
@@ -517,7 +498,6 @@ final class SendFlowController: ObservableObject {
     /// `waiting_on_agent` on the daemon by the time a reply exists at all.
     func retryDelivery() async {
         if case .sent = await deliveryState.retry() {
-            isReviewingBeforeSend = false
             clearAfterSend()
             onSent()
             onAnswerSent(deliveryReplySummary)

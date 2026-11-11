@@ -11,11 +11,11 @@ import Testing
 struct ReviewWorkspaceRightColumnTests {
     private func kind(
         lockState: ReplyLockState, isEditingLockedAnswer: Bool = false,
-        isReviewingBeforeSend: Bool = false, tab: ReviewColumnTab = .question
+        tab: ReviewColumnTab = .question
     ) -> ReviewWorkspaceView.RightColumnKind {
         ReviewWorkspaceView.rightColumnKind(
             lockState: lockState, isEditingLockedAnswer: isEditingLockedAnswer,
-            isReviewingBeforeSend: isReviewingBeforeSend, tab: tab
+            tab: tab
         )
     }
 
@@ -34,11 +34,6 @@ struct ReviewWorkspaceRightColumnTests {
     @Test func changeAnswerReturnsToTheNormalComposerEvenWhileLocked() {
         #expect(kind(lockState: .queued, isEditingLockedAnswer: true, tab: .question) == .interact)
         #expect(kind(lockState: .delivered, isEditingLockedAnswer: true, tab: .comments) == .comments)
-    }
-
-    @Test func reviewingBeforeSendAlwaysWinsEvenWhileEditingALockedAnswer() {
-        #expect(kind(lockState: .queued, isEditingLockedAnswer: true, isReviewingBeforeSend: true) == .reviewBeforeSend)
-        #expect(kind(lockState: .editable, isReviewingBeforeSend: true) == .reviewBeforeSend)
     }
 
     /// `ReviewWorkspaceView.isAnswerLocked` (docs/stories/HAIL-34.md fold:

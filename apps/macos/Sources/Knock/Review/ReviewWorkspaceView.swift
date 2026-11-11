@@ -377,12 +377,9 @@ struct ReviewWorkspaceView: View {
         switch Self.rightColumnKind(
             lockState: detail.case.replyLockState,
             isEditingLockedAnswer: sendFlow.isEditingLockedAnswer,
-            isReviewingBeforeSend: sendFlow.isReviewingBeforeSend,
             tab: viewModel.tab,
             isOnePage: fold != nil
         ) {
-        case .reviewBeforeSend:
-            ReviewBeforeSendColumnView(sendFlow: sendFlow, task: detail.task)
         case .answeredRecap:
             AnsweredAskColumnView(detail: detail, sendFlow: sendFlow, onRetryDelivery: onRetryDelivery, lateBar: lateBar)
         case .askWithStatus:
@@ -479,7 +476,6 @@ struct ReviewWorkspaceView: View {
     /// one recap view already merges the answer and its comments, so there
     /// is nothing separate for a switch to pick between).
     enum RightColumnKind: Equatable {
-        case reviewBeforeSend
         case answeredRecap
         /// The one page, answer sent: the question stays, the answer box is the status card.
         case askWithStatus
@@ -488,10 +484,9 @@ struct ReviewWorkspaceView: View {
     }
 
     static func rightColumnKind(
-        lockState: ReplyLockState, isEditingLockedAnswer: Bool, isReviewingBeforeSend: Bool, tab: ReviewColumnTab,
+        lockState: ReplyLockState, isEditingLockedAnswer: Bool, tab: ReviewColumnTab,
         isOnePage: Bool = false
     ) -> RightColumnKind {
-        if isReviewingBeforeSend { return .reviewBeforeSend }
         if lockState != .editable && !isEditingLockedAnswer { return isOnePage ? .askWithStatus : .answeredRecap }
         return tab == .comments ? .comments : .interact
     }

@@ -178,7 +178,6 @@ struct SendFlowControllerTests {
         // `send()` kicks off an unstructured Task internally: await its effect.
         try await waitForSend { sentCount == 1 }
 
-        #expect(flow.isReviewingBeforeSend == false)
         #expect(sentCount == 1)
         await client.stop()
     }
@@ -203,26 +202,7 @@ struct SendFlowControllerTests {
         flow.send()
         try await waitForSend { sentCount == 1 }
 
-        #expect(flow.isReviewingBeforeSend == false)
         #expect(sentCount == 1, "a commented reply goes out on the first Send")
-        await client.stop()
-    }
-
-    @Test func keepEditingLeavesTheEvidenceReviewStepWithoutSending() async throws {
-        let (server, client, _) = try await startEchoServer()
-        defer { server.stop() }
-
-        var sentCount = 0
-        let coordinator = SendCoordinator(client: client, store: PendingReplyStore(environment: ["KNOCK_HOME": tempHome()]))
-        let flow = SendFlowController(
-            knockCase: optionsCase(), commentsStore: CommentsSessionStore(), coordinator: coordinator,
-            onSent: { sentCount += 1 }, environment: ["KNOCK_REVIEW_STEP": "send"]
-        )
-        #expect(flow.isReviewingBeforeSend)
-
-        flow.keepEditing()
-        #expect(flow.isReviewingBeforeSend == false)
-        #expect(sentCount == 0)
         await client.stop()
     }
 
@@ -243,7 +223,6 @@ struct SendFlowControllerTests {
         flow.send()
         try await waitForSend { sentCount == 1 }
 
-        #expect(flow.isReviewingBeforeSend == false)
         #expect(sentCount == 1)
         #expect(flow.errorMessage == nil)
         await client.stop()
@@ -450,7 +429,6 @@ struct SendFlowControllerTests {
         flow.send()
         try await waitForSend { sentCount == 1 }
 
-        #expect(flow.isReviewingBeforeSend == false, "no comments pinned, so this sends straight through, same as a question ask")
         #expect(sentCount == 1)
         #expect(captured.value == "b|go with B, it reads clearer")
         await client.stop()
