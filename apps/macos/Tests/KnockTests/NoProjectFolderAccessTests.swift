@@ -41,15 +41,4 @@ final class NoProjectFolderAccessTests: XCTestCase {
         }
         XCTAssertEqual(offenders, [], "The app must not touch a session's folder on its own.")
     }
-
-    /// The one place a session folder becomes a path is the New idea model. It stores a string,
-    /// and the open panel starts there only after a click.
-    func testNewIdeaOnlyStoresTheFolderAsAString() throws {
-        let text = try String(
-            contentsOf: Self.sources.appendingPathComponent("NewIdea/NewIdeaModel.swift"),
-            encoding: .utf8)
-        let uses = text.components(separatedBy: "\n").filter { $0.contains("session.cwd") }
-        XCTAssertEqual(uses.count, 1, "session.cwd is kept as a string folder (hover tooltip), nothing more")
-        XCTAssertFalse(uses.contains { line in Self.accessCalls.contains { line.contains($0) } })
-    }
 }

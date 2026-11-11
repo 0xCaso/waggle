@@ -147,7 +147,7 @@ final class OnboardingModel: ObservableObject {
         },
         startInTerminal: (@MainActor (String, URL, String) async -> String?)? = nil,
         copyToPasteboard: @escaping (String) -> Void = { OnboardingModel.copyToGeneralPasteboard($0) },
-        pickFolder: @escaping @MainActor () -> URL? = { NewIdeaModel.openFolderPanel(startingAt: FileManager.default.homeDirectoryForCurrentUser) },
+        pickFolder: @escaping @MainActor () -> URL? = { SendHelpers.openFolderPanel(startingAt: FileManager.default.homeDirectoryForCurrentUser) },
         markOnboarded: @escaping () -> Void,
         isOnboarded: @escaping () -> Bool = { OnboardingState.isOnboarded() },
         onFirstJobStarted: @escaping () -> Void = {},
@@ -401,9 +401,9 @@ final class OnboardingModel: ObservableObject {
         case .session(let choice):
             do {
                 let result = try await sendPrompt(choice.sessionId, prompt)
-                if result.sent { finishFirstJob(project: project, kind: kind) } else { startPhase = .failed(NewIdeaModel.failureText(result.reason)) }
+                if result.sent { finishFirstJob(project: project, kind: kind) } else { startPhase = .failed(SendHelpers.failureText(result.reason)) }
             } catch {
-                startPhase = .failed(NewIdeaModel.failureText(nil))
+                startPhase = .failed(SendHelpers.failureText(nil))
             }
         case .terminal:
             if let failure = await startInTerminal(prompt, URL(fileURLWithPath: folder), FirstJobPrompt.topic(kind)) {

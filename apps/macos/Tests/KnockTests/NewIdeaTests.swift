@@ -19,14 +19,6 @@ struct NewIdeaTests {
             plan: isPlan ? PlanInfo(stage: PlanStage(name: stage), rounds: 1, answered: 0) : nil)
     }
 
-    private func model(defaults: UserDefaults? = nil) -> NewIdeaModel {
-        let suite = defaults ?? UserDefaults(suiteName: "new-idea-\(UUID().uuidString)")!
-        return NewIdeaModel(
-            launcher: SessionLauncher(launchTargetStore: UserDefaultsLaunchTargetStore(defaults: suite)),
-            defaults: suite, homeDirectory: URL(fileURLWithPath: "/tmp/home"),
-            folderPicker: { _ in URL(fileURLWithPath: "/tmp/picked") }, filePicker: { [] })
-    }
-
     // MARK: In planning
 
     @Test func onlyOpenPlansShow() {
@@ -169,46 +161,5 @@ struct NewIdeaTests {
     @Test func planIsFirstGoal() {
         #expect(DocumentGoal.allCases.first == .plan)
         #expect(DocumentGoal.ideaGoals.map(\.chipTitle) == ["Plan it with me", "Options to decide on", "Clickable prototype", "Review"])
-    }
-
-    // MARK: Button and box
-
-    @Test func buttonLabelFollowsGoal() {
-        let m = model()
-        #expect(m.startLabel == "Start planning")
-        m.goal = .decisions
-        #expect(m.startLabel == "Start")
-        m.goal = .plan
-        #expect(m.startLabel == "Start planning")
-    }
-
-    @Test func startNeedsAnIdeaOrAFile() {
-        let m = model()
-        #expect(!m.canStart)
-        m.idea = "  \n "
-        #expect(!m.canStart)
-        m.idea = "Hello"
-        #expect(m.canStart)
-        m.idea = ""
-        m.addFiles([URL(fileURLWithPath: "/tmp/a.pdf")])
-        #expect(m.canStart)
-    }
-
-    @Test func filesAddOnceAndRemove() {
-        let m = model()
-        let a = URL(fileURLWithPath: "/tmp/a.pdf")
-        m.addFiles([a, a, URL(fileURLWithPath: "/tmp/b.png")])
-        #expect(m.attachments.map(\.lastPathComponent) == ["a.pdf", "b.png"])
-        m.removeAttachment(a)
-        #expect(m.attachments.map(\.lastPathComponent) == ["b.png"])
-    }
-
-    @Test func folderPickIsKeptAndNamed() {
-        let defaults = UserDefaults(suiteName: "new-idea-\(UUID().uuidString)")!
-        let m = model(defaults: defaults)
-        #expect(m.folderName == "home")
-        m.pickFolder()
-        #expect(m.folderName == "picked")
-        #expect(model(defaults: defaults).folderName == "picked")
     }
 }

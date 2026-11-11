@@ -2,23 +2,23 @@ import AppKit
 import Foundation
 @testable import Knock
 
-/// WAG-271: the launch tests drive the New idea page's model, as the Start button does. The harness
-/// builds it the way a file drop does (one attached file, its folder), so a Start has something to send.
-/// It uses its own `UserDefaults` suite, so no test touches the real folder or launch pick.
+/// Drives the shared `SessionLauncher` the way a start from setup does: one prompt, one folder, one
+/// topic. The harness builds a prompt from the idea text and the attached file (if any), so a start
+/// has something to send. The launch pick comes from the fake store each test passes in.
 @MainActor
-final class IdeaLaunchHarness {
-    let model: NewIdeaModel
+final class LaunchHarness {
     let launcher: SessionLauncher
-    private let suite: String
-    /// Called once the prompt left (the idea box cleared).
+    private let attachments: [URL]
+    private var folderRefresh: Task<Void, Never>?
+    /// The text the prompt starts from. Cleared once the prompt left.
+    var idea = ""
+    private(set) var errorText: String?
+    /// Called once the prompt left.
     var onFinish: () -> Void = {}
 
     init(
-        fileURL: URL,
-        sessions: [SessionInfo] = [],
-        cases: [Case] = [],
-        now: Date = Date(),
-        sendPrompt: @escaping @Sendable (String, String) async throws -> SendPromptResult,
+        fileURL: URL?,
+        folder: URL? = nil,
         launcher terminal: TerminalLaunching,
         resolvePath: @escaping @Sendable () async -> LoginShellPathResolution = { await LoginShellPath.resolve() },
         pasteboard: NSPasteboard = .general,
@@ -33,45 +33,64 @@ final class IdeaLaunchHarness {
         t3Server: T3Serving = T3HTTPServer(),
         environment: [String: String] = [:],
         isProcessAlive: @escaping @Sendable (Int) -> Bool = { _ in true },
-        clock: @escaping @Sendable () -> Date = { Date() },
-        folderPicker: @escaping @MainActor (URL) -> URL? = { _ in nil }
+        clock: @escaping @Sendable () -> Date = { Date() }
     ) {
-        suite = "knock-test-idea-\(UUID().uuidString)"
-        let defaults = UserDefaults(suiteName: suite)!
         launcher = SessionLauncher(
             launcher: terminal, resolvePath: resolvePath, pasteboard: pasteboard, fileManager: fileManager,
             opener: opener, launchTargetStore: launchTargetStore, sleep: sleep, cliRunner: cliRunner,
             homeDirectory: homeDirectory, t3Secrets: t3Secrets, t3Meta: t3Meta, t3Server: t3Server,
             environment: environment, isProcessAlive: isProcessAlive, clock: clock)
-        model = NewIdeaModel(
-            launcher: launcher, defaults: defaults, homeDirectory: URL(fileURLWithPath: "/tmp"),
-            folderPicker: folderPicker, filePicker: { [] }, sendPrompt: sendPrompt)
-        model.updateSessions(sessions, cases: cases, now: now)
-        model.receive(files: [fileURL])
+        attachments = fileURL.map { [$0] } ?? []
+        self.folderURL = folder ?? fileURL?.deletingLastPathComponent() ?? URL(fileURLWithPath: "/tmp")
+        refreshForFolder()
     }
 
-    deinit { UserDefaults.standard.removePersistentDomain(forName: suite) }
-
+    private var folderURL: URL
     var folder: URL {
-        get { model.folder }
-        set { model.chooseFolder(newValue) }
+        get { folderURL }
+        set {
+            folderURL = newValue
+            refreshForFolder()
+        }
     }
-    /// The prompt as sent: the box clears once it left, so the last start keeps it.
+
+    /// The Superset check for the current folder. `settled()` waits for the last one.
+    private func refreshForFolder() {
+        let folder = folderURL
+        folderRefresh = Task { [launcher] in await launcher.refreshSupersetAvailability(folder: folder) }
+    }
+
+    /// The workspace name for Superset and T3 Code: the idea's first line, else the first file's name.
+    private var topic: String {
+        let firstLine = idea.split(whereSeparator: \.isNewline)
+            .map { $0.trimmingCharacters(in: .whitespaces) }.first { !$0.isEmpty }
+        return firstLine ?? attachments.first?.deletingPathExtension().lastPathComponent ?? ""
+    }
+
+    /// The prompt as sent: the idea clears once it left, so the last start keeps it.
     private var sentPrompt: String?
-    var prompt: String { sentPrompt ?? model.prompt }
-    var errorText: String? { model.errorText }
+    var prompt: String {
+        sentPrompt ?? DocumentPrompt.build(idea: idea, paths: attachments.map(\.path), goal: .plan)
+    }
     var launchTarget: LaunchTarget { launcher.launchTarget }
     var availability: LaunchAvailability { launcher.availability }
     func loadAvailability() async {
-        await model.settled()
-        await model.loadAvailability()
+        await folderRefresh?.value
+        await launcher.loadAvailability(folder: folderURL)
     }
     func chooseLaunchTarget(_ target: LaunchTarget) { launcher.chooseLaunchTarget(target) }
 
     /// Starts, and calls `onFinish` when the prompt left.
     func submit() async {
-        sentPrompt = model.prompt
-        await model.start()
-        if model.idea.isEmpty && model.attachments.isEmpty { onFinish() }
+        guard !idea.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty || !attachments.isEmpty else { return }
+        let text = DocumentPrompt.build(idea: idea, paths: attachments.map(\.path), goal: .plan)
+        let finished = await launcher.start(prompt: text, folder: folderURL, topic: topic)
+        errorText = launcher.errorText
+        if finished {
+            sentPrompt = text
+            idea = ""
+            launcher.resetToDefault()
+            onFinish()
+        }
     }
 }

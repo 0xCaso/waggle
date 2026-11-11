@@ -72,3 +72,18 @@ struct AgentPlaceCards: View {
         .id(id)
     }
 }
+
+/// The cards on Settings › Agents that a "Set up ›" link can scroll to.
+enum AgentPlaceCard: String, CaseIterable, Identifiable, Sendable {
+    case runtimes, claudeApp, codexApp, superset, conductor, t3
+    var id: String { rawValue }
+}
+
+/// Download pages for the places Waggle does not install. Links open in the browser.
+enum PlaceInstallLinks {
+    static let claudeApp = URL(string: "https://claude.ai/download")!
+    static let codexApp = URL(string: "https://developers.openai.com/codex/app")!
+    static let superset = URL(string: "https://superset.sh")!
+    static let conductor = URL(string: "https://www.conductor.build")!
+    static let t3 = URL(string: "https://t3.codes")!
+}
