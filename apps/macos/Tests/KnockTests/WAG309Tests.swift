@@ -47,6 +47,23 @@ struct WAG309Tests {
         #expect(!ArtifactVersionLabel.chrome(title: "Screenshots", revision: 8).contains("/"))
     }
 
+    @Test func theHeaderNamesTheVersionOnce() {
+        // The latest version: the version only, or the name and the version when no tab names the artifact.
+        #expect(ArtifactVersionLabel.header(title: nil, revision: 3, latest: nil) == "v3")
+        #expect(ArtifactVersionLabel.header(title: "Prototype", revision: 3, latest: nil) == "Prototype · v3")
+        // An older version: one quiet marker, "v2 of 3".
+        #expect(ArtifactVersionLabel.header(title: nil, revision: 2, latest: 3) == "v2 of 3")
+        #expect(ArtifactVersionLabel.header(title: "Prototype", revision: 2, latest: 3) == "Prototype · v2 of 3")
+        // The newest version, or an unknown newest one, adds no "of".
+        #expect(ArtifactVersionLabel.header(title: nil, revision: 3, latest: 3) == "v3")
+        #expect(ArtifactVersionLabel.header(title: nil, revision: 4, latest: 3) == "v4")
+        // The word "latest" and "arrived" never show: no chip or banner repeats the version.
+        for text in [(nil, 3, nil), ("Prototype", 2, 3)] as [(String?, Int, Int?)] {
+            let label = ArtifactVersionLabel.header(title: text.0, revision: text.1, latest: text.2)
+            #expect(!label.contains("latest") && !label.contains("arrived"))
+        }
+    }
+
     @Test func aCaptureOfTheSameVersionAddsNoVersionWords() {
         #expect(ArtifactVersionLabel.captureOrigin(captureRevision: 8, artifactRevision: 8) == nil)
         #expect(ArtifactVersionLabel.captureChip(n: 1, captureRevision: 8, artifactRevision: 8, time: "14:02") == "Capture 1 · 14:02")
@@ -55,6 +72,16 @@ struct WAG309Tests {
     @Test func anOlderCaptureSaysFromInPlainWords() {
         #expect(ArtifactVersionLabel.captureOrigin(captureRevision: 7, artifactRevision: 8) == "from v7")
         #expect(ArtifactVersionLabel.captureChip(n: 1, captureRevision: 7, artifactRevision: 8, time: "14:02") == "Capture 1 · from v7 · 14:02")
+    }
+
+    @Test func aVersionThatArrivesOnThePageIsMarkedNew() {
+        typealias A = ArtifactVersionLabel.Arrivals
+        #expect(ArtifactVersionLabel.newMark(from: A(caseId: "c1", count: 2), to: A(caseId: "c1", count: 3), latest: 3) == 3)
+        // The first load, another request, and a tab or older-version switch show no mark.
+        #expect(ArtifactVersionLabel.newMark(from: A(caseId: nil, count: 0), to: A(caseId: "c1", count: 3), latest: 3) == nil)
+        #expect(ArtifactVersionLabel.newMark(from: A(caseId: "c1", count: 0), to: A(caseId: "c1", count: 1), latest: 1) == nil)
+        #expect(ArtifactVersionLabel.newMark(from: A(caseId: "c1", count: 2), to: A(caseId: "c2", count: 3), latest: 3) == nil)
+        #expect(ArtifactVersionLabel.newMark(from: A(caseId: "c1", count: 3), to: A(caseId: "c1", count: 3), latest: 3) == nil)
     }
 
     @Test func fullSizeOpenMenuHasWindowAndBrowserButNoFullSize() {
