@@ -53,6 +53,8 @@ none
   A test holds the dark text colours at 4.5 to 1 or more on each surface.
 - Agent's call, open to review in the pull request: agent pages (HTML bundles) always render in the light look,
   so a page written for a white canvas reads the same when Waggle is dark.
+- Closed 2026-11-11: the human saw seven screens in both looks and chose "Push and open the pull request"
+  (case c_b6f19a3a-ea70-4435-ab07-2459533a8532). The merge stays with the human.
 
 ## Sources
 - Case c_a7df3a60-77de-4579-add7-69980736bb63 (the choice).
