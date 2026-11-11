@@ -1,3 +1,4 @@
+import AppKit
 import SwiftUI
 
 /// Shared chrome for every O1-O3/O5/O6 screen of the "Onboarding v2
@@ -11,7 +12,8 @@ import SwiftUI
 struct OnboardingHeaderView: View {
     let title: String
     let subtitle: String
-    let stepLabel: String
+    /// `nil` on step 1: the title names the step once.
+    var stepLabel: String?
     var markSize: CGFloat = 40
     var titleStyle: Theme.TextStyle = Theme.Typography.screenTitle19w400
 
@@ -27,9 +29,11 @@ struct OnboardingHeaderView: View {
                     .foregroundColor(Theme.Colors.ink2)
             }
             Spacer()
-            Text(stepLabel)
-                .knockTextStyle(Theme.Typography.monoMeta11_5w400)
-                .foregroundColor(Theme.Colors.ink3)
+            if let stepLabel {
+                Text(stepLabel)
+                    .knockTextStyle(Theme.Typography.monoMeta11_5w400)
+                    .foregroundColor(Theme.Colors.ink3)
+            }
         }
     }
 }
@@ -194,6 +198,8 @@ struct OnboardingRuntimeRowView: View {
     /// HAIL-164: a place under the Claude group row. Indented 16pt, medium title,
     /// no icon (the group header carries it).
     var isNested = false
+    /// Setup step 1: one action per row (`ConnectStepRules`), no Retry, Reconnect or note beside it.
+    var oneAction = false
 
     var body: some View {
         HStack(spacing: 10) {
@@ -216,7 +222,7 @@ struct OnboardingRuntimeRowView: View {
                         .fixedSize(horizontal: false, vertical: true)
                 }
                 // HAIL-134: how Claude Code reaches Knock, under the name.
-                if row.plugin != .none, row.status == .connected {
+                if !oneAction, row.plugin != .none, row.status == .connected {
                     Text("Installed as \(row.runtime.displayName) plugin")
                         .knockTextStyle(Theme.Typography.monoMeta11_5w400)
                         .foregroundColor(Theme.Colors.ink3)
@@ -263,6 +269,20 @@ struct OnboardingRuntimeRowView: View {
     }
 
     @ViewBuilder private var trailing: some View {
+        if oneAction { oneActionTrailing } else { fullTrailing }
+    }
+
+    @ViewBuilder private var oneActionTrailing: some View {
+        switch ConnectStepRules.action(for: row.runtime, status: row.status) {
+        case .connect: OnboardingSmallButton(icon: "bolt.fill", title: "Connect", action: onConnect)
+        case .get(let url):
+            OnboardingSmallButton(icon: "arrow.up.right", title: "Get", action: { NSWorkspace.shared.open(url) })
+        case .working: if row.status == .connecting { LoadingStatus(label: "Connecting") }
+        case .connected, .none: EmptyView()
+        }
+    }
+
+    @ViewBuilder private var fullTrailing: some View {
         switch row.status {
         case .notConnected:
             OnboardingSmallButton(icon: "bolt.fill", title: "Connect", action: onConnect)
