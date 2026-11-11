@@ -32,6 +32,7 @@ struct ChipFlowLayout: Layout {
 /// One question of the doc: "QUESTION n OF N", the title, the artifact cards, "How it works now" folded,
 /// "TO DECIDE · n" and a card per point.
 struct QuestionSectionView: View {
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
     let question: Question
     @Binding var doc: QuestionsDocModel
     let cards: [ArtifactCardModel]
@@ -93,7 +94,7 @@ struct QuestionSectionView: View {
 
     private func nowSection(_ lines: [String]) -> some View {
         VStack(alignment: .leading, spacing: 6) {
-            Button { withAnimation(.easeOut(duration: 0.15)) { nowOpen.toggle() } } label: {
+            Button { ReducedMotion.animate(reduceMotion: reduceMotion, .easeOut(duration: 0.15)) { nowOpen.toggle() } } label: {
                 HStack(spacing: 4) {
                     Image(systemName: "chevron.right")
                         .font(.system(size: 9, weight: .semibold))
@@ -140,6 +141,7 @@ struct ItemBlockView: View {
 /// bar the pick box sits in the page instead. A pick-several item ticks rows; a reply item is a text field.
 /// Lean and rule-out icons show on items (WAG-326). This one view draws every item of every request.
 struct ItemRowsView: View {
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
     let number: Int
     let point: QuestionPoint
     let questionId: String
@@ -172,7 +174,6 @@ struct ItemRowsView: View {
             }
         }
         .frame(maxWidth: .infinity, alignment: .leading)
-        .animation(.easeOut(duration: 0.15), value: draft)
     }
 
     /// A lone point whose text is the step's own title does not say it twice (WAG-334).
@@ -226,11 +227,13 @@ struct ItemRowsView: View {
                     onLean: row.canDiscuss ? { doc.toggleLean(label, question: questionId, point: point.id) } : nil,
                     onRuleOut: row.canDiscuss ? { doc.toggleRuleOut(label, question: questionId, point: point.id) } : nil,
                     isCheckbox: isMany, isLimitDimmed: row.isLimitDimmed) {
-                    doc.choose(label, question: questionId, point: point.id)
+                    // A click animates the open row once; number keys pick with no animation.
+                    ReducedMotion.animate(reduceMotion: reduceMotion, .easeOut(duration: CalmOption.openDuration)) {
+                        doc.choose(label, question: questionId, point: point.id)
+                    }
                 }
             }
         }
-        .animation(.easeOut(duration: CalmOption.openDuration), value: open)
     }
 
     /// A reply item: the person writes the answer. The agent's suggested reply shows as the placeholder.

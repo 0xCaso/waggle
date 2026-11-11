@@ -32,7 +32,7 @@ struct ReviewColumnTabsView: View {
 
     private func segment(_ value: ReviewColumnTab, label: String, badgeCount: Int?, dot: Bool) -> some View {
         let isActive = tab == value
-        return HStack(spacing: 6) {
+        return Button { onSelect(value) } label: { HStack(spacing: 6) {
             // `.tabs span`: 500 13, ink3; the open tab ink on white. The line box is the CSS one (13 × 1.45).
             Text(label)
                 .knockTextStyle(Column.tabLabel)
@@ -58,7 +58,8 @@ struct ReviewColumnTabsView: View {
                     radius: Column.tabShadowBlur / 2,
                     x: Theme.Shadow.columnTab.offset.width, y: Theme.Shadow.columnTab.offset.height))
         .contentShape(Rectangle())
-        .onTapGesture { onSelect(value) }.pointerCursor()
+        }
+        .buttonStyle(.hoverRow(cornerRadius: Column.tabSegmentRadius))
         .accessibilityElement(children: .ignore)
         .accessibilityLabel(label + (badgeCount.map { ", \($0)" } ?? "") + (dot ? ", new" : ""))
         .accessibilityAddTraits(isActive ? [.isButton, .isSelected] : .isButton)

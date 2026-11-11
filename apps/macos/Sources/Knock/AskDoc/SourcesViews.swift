@@ -629,6 +629,7 @@ struct SourcesHost<Content: View>: View {
     @ObservedObject var hub: SourcesHub
     let content: Content
     @State private var cardSize: CGSize = .zero
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
     init(hub: SourcesHub, @ViewBuilder content: () -> Content) {
         self.hub = hub
@@ -649,7 +650,7 @@ struct SourcesHost<Content: View>: View {
             .overlay(alignment: .trailing) {
                 if hub.isListOpen {
                     SourcesPanelView(hub: hub)
-                        .transition(.opacity.combined(with: .offset(x: 12)))
+                        .transition(reduceMotion ? .opacity : .opacity.combined(with: .offset(x: 12)))
                 }
             }
             .background {

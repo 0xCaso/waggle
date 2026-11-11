@@ -130,7 +130,7 @@ struct OnboardingPrimaryButton: View {
             .background(isEnabled ? Theme.Colors.ink : Theme.Colors.line2)
             .cornerRadius(Theme.Radius.buttonPrimary)
         }
-        .buttonStyle(.plain).pointerCursor()
+        .buttonStyle(.pressable).pointerCursor()
     }
 }
 
@@ -155,7 +155,7 @@ struct OnboardingSmallButton: View {
             .background(Theme.Colors.ink)
             .cornerRadius(Theme.Radius.buttonSmall)
         }
-        .buttonStyle(.plain).pointerCursor()
+        .buttonStyle(.pressable).pointerCursor()
     }
 }
 

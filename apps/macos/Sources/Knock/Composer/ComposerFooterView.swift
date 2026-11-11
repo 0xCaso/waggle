@@ -169,17 +169,19 @@ struct SecondaryOutlineButtonView: View {
     let action: () -> Void
 
     var body: some View {
-        Text(label)
-            .knockTextStyle(Theme.Typography.buttonSm12_5w500)
-            .foregroundColor(Theme.Colors.ink)
-            .padding(EdgeInsets(top: 7, leading: 12, bottom: 7, trailing: 12))
-            .background(Theme.Colors.win)
-            .cornerRadius(Theme.Radius.buttonSmall)
-            .overlay(
-                RoundedRectangle(cornerRadius: Theme.Radius.buttonSmall)
-                    .stroke(Theme.Colors.line2, lineWidth: 1)
-            )
-            .contentShape(Rectangle())
-            .onTapGesture(perform: action).pointerCursor()
+        Button(action: action) {
+            Text(label)
+                .knockTextStyle(Theme.Typography.buttonSm12_5w500)
+                .foregroundColor(Theme.Colors.ink)
+                .padding(EdgeInsets(top: 7, leading: 12, bottom: 7, trailing: 12))
+                .background(Theme.Colors.win)
+                .cornerRadius(Theme.Radius.buttonSmall)
+                .overlay(
+                    RoundedRectangle(cornerRadius: Theme.Radius.buttonSmall)
+                        .stroke(Theme.Colors.line2, lineWidth: 1)
+                )
+                .contentShape(Rectangle())
+        }
+        .buttonStyle(.pressable).pointerCursor()
     }
 }

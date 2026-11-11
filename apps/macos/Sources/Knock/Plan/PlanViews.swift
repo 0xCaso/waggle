@@ -56,6 +56,7 @@ struct RoundFoldEntry: Equatable {
 /// "2 answered · Show": the earlier rounds folded away, read-only when opened (HAIL-151). Plan rounds and
 /// update rounds use this one fold (WAG-335).
 struct RoundFoldView: View {
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
     let entries: [RoundFoldEntry]
     /// The revision the stage shows read-only right now, else `nil` (HAIL-156).
     var viewingRevision: Int? = nil
@@ -66,7 +67,7 @@ struct RoundFoldView: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
             Button {
-                withAnimation(.easeOut(duration: 0.15)) { isOpen.toggle() }
+                ReducedMotion.animate(reduceMotion: reduceMotion, .easeOut(duration: 0.15)) { isOpen.toggle() }
             } label: {
                 HStack(spacing: 8) {
                     Image(systemName: "checkmark.circle")

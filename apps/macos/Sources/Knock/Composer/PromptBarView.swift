@@ -500,7 +500,7 @@ struct PromptBarCore: View {
             .cornerRadius(Theme.Radius.promptButton)
             .contentShape(Rectangle())
         }
-        .buttonStyle(.plain).pointerCursor()
+        .buttonStyle(.pressable).pointerCursor()
         // Its natural width, always: the row gives way around it, never through it.
         .fixedSize()
         .layoutPriority(1)

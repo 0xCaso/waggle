@@ -133,6 +133,7 @@ struct UpdateToastView: View {
     @ObservedObject var model: UpdateReadyModel
     /// Agents with an open ask right now (HAIL-192), counted by the caller.
     var waitingAgents: Int = 0
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
     var body: some View {
         if let ready = model.ready, model.isVisible {
@@ -185,7 +186,7 @@ struct UpdateToastView: View {
                             .background(Theme.Colors.ink)
                             .cornerRadius(7)
                     }
-                    .buttonStyle(.plain).pointerCursor()
+                    .buttonStyle(.pressable).pointerCursor()
                     Button(action: model.later) {
                         Text("Later")
                             .knockTextStyle(Theme.Typography.buttonSm12_5w500)
@@ -193,7 +194,7 @@ struct UpdateToastView: View {
                             .padding(EdgeInsets(top: 7, leading: 12, bottom: 7, trailing: 12))
                             .overlay(RoundedRectangle(cornerRadius: 7).stroke(Theme.Colors.line2, lineWidth: 1))
                     }
-                    .buttonStyle(.plain).pointerCursor()
+                    .buttonStyle(.pressable).pointerCursor()
                     Spacer(minLength: 0)
                     Button(action: model.openWhatsNew) {
                         Text("What's new")
@@ -209,7 +210,7 @@ struct UpdateToastView: View {
             .cornerRadius(12)
             .overlay(RoundedRectangle(cornerRadius: 12).stroke(Theme.Colors.line2, lineWidth: 1))
             .shadow(color: Theme.Colors.shadowBlack.opacity(0.15), radius: 14, x: 0, y: 8)
-            .transition(.move(edge: .bottom).combined(with: .opacity))
+            .transition(reduceMotion ? .opacity : .opacity.combined(with: .offset(y: 12)))
         }
     }
 }

@@ -281,7 +281,7 @@ struct CommentCaptureStageView: View {
             InlineCommentCardView(
                 number: comment.n, text: comment.text,
                 onSave: { store.saveComment(id: id, text: $0) },
-                onDelete: { store.deleteComment(id: id) },
+                onDelete: { store.deleteCommentWithUndo(id: id) },
                 onClose: { store.closeComment() }
             )
             .id(id)

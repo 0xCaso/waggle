@@ -169,11 +169,39 @@ struct CommentsModel: Equatable {
 
     /// Deletes a comment and renumbers the rest of the case 1..n in their
     /// original creation order (HAIL-75: no gaps).
-    mutating func deleteComment(id: String) {
-        guard let removedIndex = comments.firstIndex(where: { $0.id == id }) else { return }
-        elementContexts[comments[removedIndex].id] = nil
+    @discardableResult
+    mutating func deleteComment(id: String) -> DeletedComment? {
+        guard let removedIndex = comments.firstIndex(where: { $0.id == id }) else { return nil }
+        let removed = comments[removedIndex]
+        let deleted = DeletedComment(comment: removed, elementContext: elementContexts[removed.id])
+        elementContexts[removed.id] = nil
         comments.remove(at: removedIndex)
         renumber()
+        return deleted
+    }
+
+    /// What an Undo needs to put a deleted comment back: the comment (with its number), the page element it
+    /// pointed at, and its capture when the delete also removed that capture.
+    struct DeletedComment: Equatable {
+        let comment: Comment
+        let elementContext: PageElementContext?
+        /// Set by the owner when the delete left the capture empty and removed it.
+        var capture: CaptureRecord?
+        var captureIndex = 0
+    }
+
+    /// Puts a deleted comment back with its text and its place: the comments after it move up one number, and
+    /// a capture the delete removed comes back at its old position. A no-op when the comment id is back already.
+    mutating func restoreComment(_ deleted: DeletedComment) {
+        guard !comments.contains(where: { $0.id == deleted.comment.id }) else { return }
+        if let capture = deleted.capture, !captures.contains(where: { $0.id == capture.id }) {
+            captures.insert(capture, at: min(deleted.captureIndex, captures.count))
+            renumberCaptures()
+        }
+        let place = deleted.comment.n
+        comments = comments.map { $0.n >= place ? $0.with(n: $0.n + 1, text: $0.text) : $0 }
+        comments.append(deleted.comment)
+        elementContexts[deleted.comment.id] = deleted.elementContext
     }
 
     private mutating func renumber() {

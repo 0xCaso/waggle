@@ -181,7 +181,6 @@ struct DetailPillStyle: ButtonStyle {
         let configuration: Configuration
         let isQuick: Bool
         @State private var isHovered = false
-        @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
         private func fill(active: Bool) -> Color {
             if isQuick { return active ? Theme.Colors.honey300.opacity(0.4) : Theme.Colors.honeySoft }
@@ -198,8 +197,7 @@ struct DetailPillStyle: ButtonStyle {
                 .background(Capsule().fill(fill(active: isHovered || configuration.isPressed)))
                 .overlay(Capsule().strokeBorder(isQuick ? Theme.Colors.honey300.opacity(0.6) : Theme.Stroke.card.color, lineWidth: Theme.Stroke.card.width))
                 .contentShape(Capsule())
-                .scaleEffect(configuration.isPressed && !reduceMotion ? 0.97 : 1)
-                .animation(.easeOut(duration: 0.12), value: configuration.isPressed)
+                .pressFeel(isPressed: configuration.isPressed)
                 .animation(.easeOut(duration: 0.12), value: isHovered)
                 .onHover { isHovered = $0 }
                 .pointerCursor()
