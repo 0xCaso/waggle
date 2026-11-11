@@ -23,15 +23,22 @@ enum OptionGist {
     struct Tally: Equatable {
         let pros: Int
         let cons: Int
+        /// The "If you pick this" lines (WAG-360), shown as "→N" (spec §3.5).
+        var effects: Int = 0
 
         var spoken: String {
-            [pros > 0 ? "\(pros) \(pros == 1 ? "pro" : "pros")" : nil, cons > 0 ? "\(cons) \(cons == 1 ? "con" : "cons")" : nil]
-                .compactMap { $0 }.joined(separator: ", ")
+            [
+                pros > 0 ? "\(pros) \(pros == 1 ? "pro" : "pros")" : nil,
+                cons > 0 ? "\(cons) \(cons == 1 ? "con" : "cons")" : nil,
+                effects > 0 ? "\(effects) \(effects == 1 ? "effect" : "effects")" : nil,
+            ]
+            .compactMap { $0 }.joined(separator: ", ")
         }
     }
 
-    static func tally(pros: [OptionPoint], cons: [OptionPoint]) -> Tally? {
-        pros.isEmpty && cons.isEmpty ? nil : Tally(pros: pros.count, cons: cons.count)
+    static func tally(pros: [OptionPoint], cons: [OptionPoint], effects: [String] = []) -> Tally? {
+        pros.isEmpty && cons.isEmpty && effects.isEmpty
+            ? nil : Tally(pros: pros.count, cons: cons.count, effects: effects.count)
     }
 
     /// The text a closed card shows when its option has no facts (an older agent): the first words of its first pro
@@ -354,7 +361,7 @@ struct FactChip: View {
     }
 }
 
-/// `.tally`: "+3 –3", 500 11.5/1, the signs in pro and watch, the numbers quiet.
+/// `.tally`: "+3 –3 →2", 500 11.5/1, the signs in pro and watch, the numbers quiet.
 struct TallyView: View {
     let tally: OptionGist.Tally
 
@@ -363,7 +370,10 @@ struct TallyView: View {
     /// The width it takes, for the closed card's cut.
     static func width(_ tally: OptionGist.Tally) -> CGFloat {
         let font = NeedNumbers.tabular(PromptBarLogic.sansFont(size: GistCardStyle.tallySize, weight: .medium))
-        let parts = [tally.pros > 0 ? "+\(tally.pros)" : nil, tally.cons > 0 ? "–\(tally.cons)" : nil].compactMap { $0 }
+        let parts = [
+            tally.pros > 0 ? "+\(tally.pros)" : nil, tally.cons > 0 ? "–\(tally.cons)" : nil,
+            tally.effects > 0 ? "→\(tally.effects)" : nil,
+        ].compactMap { $0 }
         let widths = parts.map { ceil(NSAttributedString(string: $0, attributes: [.font: font]).size().width) }
         return widths.reduce(0, +) + CGFloat(max(0, widths.count - 1)) * GistCardStyle.tallyGap
     }
@@ -375,6 +385,9 @@ struct TallyView: View {
             }
             if tally.cons > 0 {
                 (Text("–").foregroundColor(Theme.AskDoc.Colors.watch) + Text("\(tally.cons)").foregroundColor(Theme.AskDoc.Colors.quiet))
+            }
+            if tally.effects > 0 {
+                (Text("→").foregroundColor(Theme.Colors.ink3) + Text("\(tally.effects)").foregroundColor(Theme.AskDoc.Colors.quiet))
             }
         }
         .font(Self.font)

@@ -807,11 +807,11 @@ struct CompactOptionRow: View {
 
     // MARK: Closed card
 
-    /// `.cl`: the fact chips and "+N –N" at the right. An option with no facts shows the first words of its first pro
+    /// `.cl`: the fact chips and "+N –N →N" at the right. An option with no facts shows the first words of its first pro
     /// and first con instead of the chips, cut at a whole word.
     @ViewBuilder
     private var closedLine: some View {
-        let tally = OptionGist.tally(pros: proList, cons: conList)
+        let tally = OptionGist.tally(pros: proList, cons: conList, effects: effects)
         let shown = OptionGist.shownFacts(facts)
         if !shown.isEmpty || tally != nil {
             HStack(alignment: .center, spacing: Gist.closedGap) {

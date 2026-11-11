@@ -82,6 +82,11 @@ struct OptionGistTests {
         #expect(OptionGist.Tally(pros: 3, cons: 1).spoken == "3 pros, 1 con")
         #expect(OptionGist.Tally(pros: 0, cons: 2).spoken == "2 cons")
         #expect(TallyView.width(OptionGist.Tally(pros: 3, cons: 3)) > TallyView.width(OptionGist.Tally(pros: 3, cons: 0)))
+        // A closed card counts the effects too (spec §3.5).
+        #expect(OptionGist.tally(pros: ["a"], cons: [], effects: ["x", "y"]) == OptionGist.Tally(pros: 1, cons: 0, effects: 2))
+        #expect(OptionGist.tally(pros: [], cons: [], effects: ["x"]) == OptionGist.Tally(pros: 0, cons: 0, effects: 1))
+        #expect(OptionGist.Tally(pros: 1, cons: 1, effects: 1).spoken == "1 pro, 1 con, 1 effect")
+        #expect(TallyView.width(OptionGist.Tally(pros: 3, cons: 3, effects: 2)) > TallyView.width(OptionGist.Tally(pros: 3, cons: 3)))
     }
 
     @Test func atMostThreeFactsShowAndTheRestStay() {
