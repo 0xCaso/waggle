@@ -289,7 +289,7 @@ struct QueueListView: View {
     private func row(for item: Case, isUrgent: Bool, isDimmed: Bool, isFollowUp: Bool = false) -> some View {
         let time = timeLabel(for: item, isDimmed: isDimmed)
         let deliveryStatus = model.deliveryStatusByCaseId[item.id]
-        return QueueRowView(
+        return Button { Task { await model.open(caseId: item.id, source: .queue) } } label: { QueueRowView(
             item: item,
             now: model.now,
             sessionLabel: item.sessionLabel,
@@ -307,7 +307,10 @@ struct QueueListView: View {
             onRetryDelivery: { Task { await model.retryDelivery(caseId: item.id) } },
             onDismiss: { requestDismiss(item) },
             onGotIt: { Task { await model.dismiss(caseId: item.id) } }
-        )
+        ) }
+        .buttonStyle(.hoverRow)
+        .accessibilityLabel(item.title)
+        .accessibilityAddTraits(item.id == model.selectedCaseId ? .isSelected : [])
         // `LazyVStack` keeps this row's identity as it moves from
         // `needsYouCases` into this `waitingOnAgentCases` `ForEach` (same
         // `item.id`); without a discriminator here it can go on reusing the
@@ -317,10 +320,6 @@ struct QueueListView: View {
         // Amendment 2 evidence run). Folding the badge kind into `.id` forces
         // a fresh row the instant that status appears or changes.
         .id(Self.rowIdentity(caseId: item.id, status: item.status, deliveryStatus: deliveryStatus))
-        .contentShape(Rectangle())
-        .onTapGesture {
-            Task { await model.open(caseId: item.id, source: .queue) }
-        }
     }
 
     /// The row's own `.id()` (see `row(for:)`): `status` folded in alongside
@@ -430,17 +429,16 @@ struct QueueListView: View {
 
     private func answeredRow(for item: Case) -> some View {
         let answeredAt = AnswerGrouping.answeredAt(item)
-        return AnsweredRowView(
+        return Button { Task { await model.open(caseId: item.id, source: .queue) } } label: { AnsweredRowView(
             item: item,
             ageLabel: answeredAt.map { CaseTimes.agoLabel(since: $0, now: model.now) } ?? "",
             ageTooltip: answeredAt.map { "Answered \(CaseTimes.arrivalTooltip(for: $0))" },
             isSelected: item.id == model.selectedCaseId,
             onDismiss: { requestDismiss(item) }
-        )
-        .contentShape(Rectangle())
-        .onTapGesture {
-            Task { await model.open(caseId: item.id, source: .queue) }
-        }
+        ) }
+        .buttonStyle(.hoverRow)
+        .accessibilityLabel(item.title)
+        .accessibilityAddTraits(item.id == model.selectedCaseId ? .isSelected : [])
     }
 
     private var cachedLabel: some View {

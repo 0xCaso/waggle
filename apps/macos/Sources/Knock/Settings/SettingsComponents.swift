@@ -221,15 +221,13 @@ struct SettingsButtonStyle: ButtonStyle {
         let configuration: Configuration
         @State private var isHovered = false
         @Environment(\.isEnabled) private var isEnabled
-        @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
         var body: some View {
             configuration.label
                 .background(fill)
                 .contentShape(RoundedRectangle(cornerRadius: Theme.Radius.buttonSmall))
                 .opacity(isEnabled ? 1 : 0.4)
-                .scaleEffect(configuration.isPressed && !reduceMotion ? 0.97 : 1)
-                .animation(.easeOut(duration: 0.12), value: configuration.isPressed)
+                .pressFeel(isPressed: configuration.isPressed)
                 .animation(.easeOut(duration: 0.12), value: isHovered)
                 .onHover { isHovered = $0 }
                 .pointerCursor()

@@ -185,7 +185,7 @@ struct UpdateToastView: View {
                             .background(Theme.Colors.ink)
                             .cornerRadius(7)
                     }
-                    .buttonStyle(.plain).pointerCursor()
+                    .buttonStyle(.pressable).pointerCursor()
                     Button(action: model.later) {
                         Text("Later")
                             .knockTextStyle(Theme.Typography.buttonSm12_5w500)
@@ -193,7 +193,7 @@ struct UpdateToastView: View {
                             .padding(EdgeInsets(top: 7, leading: 12, bottom: 7, trailing: 12))
                             .overlay(RoundedRectangle(cornerRadius: 7).stroke(Theme.Colors.line2, lineWidth: 1))
                     }
-                    .buttonStyle(.plain).pointerCursor()
+                    .buttonStyle(.pressable).pointerCursor()
                     Spacer(minLength: 0)
                     Button(action: model.openWhatsNew) {
                         Text("What's new")

@@ -54,7 +54,6 @@ struct SharePillStyle: ButtonStyle {
         let isShared: Bool
         let configuration: Configuration
         @State private var isHovered = false
-        @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
         var body: some View {
             let active = isHovered || configuration.isPressed
@@ -66,8 +65,7 @@ struct SharePillStyle: ButtonStyle {
                 .clipShape(Capsule())
                 .overlay(Capsule().strokeBorder(isShared ? Theme.Colors.honey500 : Theme.Colors.line2, lineWidth: 1))
                 .contentShape(Capsule())
-                .scaleEffect(configuration.isPressed && !reduceMotion ? 0.97 : 1)
-                .animation(.easeOut(duration: 0.12), value: configuration.isPressed)
+                .pressFeel(isPressed: configuration.isPressed)
                 .animation(.easeOut(duration: 0.12), value: isHovered)
                 .onHover { isHovered = $0 }
                 .pointerCursor()

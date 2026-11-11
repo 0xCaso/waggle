@@ -56,7 +56,6 @@ struct ScreenshotBadgeView: View {
     let onOpen: () -> Void
     let onTurnOff: () -> Void
     @State private var shown = false
-    @State private var pressed = false
 
     var body: some View {
         Button(action: onOpen) {
@@ -77,10 +76,8 @@ struct ScreenshotBadgeView: View {
             .background(Capsule().fill(Color.white))
             .overlay(Capsule().strokeBorder(SC.line, lineWidth: 1))
             .shadow(color: .black.opacity(0.12), radius: 8, x: 0, y: 3)
-            .scaleEffect(pressed ? 0.97 : 1)
-            .animation(.easeOut(duration: 0.12), value: pressed)
         }
-        .buttonStyle(BadgePressStyle(pressed: $pressed))
+        .buttonStyle(.pressable)
         .pointerCursor()
         .contextMenu { Button(ScreenshotCopy.turnOff, action: onTurnOff) }
         .padding(14)
@@ -88,13 +85,6 @@ struct ScreenshotBadgeView: View {
         .animation(.easeOut(duration: 0.2), value: shown)
         .onAppear { shown = true }
         .preferredColorScheme(.light)
-    }
-}
-
-private struct BadgePressStyle: ButtonStyle {
-    @Binding var pressed: Bool
-    func makeBody(configuration: Configuration) -> some View {
-        configuration.label.onChange(of: configuration.isPressed) { _, now in pressed = now }
     }
 }
 
@@ -353,7 +343,7 @@ struct ScreenshotPanelView: View {
                         .background(Capsule().fill(Theme.Colors.ink))
                         .opacity(model.canSend || model.phase == .failed ? 1 : 0.4)
                 }
-                .buttonStyle(.plain).pointerCursor()
+                .buttonStyle(.pressable).pointerCursor()
                 .keyboardShortcut(.defaultAction)
                 .disabled(!(model.canSend || model.phase == .failed))
                 Button(action: onClose) {

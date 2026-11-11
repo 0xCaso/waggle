@@ -206,7 +206,7 @@ struct UpdatePromptView: View {
                         .background(Theme.Colors.ink.opacity(model.isInstalling ? 0.6 : 1))
                         .cornerRadius(7)
                 }
-                .buttonStyle(.plain).pointerCursor()
+                .buttonStyle(.pressable).pointerCursor()
                 .disabled(model.isInstalling)
                 Button(action: model.later) {
                     Text("Later")
@@ -215,7 +215,7 @@ struct UpdatePromptView: View {
                         .padding(EdgeInsets(top: 7, leading: 12, bottom: 7, trailing: 12))
                         .overlay(RoundedRectangle(cornerRadius: 7).stroke(Theme.Colors.line2, lineWidth: 1))
                 }
-                .buttonStyle(.plain).pointerCursor()
+                .buttonStyle(.pressable).pointerCursor()
                 .disabled(model.isInstalling)
                 Spacer(minLength: 0)
                 Button(action: { model.skip() }) {

@@ -138,7 +138,7 @@ struct ReviewBeforeSendColumnView: View {
                 // HAIL-34.md operator report 21:35): "Keep editing" used to
                 // sit centred under the full-width Send button.
                 HStack(spacing: 16) {
-                    HStack(spacing: 8) {
+                    Button { Task { await sendFlow.confirmSend() } } label: { HStack(spacing: 8) {
                         Text(sendLabel)
                             .knockTextStyle(Theme.Typography.button13_5w600)
                             .foregroundColor(Theme.Colors.win)
@@ -150,13 +150,16 @@ struct ReviewBeforeSendColumnView: View {
                     .background(Theme.Colors.ink)
                     .cornerRadius(Theme.Radius.buttonPrimary)
                     .contentShape(Rectangle())
-                    .onTapGesture { Task { await sendFlow.confirmSend() } }.pointerCursor()
+                    }
+                    .buttonStyle(.pressable).pointerCursor()
 
-                    Text("Keep editing")
-                        .knockTextStyle(Theme.Typography.buttonSm12_5w500)
-                        .foregroundColor(Theme.Colors.ink2)
-                        .contentShape(Rectangle())
-                        .onTapGesture(perform: sendFlow.keepEditing).pointerCursor()
+                    Button(action: sendFlow.keepEditing) {
+                        Text("Keep editing")
+                            .knockTextStyle(Theme.Typography.buttonSm12_5w500)
+                            .foregroundColor(Theme.Colors.ink2)
+                            .contentShape(Rectangle())
+                    }
+                    .buttonStyle(.plain).pointerCursor()
 
                     Spacer(minLength: 0)
                 }

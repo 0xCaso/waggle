@@ -200,7 +200,7 @@ private struct CoachMarkBubble: View {
                         .padding(EdgeInsets(top: 4, leading: 10, bottom: 4, trailing: 10))
                         .background(RoundedRectangle(cornerRadius: Theme.Radius.regionBox).fill(Theme.Colors.honey500))
                 }
-                .buttonStyle(.plain).pointerCursor()
+                .buttonStyle(.pressable).pointerCursor()
             }
             .padding(.top, 6)
         }
