@@ -39,11 +39,11 @@ struct ArtifactsSettingsTests {
         return (client, server)
     }
 
-    @Test func pageSitsAfterPreviewsWithItsSubtitle() {
+    @Test func pageSitsAfterNotificationsWithItsSubtitle() {
         let pages = SettingsPage.allCases
-        #expect(pages.firstIndex(of: .artifacts) == pages.firstIndex(of: .previews)! + 1)
+        #expect(pages.firstIndex(of: .artifacts) == pages.firstIndex(of: .notifications)! + 1)
         #expect(SettingsPage.artifacts.title == "Artifacts")
-        #expect(SettingsPage.artifacts.subtitle == "How your agents build the pages and screenshots they send you.")
+        #expect(SettingsPage.artifacts.subtitle == "How your agents build the pages and screenshots they send you, and how they show in a decision.")
         #expect(SettingsPage.initial(environment: ["KNOCK_SETTINGS_PAGE": "artifacts"]) == .artifacts)
     }
 

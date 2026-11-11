@@ -86,13 +86,12 @@ struct WAG412Tests {
         #expect(AskLess(enabled: true, rules: ["naming": true]).wire.rules.count == 4)
     }
 
-    @Test func thePageSitsAfterPhoneAndKeepsTheCopyPlain() {
-        let pages = SettingsPage.allCases
-        #expect(pages.firstIndex(of: .askLess) == pages.firstIndex(of: .phone)! + 1)
-        #expect(SettingsPage.askLess.title == "Ask less")
-        #expect(SettingsPage.initial(environment: ["KNOCK_SETTINGS_PAGE": "askLess"]) == .askLess)
-        let words = [AskLessCopy.masterTitle, AskLessCopy.masterBody, AskLessCopy.footer, DecidedForYouCopy.hint, DecidedForYouCopy.changeMind,
-                     SettingsPage.askLess.subtitle] + AskCategory.allCases.flatMap { [$0.title, $0.detail] }
+    @Test func theSwitchesLiveInRequestsAndKeepTheCopyPlain() {
+        #expect(!SettingsPage.allCases.map(\.rawValue).contains("askLess"))
+        #expect(SettingsPage.initial(environment: ["KNOCK_SETTINGS_PAGE": "askLess"]) == .asks)
+        #expect(AskLessCopy.label == "SMALL THINGS")
+        let words = [AskLessCopy.label, AskLessCopy.masterTitle, AskLessCopy.masterBody, AskLessCopy.footer, DecidedForYouCopy.hint,
+                     DecidedForYouCopy.changeMind] + AskCategory.allCases.flatMap { [$0.title, $0.detail] }
         for text in words { #expect(!text.contains("—")) }
         #expect(AskLessCopy.masterTitle == "Let the agent decide small things")
     }

@@ -74,6 +74,7 @@ final class ArtifactsSettingsModel: ObservableObject {
 /// The Artifacts page (HAIL-100): three preset cards, one selected.
 struct ArtifactsSettingsView: View {
     @StateObject private var model: ArtifactsSettingsModel
+    @StateObject private var designHelpers = DesignHelpersModel()
     private let client: KnockClient
 
     init(client: KnockClient) {
@@ -92,8 +93,11 @@ struct ArtifactsSettingsView: View {
                 .knockTextStyle(Theme.Typography.body12_5w400)
                 .foregroundColor(Theme.Colors.ink3)
             DesignKitSection(client: client)
+            DesignHelpersCard(model: designHelpers)
+            PreviewsSection()
         }
         .task { await model.load() }
+        .task { await designHelpers.refresh() }
     }
 
     private func card(_ preset: ArtifactPreset) -> some View {

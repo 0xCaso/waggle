@@ -98,7 +98,7 @@ struct PluginSetupChecklist: View {
 }
 
 /// "Copy test prompt" (shows "Copied" after) and "Skip".
-private struct PluginSetupWaitingButtons: View {
+struct PluginSetupWaitingButtons: View {
     @ObservedObject var offer: PluginOfferModel
     /// Evidence only: `KNOCK_EVIDENCE_PLUGIN_COPIED=1` starts in the "Copied" state.
     @State private var copied = ProcessInfo.processInfo.environment["KNOCK_EVIDENCE_PLUGIN_COPIED"] == "1"
@@ -211,83 +211,5 @@ struct PluginOfferCard: View {
         .background(Theme.Colors.accentSoft)
         .cornerRadius(10)
         .overlay(RoundedRectangle(cornerRadius: 10).stroke(Theme.Colors.line, lineWidth: 1))
-    }
-}
-
-/// Settings › Agents: the offer row (no "Not now": the row stays) and the On/Off control.
-struct PluginSettingsRows: View {
-    @ObservedObject var offer: PluginOfferModel
-
-    var body: some View {
-        if offer.status.showsToggle {
-            SettingsCard {
-                if offer.status.showsSettingsOffer {
-                    VStack(alignment: .leading, spacing: 10) {
-                        Text(PluginOfferCopy.title)
-                            .knockTextStyle(Theme.Typography.rowTitle13_5w600)
-                            .foregroundColor(Theme.Colors.ink)
-                        Text(PluginOfferCopy.body)
-                            .knockTextStyle(Theme.Typography.body12_5w400)
-                            .foregroundColor(Theme.Colors.ink3)
-                            .fixedSize(horizontal: false, vertical: true)
-                        HStack(spacing: 10) {
-                            SettingsPrimaryButton(title: PluginOfferCopy.install) {
-                                Task { await offer.setPlugin(on: true) }
-                            }
-                            .disabled(offer.isWorking)
-                        }
-                    }
-                    .padding(.vertical, 12)
-                    .padding(.horizontal, 14)
-                    .frame(maxWidth: .infinity, alignment: .leading)
-                    Rectangle().fill(Theme.Colors.line).frame(height: 1)
-                }
-                SettingsCardRow(title: PluginOfferCopy.toggleTitle, subtitle: PluginOfferCopy.toggleHelp, showsDivider: false) {
-                    HStack(spacing: 10) {
-                        if offer.isWorking { LoadingStatus(label: "Working") }
-                        Toggle(
-                            "",
-                            isOn: Binding(
-                                get: { offer.status.isPluginOn },
-                                set: { on in Task { await offer.setPlugin(on: on) } }
-                            )
-                        )
-                        .labelsHidden()
-                        .toggleStyle(.switch).pointerCursor()
-                        .disabled(offer.isWorking)
-                    }
-                }
-                if offer.showsSetupCard, let setup = offer.setup {
-                    Rectangle().fill(Theme.Colors.line).frame(height: 1)
-                    TimelineView(.periodic(from: .now, by: 20)) { context in
-                        VStack(alignment: .leading, spacing: 10) {
-                            PluginSetupChecklist(setup: setup, now: context.date)
-                            if setup.step == .waiting { PluginSetupWaitingButtons(offer: offer) }
-                        }
-                        .padding(.vertical, 12)
-                        .padding(.horizontal, 14)
-                        .frame(maxWidth: .infinity, alignment: .leading)
-                    }
-                }
-                switch offer.phase {
-                case .failed(let message):
-                    resultLine(message, color: Theme.Colors.accent)
-                case .done(let message):
-                    resultLine(message, color: Theme.Colors.ok)
-                case .idle, .working:
-                    EmptyView()
-                }
-            }
-        }
-    }
-
-    private func resultLine(_ text: String, color: Color) -> some View {
-        Text(text)
-            .knockTextStyle(Theme.Typography.body12_5w400)
-            .foregroundColor(color)
-            .fixedSize(horizontal: false, vertical: true)
-            .padding(.horizontal, 14)
-            .padding(.bottom, 12)
-            .frame(maxWidth: .infinity, alignment: .leading)
     }
 }

@@ -7,9 +7,9 @@ import SwiftUI
 enum AgentQuestionsCopy {
     static let label = "ASKING IN WAGGLE"
     static let catchTitle = "Catch decisions in the terminal"
-    static let catchBody = "When Claude Code ends a turn asking you to decide, it is sent back to Waggle. Needs the Waggle plugin."
+    static let catchBody = "Claude Code questions come to Waggle. Needs the plugin."
     static let ruleTitle = "Add a Waggle rule to your agent instructions"
-    static let ruleBody = "Optional. Adds these lines to your global CLAUDE.md (Claude Code) and AGENTS.md (Codex). Nothing is written until you press Add."
+    static let ruleBody = "Optional. Nothing is written until you press Add."
     static let codexNote = "Codex has no stop check, so this rule is how it learns to bring decisions to Waggle."
     static let add = "Add"
     static let remove = "Remove"
@@ -137,6 +137,8 @@ final class CatchQuestionsModel: ObservableObject {
 struct AgentRuleCard: View {
     @ObservedObject var model: AgentRuleModel
     var showsDivider = false
+    /// The Settings page: the lines only, with no file paths or Codex note, so the page stays short.
+    var isCompact = false
 
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
@@ -157,7 +159,7 @@ struct AgentRuleCard: View {
                 }
             }
             preview
-            if model.hasCodex { note(AgentQuestionsCopy.codexNote) }
+            if model.hasCodex && !isCompact { note(AgentQuestionsCopy.codexNote) }
             if model.hasDamagedFile { note(AgentQuestionsCopy.damaged) }
             if case .failed(let message) = model.phase { note(message, isError: true) }
             if showsDivider { Divider().padding(.horizontal, 14) }
@@ -170,14 +172,16 @@ struct AgentRuleCard: View {
         return VStack(alignment: .leading, spacing: 4) {
             ForEach(lines, id: \.self) { line in
                 Text(line)
-                    .font(.system(size: 12, design: .monospaced))
+                    .font(.system(size: 11, design: .monospaced))
                     .foregroundColor(Theme.Colors.ink2)
                     .fixedSize(horizontal: false, vertical: true)
             }
-            ForEach(model.presentAgents, id: \.name) { item in
-                Text("\(item.agent.state == "added" ? "Added to" : "Goes in") \(item.agent.path.replacingOccurrences(of: NSHomeDirectory(), with: "~"))")
+            if !model.presentAgents.isEmpty && !isCompact {
+                let paths = model.presentAgents.map { $0.agent.path.replacingOccurrences(of: NSHomeDirectory(), with: "~") }
+                Text("\(model.isAdded ? "Added to" : "Goes in") \(paths.joined(separator: " and "))")
                     .knockTextStyle(Theme.Typography.body12_5w400)
                     .foregroundColor(Theme.Colors.ink3)
+                    .fixedSize(horizontal: false, vertical: true)
             }
         }
         .padding(.horizontal, 14)
@@ -199,10 +203,11 @@ struct AgentRuleCard: View {
 /// The one new section on Settings › Agents (WAG-265).
 struct AgentQuestionsSection: View {
     @StateObject private var catchModel: CatchQuestionsModel
-    @StateObject private var ruleModel = AgentRuleModel()
+    @StateObject private var ruleModel: AgentRuleModel
 
-    init(client: KnockClient) {
+    init(client: KnockClient, ruleModel: AgentRuleModel = AgentRuleModel()) {
         _catchModel = StateObject(wrappedValue: CatchQuestionsModel(client: client))
+        _ruleModel = StateObject(wrappedValue: ruleModel)
     }
 
     var body: some View {
@@ -214,7 +219,7 @@ struct AgentQuestionsSection: View {
                         .labelsHidden()
                         .toggleStyle(.switch).pointerCursor()
                 }
-                AgentRuleCard(model: ruleModel)
+                AgentRuleCard(model: ruleModel, isCompact: true)
             }
         }
         .task { await catchModel.refresh() }

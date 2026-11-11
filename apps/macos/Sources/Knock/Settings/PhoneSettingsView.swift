@@ -23,8 +23,8 @@ final class PhoneSettingsModel: ObservableObject {
     @Published var slackBotToken = ""
 
     // The guided flow (HAIL-148). The daemon's state decides the step once a bot or a token pair is
-    // saved. Before that the operator moves with Next and Back, and the override remembers where.
-    @Published var telegramStepOverride: Int?
+    // saved. Before that Slack moves with Next and Back, and the override remembers where. Telegram has no
+    // gate: its token box is in step 1, and the daemon's state moves it on.
     @Published var slackStepOverride: Int?
     private var lastLookedUpBot = ""
 
@@ -152,30 +152,29 @@ final class PhoneSettingsModel: ObservableObject {
 
     // MARK: Guided flow (HAIL-148)
 
-    static let telegramStepCount = 4
-    static let slackStepCount = 6
+    static let telegramStepCount = 3
+    static let slackStepCount = 5
 
-    /// 1 BotFather, 2 paste the token, 3 open your bot, 4 connected.
+    /// 1 BotFather and the token, 2 open your bot, 3 connected.
     var telegramStep: Int {
         switch status.state {
-        case .connected: return 4
-        case .tokenChecked, .waitingForStart: return 3
-        case .off: return min(max(telegramStepOverride ?? 1, 1), 2)
+        case .connected: return 3
+        case .tokenChecked, .waitingForStart: return 2
+        case .off: return 1
         }
     }
 
-    /// 1 create the app, 2 install and bot token, 3 app-level token, 4 check, 5 DM the code, 6 connected.
+    /// 1 create the app and paste the bot token, 2 app-level token, 3 check, 4 DM the code, 5 connected.
     var slackStep: Int {
         switch slack.state {
-        case .connected: return 6
-        case .tokenChecked, .waitingForStart: return 5
+        case .connected: return 5
+        case .tokenChecked, .waitingForStart: return 4
         case .off:
-            let floor = slack.appId != nil ? 3 : 1
-            return min(max(slackStepOverride ?? floor, 1), 4)
+            let floor = slack.appId != nil ? 2 : 1
+            return min(max(slackStepOverride ?? floor, 1), 3)
         }
     }
 
-    func goTelegram(_ step: Int) { telegramStepOverride = step }
     func goSlack(_ step: Int) { slackStepOverride = step }
 
     func open(_ url: URL?) {
@@ -194,7 +193,7 @@ final class PhoneSettingsModel: ObservableObject {
         slackBotToken = app
     }
 
-    /// Check the pasted token, then make the code at once so step 3 can open the bot. A bad shape is
+    /// Check the pasted token, then make the code at once so step 2 can open the bot. A bad shape is
     /// refused here without a call.
     func checkTokenGuided() async {
         guard telegramTokenProblem == nil else { return }
@@ -211,7 +210,7 @@ final class PhoneSettingsModel: ObservableObject {
         if slack.state == .tokenChecked, slackProblem == nil { await slackStartPairing() }
     }
 
-    /// Step 2 has the bot token. Ask the daemon which app it belongs to, so step 3 can link the app's
+    /// Step 1 has the bot token. Ask the daemon which app it belongs to, so step 2 can link the app's
     /// own page. Quiet on failure: the link then goes to the list of apps.
     func lookUpSlackApp() async {
         let bot = slackBotToken.trimmingCharacters(in: .whitespacesAndNewlines)
@@ -224,7 +223,6 @@ final class PhoneSettingsModel: ObservableObject {
     func startOverTelegram() async {
         await disconnect()
         token = ""
-        telegramStepOverride = nil
     }
 
     func startOverSlack() async {
@@ -246,7 +244,6 @@ final class PhoneSettingsModel: ObservableObject {
         switch parts[0] {
         case "telegram":
             if let t = fields.first { token = t }
-            telegramStepOverride = step
             if parts.contains("check") { await checkTokenGuided() }
         case "slack":
             if fields.count > 0 { slackBotToken = fields[0] }
