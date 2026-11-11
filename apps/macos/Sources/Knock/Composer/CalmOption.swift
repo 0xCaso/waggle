@@ -527,6 +527,8 @@ struct CompactOptionRow: View {
         // open or about to open never holds it back. A tooltip window can take the release of a click that opened
         // it, so a tap gesture there could wait for the tooltip, or never fire.
         .gesture(DragGesture(minimumDistance: 0).onChanged { _ in pressRow() }.onEnded { _ in press.isPressing = false })
+        // The text takes its own clicks, so it can be selected; a click on it that selects nothing picks, on the release.
+        .onCSSTextClick { pressRow(); press.isPressing = false }
         .modifier(PickCursor(isOn: !isLocked))
         .focusable(hasTip).focused($isFocused).focusEffectDisabled()
         .onChange(of: showsTip) { _, shown in EvidenceLayoutLog.event("opt.tipOn", "t=\(Self.stamp()) shown=\(shown) focus=\(isFocused)") }
@@ -1186,6 +1188,8 @@ struct CSSText: NSViewRepresentable {
     }
 
     let runs: [Run]
+    /// A click on the text that selects nothing: the option card picks its option (`View.onCSSTextClick`).
+    @Environment(\.cssTextClick) private var onClick
     var size: CGFloat = 12
     var lineHeight: CGFloat = OptionCardStyle.lineHeight
     /// The first run is a sign centred in a column; the other runs hang at `OptionGist.Hanging.textInset`.
@@ -1252,11 +1256,13 @@ struct CSSText: NSViewRepresentable {
     func makeNSView(context: Context) -> CSSTextNSView {
         let view = CSSTextNSView()
         view.text = attributed
+        view.onClick = onClick
         return view
     }
 
     func updateNSView(_ view: CSSTextNSView, context: Context) {
         view.text = attributed
+        view.onClick = onClick
     }
 
     func sizeThatFits(_ proposal: ProposedViewSize, nsView: CSSTextNSView, context: Context) -> CGSize? {
@@ -1282,18 +1288,70 @@ struct CSSText: NSViewRepresentable {
     }
 }
 
-/// Draws `CSSText`. It takes no clicks (the card under it does) and reads as static text.
-final class CSSTextNSView: NSView {
+/// Draws `CSSText` as read-only text that can be selected and copied (operator review, 11 Nov). A click that
+/// selects nothing goes to `onClick`, so the option card under it still picks; a drag or a double click selects.
+final class CSSTextNSView: NSTextView {
     var text = NSAttributedString() {
-        didSet { if text != oldValue { needsDisplay = true; setAccessibilityLabel(text.string.replacingOccurrences(of: "\t", with: " ")) } }
+        didSet {
+            guard text != oldValue else { return }
+            textStorage?.setAttributedString(text)
+            setAccessibilityLabel(text.string.replacingOccurrences(of: "\t", with: " "))
+        }
+    }
+    var onClick: (@MainActor @Sendable () -> Void)?
+
+    init() {
+        let storage = NSTextStorage()
+        let layout = NSLayoutManager()
+        // Room to spare below: a frame rounded to the pixel can be a hair under the text's height, and no line that
+        // does not fit whole is dropped.
+        let container = NSTextContainer(size: NSSize(width: 0, height: 1e6))
+        container.lineFragmentPadding = 0
+        container.widthTracksTextView = true
+        storage.addLayoutManager(layout)
+        layout.addTextContainer(container)
+        super.init(frame: .zero, textContainer: container)
+        isEditable = false
+        isSelectable = true
+        isRichText = false
+        drawsBackground = false
+        textContainerInset = .zero
+        isVerticallyResizable = false
+        isHorizontallyResizable = false
+        focusRingType = .none
     }
 
-    override var isFlipped: Bool { true }
-    override func hitTest(_ point: NSPoint) -> NSView? { nil }
+    @available(*, unavailable)
+    required init?(coder: NSCoder) { fatalError("init(coder:) is not used") }
+
+    override init(frame frameRect: NSRect, textContainer container: NSTextContainer?) {
+        super.init(frame: frameRect, textContainer: container)
+    }
+
     override func isAccessibilityElement() -> Bool { true }
     override func accessibilityRole() -> NSAccessibility.Role? { .staticText }
 
-    /// The size the text's lines take at `width`, laid out exactly as `draw` lays them out.
+    override func mouseDown(with event: NSEvent) {
+        let before = window?.firstResponder
+        super.mouseDown(with: event)  // tracks until the mouse is up
+        guard selectedRange().length == 0 else { return }
+        // A plain click: the card picks, and the focus goes back where it was (the reply field keeps the keys).
+        if let before, before !== self { window?.makeFirstResponder(before) }
+        onClick?()
+    }
+
+    override func resignFirstResponder() -> Bool {
+        setSelectedRange(NSRange(location: 0, length: 0))
+        return super.resignFirstResponder()
+    }
+
+    override func drawBackground(in rect: NSRect) {
+        super.drawBackground(in: rect)
+        guard let layoutManager, let textContainer else { return }
+        ChipPainter.paint(layout: layoutManager, container: textContainer, origin: textContainerOrigin)
+    }
+
+    /// The size the text's lines take at `width`, laid out exactly as the view lays them out.
     static func usedSize(_ text: NSAttributedString, width: CGFloat) -> CGSize {
         let storage = NSTextStorage(attributedString: text)
         let layout = NSLayoutManager()
@@ -1304,19 +1362,20 @@ final class CSSTextNSView: NSView {
         layout.ensureLayout(for: container)
         return layout.usedRect(for: container).size
     }
+}
 
-    override func draw(_ dirtyRect: NSRect) {
-        // A frame rounded to the pixel can be a hair under the text's height; the container has room to spare below,
-        // so no line that does not fit whole is dropped.
-        let storage = NSTextStorage(attributedString: text)
-        let layout = NSLayoutManager()
-        let container = NSTextContainer(size: NSSize(width: bounds.width, height: bounds.height + 100))
-        container.lineFragmentPadding = 0
-        storage.addLayoutManager(layout)
-        layout.addTextContainer(container)
-        let glyphs = layout.glyphRange(for: container)
-        ChipPainter.paint(layout: layout, container: container, origin: .zero, glyphRange: glyphs)
-        layout.drawBackground(forGlyphRange: glyphs, at: .zero)
-        layout.drawGlyphs(forGlyphRange: glyphs, at: .zero)
+private struct CSSTextClickKey: EnvironmentKey {
+    static let defaultValue: (@MainActor @Sendable () -> Void)? = nil
+}
+
+extension EnvironmentValues {
+    var cssTextClick: (@MainActor @Sendable () -> Void)? {
+        get { self[CSSTextClickKey.self] }
+        set { self[CSSTextClickKey.self] = newValue }
     }
+}
+
+extension View {
+    /// What a click on a `CSSText` inside this view does when it selects nothing.
+    func onCSSTextClick(_ action: @escaping @MainActor @Sendable () -> Void) -> some View { environment(\.cssTextClick, action) }
 }
