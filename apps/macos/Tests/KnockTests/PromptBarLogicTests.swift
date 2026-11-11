@@ -2,7 +2,7 @@ import CoreGraphics
 import Testing
 @testable import Knock
 
-/// HAIL-77: the prompt bar's growth, layout switch, Return key and Send rules.
+/// HAIL-77: the prompt bar's growth, controls, Return key and Send rules.
 @MainActor
 struct PromptBarLogicTests {
     private let controls = PromptBarLogic.controlsWidth(quietLabels: ["Ask for more detail"], sendPillLabel: nil)
@@ -20,47 +20,11 @@ struct PromptBarLogicTests {
         #expect(PromptBarLogic.lineCount(text: text, textWidth: 300) > PromptBarLogic.lineCount(text: text, textWidth: 900))
     }
 
-    // MARK: layout switch
+    // MARK: controls width
 
-    private func ownRow(_ text: String, width: CGFloat = 480, controlsWidth: CGFloat? = nil) -> Bool {
-        PromptBarLogic.fieldTakesOwnRow(
-            text: text, naturalTextWidth: PromptBarFieldProbe.naturalWidth(text), barWidth: width,
-            controlsWidth: controlsWidth ?? controls)
-    }
-
-    @Test func aNewlineSwitchesToTheStackedLayout() {
-        #expect(!ownRow("one line"))
-        #expect(ownRow("one\ntwo"))
-        #expect(ownRow("one\n"))
-    }
-
-    @Test func wrappingOnTheSharedRowSwitchesToTheStackedLayout() {
-        let text = String(repeating: "word ", count: 12)
-        #expect(ownRow(text, width: 480))
-        #expect(!ownRow(text, width: 1400))
-    }
-
-    @Test func aNarrowerBarWrapsSooner() {
-        let text = "Republish it, but keep the intro short"
-        #expect(!ownRow(text, width: 700))
-        #expect(ownRow(text, width: 330))
-    }
-
-    @Test func commentsWidenTheControlsAndShrinkTheSharedRow() {
+    @Test func commentsWidenTheControls() {
         let pill = PromptBarLogic.controlsWidth(quietLabels: ["Ask for more detail"], sendPillLabel: "Send + 2 comments")
         #expect(pill > controls + 60)
-        #expect(PromptBarLogic.sharedRowFieldWidth(barWidth: 520, controlsWidth: pill)
-            < PromptBarLogic.sharedRowFieldWidth(barWidth: 520, controlsWidth: controls))
-    }
-
-    // MARK: placeholder (WAG-305: an empty field keeps the shared row; the placeholder wraps there)
-
-    @Test func anEmptyFieldKeepsTheSharedRow() {
-        // While it keeps 140 pt there (C6); a narrower bar leaves it under 140 pt beside these controls, so it moves.
-        #expect(!PromptBarLogic.fieldTakesOwnRow(text: "", naturalTextWidth: 0, barWidth: 400, controlsWidth: controls))
-        #expect(PromptBarLogic.fieldTakesOwnRow(text: "", naturalTextWidth: 0, barWidth: 360, controlsWidth: controls)
-            == (PromptBarLogic.sharedRowFieldWidth(barWidth: 360, controlsWidth: controls) < PromptBarLogic.minSharedFieldWidth))
-        #expect(!PromptBarLogic.fieldTakesOwnRow(text: "", naturalTextWidth: nil, barWidth: 1000, controlsWidth: controls))
     }
 
     // MARK: Return key
@@ -138,8 +102,7 @@ struct PromptBarLogicTests {
             quietLabels: ["Change"], overflowLabels: ["Ask for more detail"], sendPillLabel: "Approve section + 1 comment")
         let row = full.width + PromptBarLogic.controlSize + PromptBarLogic.controlGap
         let plan = PromptBarLogic.controlsPlan(rowWidth: row, quietLabels: designQuiet, pillLabels: designPills)
-        // Too narrow to keep the 200 pt field beside the controls: they take their own row, the quiet button in the menu.
-        #expect(plan.ownRow)
+        // The quiet button goes into the menu; the pill keeps its full words.
         #expect(plan.quietLabels == full.quietLabels && plan.overflowLabels == full.overflowLabels && plan.sendPillLabel == full.sendPillLabel)
         // Narrower still: "Change" goes into the menu too, the pill keeps its full words.
         let tighter = PromptBarLogic.controlsPlan(rowWidth: row - 20, quietLabels: designQuiet, pillLabels: designPills)
@@ -180,11 +143,6 @@ struct PromptBarLogicTests {
         // Case pane about 540 pt: 24 pt footer padding each side, 1 pt border, 6 pt bar padding.
         let plan = PromptBarLogic.controlsPlan(rowWidth: 540 - 48 - 2 - 12, quietLabels: designQuiet, pillLabels: designPills)
         #expect(plan.sendPillLabel == "Approve section + 1 comment")
-    }
-
-    @Test func controlsWithNoRoomForTheFieldTakeTheirOwnRow() {
-        let wide = PromptBarLogic.controlsWidth(quietLabels: designQuiet, sendPillLabel: "Approve section + 12 comments")
-        #expect(PromptBarLogic.fieldTakesOwnRow(text: "ok", naturalTextWidth: 12, barWidth: wide + 60, controlsWidth: wide))
     }
 
 }

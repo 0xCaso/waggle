@@ -319,16 +319,9 @@ struct PromptBarCore: View {
             pillLabels: pillLabels,
             widths: controlWidths,
             leadingWidth: leadingWidth,
-            leadingLabels: quickReplies.map(\.label),
-            fieldOnOwnRow: true
+            leadingLabels: quickReplies.map(\.label)
         )
     }
-
-    /// The field always has its own row, with the tools and Send under it: the bar keeps one shape while Send
-    /// names the pick, and the placeholder never wraps beside the controls (request page, 2026-11-10; decision
-    /// 2026-11-10 "Field on its own row"). `PromptBarLogic.fieldTakesOwnRow` is the shared-row rule for a bar
-    /// wide enough for it.
-    private func fieldOnOwnRow(_ plan: PromptBarLogic.ControlsPlan) -> Bool { true }
 
     var body: some View {
         let plan = controlsPlan
@@ -341,16 +334,17 @@ struct PromptBarCore: View {
                 .frame(height: 0)
                 .onGeometryChange(for: CGFloat.self, of: { $0.size.width }) { barWidth = $0 }
             if let files { AttachmentChipsRow(files: files) }
-            barContent(ownRow: fieldOnOwnRow(plan), plan)
+            barContent(plan)
         }
         .background(alignment: .topLeading) { labelProbe }
         .modifier(OptionalAttachDrop(files: files))
     }
 
-    /// One layout for both arrangements, so the field keeps its text view (caret, undo, IME) when it
-    /// changes rows.
-    private func barContent(ownRow: Bool, _ plan: PromptBarLogic.ControlsPlan) -> some View {
-        PromptBarRowLayout(fieldOnOwnRow: ownRow) {
+    /// The field always has its own row, with the tools and Send under it: the bar keeps one shape while Send
+    /// names the pick, and the placeholder never wraps beside the controls (request page, 2026-11-10; decision
+    /// 2026-11-10 "Field on its own row").
+    private func barContent(_ plan: PromptBarLogic.ControlsPlan) -> some View {
+        PromptBarRowLayout {
             HStack(spacing: PromptBarLogic.controlGap) {
                 attachButton
                 ForEach(quickReplies.filter { plan.leadingLabels.contains($0.label) }) { reply in
@@ -788,12 +782,9 @@ private struct PromptOverflowMenu: View {
     }
 }
 
-/// The bar's rows: "+", the field and the controls. Shared row: "+" left, the controls right, the field
-/// between them in the width they leave, all top aligned so the "+" sits on the first text line. Own row:
-/// the field full width on top, then "+" left and the controls right. Subviews: "+", field, controls.
+/// The bar's rows: the field full width on top, then "+" and the tools left and the controls right, centred
+/// on the row. Subviews: "+" and tools, field, controls.
 struct PromptBarRowLayout: Layout {
-    var fieldOnOwnRow: Bool
-
     private struct Parts {
         var attach: CGSize
         var controls: CGSize
@@ -805,46 +796,28 @@ struct PromptBarRowLayout: Layout {
         guard subviews.count == 3 else { return nil }
         let attach = subviews[0].sizeThatFits(.unspecified)
         let controls = subviews[2].sizeThatFits(.unspecified)
-        let gap = PromptBarLogic.controlGap
-        let fieldWidth: CGFloat? = width.map { width in
-            fieldOnOwnRow ? width : max(width - attach.width - controls.width - gap * 2, PromptBarLogic.minSingleRowFieldWidth)
-        }
-        let field = subviews[1].sizeThatFits(ProposedViewSize(width: fieldWidth, height: nil))
-        return Parts(attach: attach, controls: controls, fieldWidth: fieldWidth ?? field.width, field: field)
+        let field = subviews[1].sizeThatFits(ProposedViewSize(width: width, height: nil))
+        return Parts(attach: attach, controls: controls, fieldWidth: width ?? field.width, field: field)
     }
 
     func sizeThatFits(proposal: ProposedViewSize, subviews: Subviews, cache: inout ()) -> CGSize {
         let width = proposal.width.flatMap { $0.isFinite ? $0 : nil }
         guard let p = parts(width: width, subviews) else { return .zero }
-        let gap = PromptBarLogic.controlGap
         let controlsRow = max(p.attach.height, p.controls.height)
-        if fieldOnOwnRow {
-            let rowWidth = p.attach.width + gap + p.controls.width
-            return CGSize(width: width ?? max(p.fieldWidth, rowWidth), height: p.field.height + PromptBarLogic.rowGap + controlsRow)
-        }
-        return CGSize(
-            width: width ?? (p.attach.width + p.fieldWidth + p.controls.width + gap * 2),
-            height: max(controlsRow, p.field.height))
+        let rowWidth = p.attach.width + PromptBarLogic.controlGap + p.controls.width
+        return CGSize(width: width ?? max(p.fieldWidth, rowWidth), height: p.field.height + PromptBarLogic.rowGap + controlsRow)
     }
 
     func placeSubviews(in bounds: CGRect, proposal: ProposedViewSize, subviews: Subviews, cache: inout ()) {
         guard let p = parts(width: bounds.width, subviews) else { return }
-        let gap = PromptBarLogic.controlGap
-        let fieldProposal = ProposedViewSize(width: p.fieldWidth, height: p.field.height)
-        if fieldOnOwnRow {
-            subviews[1].place(at: CGPoint(x: bounds.minX, y: bounds.minY), proposal: fieldProposal)
-            let rowY = bounds.minY + p.field.height + PromptBarLogic.rowGap
-            let rowHeight = max(p.attach.height, p.controls.height)
-            subviews[0].place(
-                at: CGPoint(x: bounds.minX, y: rowY + (rowHeight - p.attach.height) / 2), proposal: .init(p.attach))
-            subviews[2].place(
-                at: CGPoint(x: bounds.maxX - p.controls.width, y: rowY + (rowHeight - p.controls.height) / 2),
-                proposal: .init(p.controls))
-        } else {
-            subviews[0].place(at: CGPoint(x: bounds.minX, y: bounds.minY), proposal: .init(p.attach))
-            subviews[1].place(at: CGPoint(x: bounds.minX + p.attach.width + gap, y: bounds.minY), proposal: fieldProposal)
-            subviews[2].place(at: CGPoint(x: bounds.maxX - p.controls.width, y: bounds.minY), proposal: .init(p.controls))
-        }
+        subviews[1].place(
+            at: CGPoint(x: bounds.minX, y: bounds.minY), proposal: ProposedViewSize(width: p.fieldWidth, height: p.field.height))
+        let rowY = bounds.minY + p.field.height + PromptBarLogic.rowGap
+        let rowHeight = max(p.attach.height, p.controls.height)
+        subviews[0].place(at: CGPoint(x: bounds.minX, y: rowY + (rowHeight - p.attach.height) / 2), proposal: .init(p.attach))
+        subviews[2].place(
+            at: CGPoint(x: bounds.maxX - p.controls.width, y: rowY + (rowHeight - p.controls.height) / 2),
+            proposal: .init(p.controls))
     }
 }
 

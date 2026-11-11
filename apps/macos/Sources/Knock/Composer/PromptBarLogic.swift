@@ -33,14 +33,8 @@ enum PromptBarLogic {
     static let attachWidth: CGFloat = 16
     /// The "⋯" menu that holds the tools a narrow row cannot fit.
     static let overflowWidth: CGFloat = 20
-    static let minSingleRowFieldWidth: CGFloat = 40
-    /// The field keeps about this width on the shared row; under it the controls move to a second row (WAG-336).
-    /// This sets the buttons' plan (which label form, which quiet buttons in More), not where the field goes.
+    /// The width the answer box's text view measures at before the bar has laid it out.
     static let minFieldWidth: CGFloat = 200
-    /// The field stays on the buttons' row while it keeps at least this width there and its text fits on one line
-    /// (C6, app check 2026-11-09): an empty field's placeholder wraps in it (never "…"), so a wide Send label
-    /// ("Send comments") no longer pushes an empty field onto its own row. Under it, the field moves.
-    static let minSharedFieldWidth: CGFloat = 140
     /// Six lines: the least the answer box grows to before it scrolls, and the reply items' cap.
     static let paneMaxLines = 6
 
@@ -146,12 +140,6 @@ enum PromptBarLogic {
         var width: CGFloat
     }
 
-    /// Width the field gets on the row it shares with the controls.
-    /// `leadingWidth` is what sits left of the field: the "+" alone, or "+" and "Ask for…" (C5).
-    static func sharedRowFieldWidth(barWidth: CGFloat, controlsWidth: CGFloat, leadingWidth: CGFloat = controlSize) -> CGFloat {
-        barWidth - barPadding * 2 - leadingWidth - controlGap * 2 - controlsWidth
-    }
-
     /// The left of the send row: the "+" and, where the host offers it, the "Ask for…" button after a gap (C5).
     static func leadingWidth(askForLabelWidth: CGFloat?) -> CGFloat {
         guard let askForLabelWidth else { return attachWidth }
@@ -160,24 +148,6 @@ enum PromptBarLogic {
 
     /// The button at the left of the send row that opens the ask-for-detail panel (C5).
     static let askForLabel = "Ask for…"
-
-    /// The field leaves the controls' row for its own full-width row above them when the text needs more
-    /// width than the shared row gives (it would wrap there), has a line break, or the controls leave it under
-    /// `minSharedFieldWidth` (C6: only when the text needs the width). The rule reads the text's one-line width,
-    /// never the row the field is on now, so it cannot flip back and forth. Before the bar is measured only a line
-    /// break, or controls already on their own row, move the field. An empty field stays on the shared row while it
-    /// keeps `minSharedFieldWidth` (WAG-305); its placeholder wraps there.
-    static func fieldTakesOwnRow(
-        text: String, naturalTextWidth: CGFloat?, barWidth: CGFloat, controlsWidth: CGFloat, controlsOwnRow: Bool = false,
-        leadingWidth: CGFloat = controlSize
-    ) -> Bool {
-        if text.contains(where: \.isNewline) { return true }
-        guard barWidth > 0 else { return controlsOwnRow }
-        let shared = sharedRowFieldWidth(barWidth: barWidth, controlsWidth: controlsWidth, leadingWidth: leadingWidth)
-        if shared < minSharedFieldWidth { return true }
-        guard !text.isEmpty, let naturalTextWidth else { return false }
-        return naturalTextWidth > shared - textInset.width * 2
-    }
 
     // MARK: - Widths of the controls
 
@@ -250,8 +220,6 @@ enum PromptBarLogic {
         var overflowLabels: [String]
         /// The primary button's label; `nil` for the plain 28 pt arrow.
         var sendPillLabel: String?
-        /// The controls leave the field under `minFieldWidth` on the shared row, so they take a second row (WAG-336).
-        var ownRow = false
         /// The tools shown at the left of the row after "+" ("Let's discuss", "Show me more"); the ones that do not
         /// fit are in `overflowLabels`.
         var leadingLabels: [String] = []
@@ -265,74 +233,36 @@ enum PromptBarLogic {
         }
     }
 
-    /// The controls for a row `rowWidth` wide (the bar's width less its padding; `nil` or 0
-    /// before it is measured). `pillLabels` are the primary label's forms, longest first (see
-    /// `sendPillLabels`). For each form, longest first, quiet buttons move into the menu from
-    /// the left ("Ask for more detail" first, a plan round's "Change" last) until the row
-    /// fits. If nothing fits: the shortest form, every quiet button in the menu. A quiet button
-    /// is never cut with "…": it is shown whole or it is in the menu (C7).
-    ///
-    /// `fieldOnOwnRow` (the answer box, 2026-11-10): the field never shares the row, so the whole row is the
-    /// controls'. `leadingLabels` are the tools after "+" ("Let's discuss", "Show me more"): they give way into
-    /// the menu first, the last one first, then the quiet buttons; only then does the Send label get shorter.
+    /// The controls for the row under the field (the field always has its own row above them: decision
+    /// 2026-11-10 "Field on its own row"). `rowWidth` is the bar's width less its padding; `nil` or 0 before it
+    /// is measured. `pillLabels` are the primary label's forms, longest first (see `sendPillLabels`).
+    /// `leadingLabels` are the tools after "+" ("Let's discuss", "Show me more"). For each Send form, longest
+    /// first, the tools give way into the menu first, the last one first, then the quiet buttons from the left
+    /// ("Ask for more detail" first, a plan round's "Change" last), until the row fits; only then does the Send
+    /// label get shorter. If nothing fits: the shortest form, every tool in the menu. A tool is never cut with
+    /// "…": it is shown whole or it is in the menu (C7).
     static func controlsPlan(
         rowWidth: CGFloat?, quietLabels: [String], pillLabels: [String?], widths: ControlWidths = .estimated,
-        leadingWidth: CGFloat = attachWidth, leadingLabels: [String] = [], fieldOnOwnRow: Bool = false
+        leadingWidth: CGFloat = attachWidth, leadingLabels: [String] = []
     ) -> ControlsPlan {
         let forms = pillLabels.isEmpty ? [nil] : pillLabels
         let full = ControlsPlan(quietLabels: quietLabels, overflowLabels: [], sendPillLabel: forms[0], leadingLabels: leadingLabels)
         guard let rowWidth, rowWidth > 0 else { return full }
         // The attach button (and "Ask for…") and its gap sit left of the controls.
         let available = rowWidth - leadingWidth - controlGap
-        if fieldOnOwnRow {
-            return ownRowPlan(available: available, leadingLabels: leadingLabels, quietLabels: quietLabels, forms: forms, widths: widths)
-        }
-        // First, the longest label that leaves the field its width on the shared row, quiet buttons kept (WAG-336).
-        // Then the short forms ("Rule out 3"). Only when none fits do the controls take a second row.
-        let shared = available - minFieldWidth - controlGap
-        for form in forms {
-            let plan = ControlsPlan(quietLabels: quietLabels, overflowLabels: [], sendPillLabel: form)
-            if plan.width(widths) <= shared { return plan }
-        }
-        var onOwnRow = controlsPlanOwnRow(available: available, quietLabels: quietLabels, forms: forms, widths: widths)
-        onOwnRow.ownRow = true
-        return onOwnRow
-    }
-
-    /// The row under a field on its own row: tools give way into the menu (the last tool first, then the quiet
-    /// buttons from the left), for each Send form, longest first.
-    private static func ownRowPlan(
-        available: CGFloat, leadingLabels: [String], quietLabels: [String], forms: [String?], widths: ControlWidths
-    ) -> ControlsPlan {
         let movable = Array(leadingLabels.reversed()) + quietLabels
         func plan(_ moved: Int, _ form: String?) -> ControlsPlan {
             let out = Set(movable.prefix(moved))
             return ControlsPlan(
                 quietLabels: quietLabels.filter { !out.contains($0) },
                 overflowLabels: (leadingLabels + quietLabels).filter { out.contains($0) },
-                sendPillLabel: form, ownRow: true,
+                sendPillLabel: form,
                 leadingLabels: leadingLabels.filter { !out.contains($0) })
         }
         for form in forms {
             for moved in 0...movable.count where plan(moved, form).width(widths) <= available { return plan(moved, form) }
         }
         return plan(movable.count, forms[forms.count - 1])
-    }
-
-    private static func controlsPlanOwnRow(
-        available: CGFloat, quietLabels: [String], forms: [String?], widths: ControlWidths
-    ) -> ControlsPlan {
-        for form in forms {
-            for moved in 0...quietLabels.count {
-                let plan = ControlsPlan(
-                    quietLabels: Array(quietLabels.dropFirst(moved)),
-                    overflowLabels: Array(quietLabels.prefix(moved)),
-                    sendPillLabel: form
-                )
-                if plan.width(widths) <= available { return plan }
-            }
-        }
-        return ControlsPlan(quietLabels: [], overflowLabels: quietLabels, sendPillLabel: forms[forms.count - 1])
     }
 
     // MARK: - Return key

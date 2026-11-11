@@ -92,28 +92,23 @@ struct WAG336Tests {
     private let discuss = PromptBarLogic.discussLabels(leaning: [], ruledOut: [3])!
     private var pills: [String?] { PromptBarLogic.sendPillLabels(commentCount: 0, discuss: discuss) }
 
-    @Test func aWideRowKeepsTheFullLabelAndTheField() {
+    @Test func aWideRowKeepsTheFullLabel() {
         let plan = PromptBarLogic.controlsPlan(rowWidth: 700, quietLabels: [], pillLabels: pills)
-        #expect(plan.sendPillLabel == "Rule out 3, keep talking" && !plan.ownRow)
+        #expect(plan.sendPillLabel == "Rule out 3, keep talking")
     }
 
-    @Test func aTightRowUsesTheShortLabelBeforeTheFieldGetsNarrower() {
+    @Test func aTightRowUsesTheShortLabelBeforeAnythingIsCut() {
         let full = PromptBarLogic.ControlsPlan(quietLabels: [], overflowLabels: [], sendPillLabel: "Rule out 3, keep talking")
         let short = PromptBarLogic.ControlsPlan(quietLabels: [], overflowLabels: [], sendPillLabel: "Rule out 3")
-        let row = short.width + PromptBarLogic.controlSize + PromptBarLogic.controlGap * 2 + PromptBarLogic.minFieldWidth
+        let leading = PromptBarLogic.attachWidth + PromptBarLogic.controlGap
         #expect(full.width > short.width)
-        let plan = PromptBarLogic.controlsPlan(rowWidth: row, quietLabels: [], pillLabels: pills)
-        #expect(plan.sendPillLabel == "Rule out 3" && !plan.ownRow)
-        let shared = PromptBarLogic.sharedRowFieldWidth(barWidth: row + PromptBarLogic.barPadding * 2, controlsWidth: plan.width)
-        #expect(shared >= PromptBarLogic.minFieldWidth - 1)
-    }
-
-    @Test func whenEvenTheShortLabelLeavesTheFieldUnder200TheControlsTakeASecondRow() {
-        let quiet = ["Back"]
-        let plan = PromptBarLogic.controlsPlan(rowWidth: 330, quietLabels: quiet, pillLabels: pills)
-        #expect(plan.ownRow)
-        #expect(PromptBarLogic.fieldTakesOwnRow(
-            text: "", naturalTextWidth: 0, barWidth: 342, controlsWidth: plan.width, controlsOwnRow: plan.ownRow))
+        // Room for the short label, not the full one.
+        let plan = PromptBarLogic.controlsPlan(rowWidth: leading + full.width - 1, quietLabels: [], pillLabels: pills)
+        #expect(plan.sendPillLabel == "Rule out 3")
+        #expect(plan.width + leading <= leading + full.width - 1)
+        // Room for the full label: it keeps it.
+        #expect(PromptBarLogic.controlsPlan(rowWidth: leading + full.width, quietLabels: [], pillLabels: pills).sendPillLabel
+            == "Rule out 3, keep talking")
     }
 
     // MARK: Titles and motion
@@ -146,7 +141,6 @@ struct WAG346BarMetricsTests {
         #expect(PromptBarLogic.barBottomPadding == 12)
         #expect(PromptBarLogic.controlGap == 14)
         #expect(PromptBarLogic.rowGap == 8)
-        #expect(!PromptBarLogic.fieldTakesOwnRow(text: "", naturalTextWidth: 0, barWidth: 600, controlsWidth: 28))
         // `.note`: one line is 18 + 2 × 9 (padding 8 + border 1) = 36 tall; the text view is 28 inside the box.
         #expect(PromptBarLogic.contentHeight(usedTextHeight: PromptBarLogic.lineHeight) == PromptBarLogic.controlSize)
         #expect(PromptBarLogic.controlSize + PromptBarLogic.fieldBoxPadding.height * 2 == 36)
@@ -182,7 +176,7 @@ struct WAG346BarMetricsTests {
         func plan(_ row: CGFloat, quiet: [String] = []) -> PromptBarLogic.ControlsPlan {
             PromptBarLogic.controlsPlan(
                 rowWidth: row, quietLabels: quiet, pillLabels: forms, widths: widths, leadingWidth: 16,
-                leadingLabels: tools, fieldOnOwnRow: true)
+                leadingLabels: tools)
         }
         // Room for everything: 16 + 14 + (80 + 14 + 80 + 14 + 180 + 8).
         let all = plan(16 + 14 + 376)

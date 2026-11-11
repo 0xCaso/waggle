@@ -49,18 +49,18 @@ struct RequestPageOptionsTests {
         #expect(PromptBarLogic.leadingWidth(askForLabelWidth: 50) == CGFloat(16 + 14 + 50))
     }
 
-    @Test func askForTakesWidthFromTheFieldNotFromSend() {
-        let plain = PromptBarLogic.sharedRowFieldWidth(barWidth: 440, controlsWidth: 100)
-        let withAskFor = PromptBarLogic.sharedRowFieldWidth(
-            barWidth: 440, controlsWidth: 100, leadingWidth: PromptBarLogic.leadingWidth(askForLabelWidth: 50))
-        #expect(plain - withAskFor == CGFloat(16 + 14 + 50 - 28))
-        // A row too narrow for the field beside "+", "Ask for…" and Send gives the controls their own row. There Send
-        // takes its short form before anything is cut: "Ask for…" is never dropped, Send never shows "…".
+    @Test func askForKeepsItsPlaceAndSendShortensFirst() {
+        // A row too narrow for "+", "Ask for…" and the full Send label: Send takes its short form before anything is
+        // cut. "Ask for…" is never dropped, Send never shows "…".
         let forms: [String?] = ["Decide: B · Options in place", "Decide"]
-        let plan = PromptBarLogic.controlsPlan(
-            rowWidth: 280, quietLabels: [], pillLabels: forms, leadingWidth: PromptBarLogic.leadingWidth(askForLabelWidth: 50))
-        #expect(plan.ownRow)
+        let leading = PromptBarLogic.leadingWidth(askForLabelWidth: 50)
+        let full = PromptBarLogic.ControlsPlan(quietLabels: [], overflowLabels: [], sendPillLabel: forms[0])
+        #expect(leading + PromptBarLogic.controlGap + full.width > 280)
+        let plan = PromptBarLogic.controlsPlan(rowWidth: 280, quietLabels: [], pillLabels: forms, leadingWidth: leading)
         #expect(plan.sendPillLabel == "Decide")
+        #expect(leading + PromptBarLogic.controlGap + plan.width <= 280)
+        // Without "Ask for…" the same row keeps the full label.
+        #expect(PromptBarLogic.controlsPlan(rowWidth: 280, quietLabels: [], pillLabels: forms).sendPillLabel == forms[0])
     }
 
     @Test func theOldQuietDetailButtonIsGone() {

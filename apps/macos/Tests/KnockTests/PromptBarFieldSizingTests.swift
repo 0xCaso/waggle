@@ -91,81 +91,13 @@ struct PromptBarFieldSizingTests {
         #expect(wide.naturalWidth == narrow.naturalWidth)
     }
 
-    // MARK: The field's own row
-
-    @Test func theFieldMovesToItsOwnRowOnlyWhenTheTextNeedsTheWidth() {
-        let controls = PromptBarLogic.controlsWidth(quietLabels: ["Ask for more detail"], sendPillLabel: nil)
-        let bar: CGFloat = 520
-        let shared = PromptBarLogic.sharedRowFieldWidth(barWidth: bar, controlsWidth: controls) - PromptBarLogic.textInset.width * 2
-        func ownRow(_ natural: CGFloat, _ text: String = "text") -> Bool {
-            PromptBarLogic.fieldTakesOwnRow(text: text, naturalTextWidth: natural, barWidth: bar, controlsWidth: controls)
-        }
-        #expect(!ownRow(shared))
-        #expect(ownRow(shared + 1))
-        #expect(ownRow(10, "two\nlines"))
-        // Unmeasured bar: only a line break moves the field.
-        #expect(!PromptBarLogic.fieldTakesOwnRow(text: longParagraph, naturalTextWidth: nil, barWidth: 0, controlsWidth: controls))
-        #expect(PromptBarLogic.fieldTakesOwnRow(text: "a\nb", naturalTextWidth: nil, barWidth: 0, controlsWidth: controls))
-        // Controls on their own row take the field with them only when they leave it under 140 pt (C6).
-        #expect(!PromptBarLogic.fieldTakesOwnRow(
-            text: "", naturalTextWidth: 0, barWidth: bar, controlsWidth: controls, controlsOwnRow: true))
-        let wide = bar - PromptBarLogic.barPadding * 2 - PromptBarLogic.controlSize - PromptBarLogic.controlGap * 2 - 139
-        #expect(PromptBarLogic.fieldTakesOwnRow(
-            text: "", naturalTextWidth: 0, barWidth: bar, controlsWidth: wide, controlsOwnRow: true))
-        // Unmeasured bar with the controls already on their own row: the field goes with them.
-        #expect(PromptBarLogic.fieldTakesOwnRow(
-            text: "", naturalTextWidth: nil, barWidth: 0, controlsWidth: controls, controlsOwnRow: true))
-    }
-
-    /// C6, app check 2026-11-09: "Send comments" pushed the empty field onto its own row in a 440 pt column. An empty
-    /// field (placeholder only, which wraps) stays on the button row while at least 140 pt is left for it; only under
-    /// that does it move. Typed text moves it only when the text needs the width.
-    @Test func anEmptyFieldStaysOnTheButtonRowWhileItKeeps140Points() {
-        // The labels' real widths in the bar's text styles (Inter Tight 12, measured in the app).
-        let widths = PromptBarLogic.ControlWidths.measured(
-            quiet: [PromptBarLogic.askForLabel: 46],
-            pill: ["Send comments": 89, "Rule out 2, keep talking": 125, "Rule out 2": 54])
-        let leading = PromptBarLogic.leadingWidth(askForLabelWidth: 46)
-        func plan(_ pills: [String?], bar: CGFloat) -> PromptBarLogic.ControlsPlan {
-            PromptBarLogic.controlsPlan(
-                rowWidth: bar - PromptBarLogic.barPadding * 2, quietLabels: [], pillLabels: pills, widths: widths,
-                leadingWidth: leading)
-        }
-        func ownRow(_ text: String, natural: CGFloat, _ plan: PromptBarLogic.ControlsPlan, bar: CGFloat) -> Bool {
-            PromptBarLogic.fieldTakesOwnRow(
-                text: text, naturalTextWidth: natural, barWidth: bar, controlsWidth: plan.width(widths),
-                controlsOwnRow: plan.ownRow, leadingWidth: leading)
-        }
-        func field(_ plan: PromptBarLogic.ControlsPlan, bar: CGFloat) -> CGFloat {
-            PromptBarLogic.sharedRowFieldWidth(barWidth: bar, controlsWidth: plan.width(widths), leadingWidth: leading)
-        }
-        // The shared-row rule at the column's 440 pt (the answer box keeps its own row since 2026-11-10; the rule stays).
-        let bar: CGFloat = 440
-        let sendComments = plan(["Send comments"], bar: bar)
-        #expect(sendComments.sendPillLabel == "Send comments")
-        #expect(field(sendComments, bar: bar) >= PromptBarLogic.minSharedFieldWidth)
-        #expect(!ownRow("", natural: 0, sendComments, bar: bar), "the empty field keeps the row")
-        // A short typed answer stays too; a line longer than the field moves it.
-        #expect(!ownRow("ok", natural: 14, sendComments, bar: bar))
-        #expect(ownRow("a long answer", natural: field(sendComments, bar: bar), sendComments, bar: bar))
-        // A bar 2 pt narrower leaves the field 1 pt under 140: now it moves.
-        let tight = bar - (field(sendComments, bar: bar) - PromptBarLogic.minSharedFieldWidth) - 1
-        let under = plan(["Send comments"], bar: tight)
-        #expect(field(under, bar: tight) < PromptBarLogic.minSharedFieldWidth)
-        #expect(ownRow("", natural: 0, under, bar: tight))
-        // The full-size column at its narrowest (340 pt, 16 pt insets): "Rule out 2, keep talking" leaves too little.
-        let narrow = plan(["Rule out 2, keep talking", "Rule out 2"], bar: 308)
-        #expect(ownRow("", natural: 0, narrow, bar: 308))
-        #expect(PromptBarLogic.minSharedFieldWidth == 140)
-    }
-
     // MARK: Quiet buttons by their real widths (C7)
 
     @Test func measuredLabelsWiderThanTheEstimateMoveQuietButtonsIntoMore() {
         let quiet = ["Ask for more detail", "Change"]
         let pills: [String?] = ["Approve section"]
         let estimated = PromptBarLogic.ControlsPlan(quietLabels: quiet, overflowLabels: [], sendPillLabel: "Approve section")
-        // A row that fits every button by the estimate, on the controls' own row.
+        // A row that fits every button by the estimate.
         let row = estimated.width + PromptBarLogic.controlSize + PromptBarLogic.controlGap
         #expect(PromptBarLogic.controlsPlan(rowWidth: row, quietLabels: quiet, pillLabels: pills).overflowLabels.isEmpty)
         // The real labels are 30 pt wider each: the leftmost quiet button goes into "More", none is cut.
