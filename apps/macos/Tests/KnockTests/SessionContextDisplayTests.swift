@@ -76,9 +76,9 @@ struct SessionContextDisplayTests {
     @Test func titleReplacesProjectInTheHeader() {
         let s = session(SessionContext(title: "Session context in the popover"))
         #expect(SessionContextDisplay.headerTitle(session: s) == "Session context in the popover")
-        #expect(SessionContextDisplay.headerSubtitle(session: s, now: now) == "knock · main · Claude Code · seen 20s ago")
+        #expect(SessionContextDisplay.headerSubtitle(session: s, now: now) == "Knock · Claude Code · seen 20s ago")
         let plain = session(nil)
-        #expect(SessionContextDisplay.headerTitle(session: plain) == "knock · main")
+        #expect(SessionContextDisplay.headerTitle(session: plain) == "Knock")
         #expect(SessionContextDisplay.headerSubtitle(session: plain, now: now).hasPrefix("Claude Code · up "))
     }
 

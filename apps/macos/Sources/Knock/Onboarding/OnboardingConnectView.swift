@@ -9,19 +9,21 @@ struct OnboardingConnectView: View {
         VStack(alignment: .leading, spacing: 18) {
             OnboardingHeaderView(
                 title: "Connect your agent",
-                subtitle: "Waggle is where your agents bring you decisions. Connect the one you use. One is enough.",
-                stepLabel: OnboardingStep.connect.label
+                subtitle: "Waggle is where your agents bring you decisions. Connect the one you use. One is enough."
             )
             VStack(alignment: .leading, spacing: 14) {
                 rows
             }
             if model.claudeApp.justAdded && model.claudeApp.isConnected { ClaudeAppOnboardingNote() }
-            Text("Only this step is needed. Everything else can wait, and lives in Settings.")
+            Text("No step is required. Everything else can wait, and lives in Settings.")
                 .knockTextStyle(Theme.Typography.body12_5w400)
                 .foregroundColor(Theme.Colors.ink3)
             Spacer(minLength: 0)
-            HStack {
+            HStack(spacing: 10) {
+                SettingsSecondaryButton(title: "Check again", action: model.recheck)
+                    .disabled(!ConnectStepRules.checkAgainIsAvailable(phase: model.connectPhase))
                 Spacer()
+                OnboardingGhostButton(title: "Skip for now", action: model.skipSetup)
                 OnboardingPrimaryButton(title: "Next: your first job", systemImage: "arrow.right", trailing: true, action: model.continueFromConnect)
                     .disabled(!model.connectSucceeded)
             }
@@ -43,7 +45,7 @@ struct OnboardingConnectView: View {
         } else {
             OnboardingRuntimeRowView(
                 row: row, onConnect: { model.connect(row.runtime) }, showsDivider: !isLast,
-                onRetry: { model.recheck() })
+                onRetry: { model.recheck() }, oneAction: true)
         }
     }
 

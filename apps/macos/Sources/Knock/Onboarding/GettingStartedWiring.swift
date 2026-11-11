@@ -45,6 +45,6 @@ struct GettingStartedMenuCommand: View {
             gettingStarted.show()
             AppActivation.showMainWindow()
         }
-        .disabled(gettingStarted.isListVisible)
+        .disabled(gettingStarted.isCardVisible)
     }
 }

@@ -31,35 +31,37 @@ final class PreviewsSettingsModel: ObservableObject {
     }
 }
 
-/// The Previews page (HAIL-50 contract): "the existing HTML preview toggle,
-/// plus the isolation self-check result as a chip ('Check passed' / 'Check
-/// failed, previews off') from `IsolationGate`." Plus "Ask before opening
-/// links" (HAIL-52 contract), gating `MarkdownView`'s existing HAIL-33
-/// confirm step.
-struct PreviewsSettingsView: View {
+/// The "Previews" section of the Artifacts page (it was its own page, HAIL-50): "the existing HTML preview
+/// toggle, plus the isolation self-check result", and "Ask before opening links" (HAIL-52). The sandbox
+/// sentence is the first switch's subtitle, and the check chip shows only when the check failed.
+struct PreviewsSection: View {
     @StateObject private var model = PreviewsSettingsModel()
 
     var body: some View {
-        SettingsPageChrome(title: SettingsPage.previews.title, subtitle: SettingsPage.previews.subtitle) {
+        VStack(alignment: .leading, spacing: 10) {
+            SettingsSectionLabel("PREVIEWS")
             SettingsCard {
                 SettingsCardRow(
                     title: "Show HTML previews",
-                    subtitle: "Off shows the file name only; you can still open it full size.",
-                    showsDivider: false
+                    subtitle: "Off shows the file name only; you can still open it full size. Pages run in a locked sandbox with no network and no access to your files."
                 ) {
-                    Toggle(
-                        "",
-                        isOn: Binding(
-                            get: { model.htmlPreviewEnabled },
-                            set: { model.setHTMLPreviewEnabled($0) }
+                    HStack(spacing: 10) {
+                        if !model.isolationPassed {
+                            SettingsStatusChip(text: "Check failed, previews off", ok: false)
+                        }
+                        Toggle(
+                            "",
+                            isOn: Binding(
+                                get: { model.htmlPreviewEnabled },
+                                set: { model.setHTMLPreviewEnabled($0) }
+                            )
                         )
-                    )
-                    .labelsHidden()
-                    .toggleStyle(.switch).pointerCursor()
-                    .disabled(!model.isolationPassed)
+                        .labelsHidden()
+                        .toggleStyle(.switch).pointerCursor()
+                        .disabled(!model.isolationPassed)
+                        .accessibilityLabel("Show HTML previews")
+                    }
                 }
-            }
-            SettingsCard {
                 SettingsCardRow(
                     title: "Ask before opening links",
                     subtitle: "Off opens a link from a write-up or prototype straight in your browser.",
@@ -74,33 +76,7 @@ struct PreviewsSettingsView: View {
                     )
                     .labelsHidden()
                     .toggleStyle(.switch).pointerCursor()
-                }
-            }
-            VStack(alignment: .leading, spacing: 10) {
-                SettingsSectionLabel("SAFETY")
-                SettingsCard {
-                    HStack(alignment: .top, spacing: 12) {
-                        Image(systemName: "checkmark.shield")
-                            .font(.system(size: 14))
-                            .foregroundColor(model.isolationPassed ? Theme.Colors.ok : Theme.Colors.ink3)
-                            .padding(.top, 2)
-                        VStack(alignment: .leading, spacing: 3) {
-                            Text("Pages run in a locked sandbox")
-                                .knockTextStyle(Theme.Typography.rowTitle13_5w600)
-                                .foregroundColor(Theme.Colors.ink)
-                            Text("No network, no access to your files or other apps. Checked every launch.")
-                                .knockTextStyle(Theme.Typography.body12_5w400)
-                                .foregroundColor(Theme.Colors.ink3)
-                                .fixedSize(horizontal: false, vertical: true)
-                        }
-                        Spacer(minLength: 12)
-                        SettingsStatusChip(
-                            text: model.isolationPassed ? "Check passed" : "Check failed, previews off",
-                            ok: model.isolationPassed
-                        )
-                    }
-                    .padding(.vertical, 12)
-                    .padding(.horizontal, 14)
+                    .accessibilityLabel("Ask before opening links")
                 }
             }
         }

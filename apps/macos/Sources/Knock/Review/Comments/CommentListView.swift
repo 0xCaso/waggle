@@ -88,7 +88,7 @@ struct CommentListView: View {
             },
             onEditingChanged: { store.editingCommentId = $0 ? comment.id : nil },
             onEditText: { store.updateComment(id: comment.id, text: $0) },
-            onDelete: { store.deleteComment(id: comment.id) }
+            onDelete: { store.deleteCommentWithUndo(id: comment.id) }
         )
         .id(comment.id)
     }

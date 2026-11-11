@@ -49,6 +49,7 @@ struct HelpSettingsView: View {
     @StateObject private var model = HelpSettingsModel()
     @Environment(\.openWindow) private var openWindow
     @State private var diagnosticsCopied = false
+    @State private var showsFullInstructions = false
 
     var body: some View {
         SettingsPageChrome(title: SettingsPage.help.title, subtitle: SettingsPage.help.subtitle) {
@@ -70,6 +71,39 @@ struct HelpSettingsView: View {
                 }
             }
             VStack(alignment: .leading, spacing: 10) {
+                SettingsSectionLabel("USE IT ON YOUR REAL WORK")
+                SettingsCard {
+                    SettingsCardRow(
+                        title: "Prompt for a running session",
+                        subtitle: OnboardingCopy.sessionPrompt,
+                        subtitleLineLimit: 1
+                    ) {
+                        SettingsCopyButton(text: OnboardingCopy.sessionPrompt)
+                    }
+                    SettingsCardRow(
+                        title: "Line for CLAUDE.md or AGENTS.md",
+                        subtitle: OnboardingCopy.projectLine,
+                        subtitleLineLimit: 1,
+                        showsDivider: false
+                    ) {
+                        SettingsCopyButton(text: OnboardingCopy.projectLine)
+                    }
+                }
+            }
+            StarterPromptsSection()
+            VStack(alignment: .leading, spacing: 10) {
+                SettingsSectionLabel(AgentsSharingNote.label)
+                SettingsCard {
+                    SettingsCardRow(
+                        title: AgentsSharingNote.title,
+                        subtitle: AgentsSharingNote.subtitle,
+                        showsDivider: false
+                    ) {
+                        SettingsCopyButton(text: AgentsSharingNote.installLink, label: AgentsSharingNote.buttonTitle)
+                    }
+                }
+            }
+            VStack(alignment: .leading, spacing: 10) {
                 SettingsSectionLabel("DIAGNOSTICS")
                 SettingsCard {
                     SettingsCardRow(
@@ -85,6 +119,12 @@ struct HelpSettingsView: View {
                     }
                 }
             }
+            Button(action: { showsFullInstructions = true }) {
+                Text("See the exact instructions")
+                    .knockTextStyle(Theme.Typography.buttonSm12_5w600)
+                    .foregroundColor(Theme.Colors.accent)
+            }
+            .buttonStyle(.plain).pointerCursor()
             Button(action: openInstallGuide) {
                 HStack(spacing: 5) {
                     Text("Install guide")
@@ -97,6 +137,9 @@ struct HelpSettingsView: View {
             .buttonStyle(.plain).pointerCursor()
         }
         .task { await model.runCheck() }
+        .sheet(isPresented: $showsFullInstructions) {
+            AgentInstructionsFullTextSheet(onClose: { showsFullInstructions = false })
+        }
     }
 
     private var checkCard: some View {

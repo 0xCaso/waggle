@@ -42,6 +42,11 @@ struct QueueListView: View {
     }
 
     private var isOffline: Bool { model.connectionState != .connected }
+    @StateObject private var starter = ServiceStarter()
+
+    private func startService() {
+        Task { await starter.start(isReachable: { model.connectionState == .connected }) }
+    }
 
     /// `KNOCK_EVIDENCE_GOT_IT=<seconds>` (evidence-only, HAIL-152): taps Got it on the first done
     /// row after that delay, through the same `model.dismiss` the button calls.
@@ -60,17 +65,19 @@ struct QueueListView: View {
                 SessionFilterChip(filter: filter, onClear: { model.sessionFilter = nil })
             }
             if isOffline {
-                OfflineBannerView(
-                    onStartService: { ServiceControl.startDaemon() },
-                    onViewLog: {}
-                )
-                cachedLabel
+                PausedCardView(phase: starter.phase, onStart: startService)
             }
             let isQueueEmpty = model.visibleNeedsYouCases.isEmpty && model.visibleWaitingCases.isEmpty
                 && model.visibleAnsweredCases.isEmpty && model.homeOverview.cards.isEmpty && model.autoDecidedToday.isEmpty
             let working = isOffline ? nil : firstRun.sidebarAgentOnIt
-            let showsList = !isOffline && firstRun.isListVisible
-            if isQueueEmpty && working == nil && !showsList {
+            let showsList = !isOffline && firstRun.isCardVisible
+            let hasAnswered = FirstRunRules.hasAnswered(
+                decided: firstRun.state.decided, sampleAnswered: firstRun.sampleAnswered,
+                waitingCount: model.visibleWaitingCases.count, answeredCount: model.visibleAnsweredCases.count)
+            let showsSample = !isOffline && model.sessionFilter == nil && FirstRunRules.showsSampleRow(
+                inboxEmpty: model.visibleNeedsYouCases.isEmpty && model.visibleWaitingCases.isEmpty,
+                hasAnswered: hasAnswered, sampleAnswered: firstRun.sampleAnswered, sampleDismissed: firstRun.sampleDismissed)
+            if isQueueEmpty && working == nil && !showsList && !showsSample {
                 emptyState
             } else {
                 let groupedNeedsYou = Self.grouped(model.visibleNeedsYouCases)
@@ -82,7 +89,10 @@ struct QueueListView: View {
                 let doneCases = held.filter(\.isDone)
                 ScrollView {
                     LazyVStack(spacing: 0) {
-                        if isQueueEmpty && working == nil { QueueEmptyStateView(embedded: true) }
+                        if showsSample {
+                            SampleRequestRow(
+                                isOpen: firstRun.sampleOpen && model.selectedCaseDetail == nil, onOpen: openSample, onDismiss: firstRun.dismissSample)
+                        }
                         if !groupedNeedsYou.isEmpty {
                             SidebarSectionTitle(text: SidebarSections.sectionTitle("Needs you", count: groupedNeedsYou.count))
                         }
@@ -136,6 +146,8 @@ struct QueueListView: View {
             if let undo = model.dismissUndo {
                 DismissUndoToastView(undo: undo, onUndo: { Task { await model.undoDismiss() } })
             }
+            // The "Sent" toast sits here, above the footer: it takes its own room and covers no row.
+            SentToastView(model: model)
             footer
         }
         .frame(width: width)
@@ -154,6 +166,12 @@ struct QueueListView: View {
         .onAppear {
             isFocused = true
             scheduleEvidenceGotIt()
+        }
+        // The list takes focus only when it appears. An answer sent from the note field or a focused option
+        // card leaves focus in the pane, and the next request's pane does not give it back, so j, k and
+        // Return stopped until a click. A new answer returns focus here.
+        .onChange(of: model.sentToast?.id) { _, id in
+            if id != nil { isFocused = true }
         }
         .onKeyPress { press in
             switch press.key {
@@ -298,7 +316,6 @@ struct QueueListView: View {
             timeTooltip: time.tooltip,
             isSelected: item.id == model.selectedCaseId,
             isUrgent: isUrgent,
-            isOfflineCached: isOffline,
             isDimmed: isDimmed,
             artifactKind: model.artifactKindByCaseId[item.id],
             deliveryStatus: deliveryStatus,
@@ -306,7 +323,8 @@ struct QueueListView: View {
             unreadComments: model.unreadByCaseId[item.id] ?? 0,
             onRetryDelivery: { Task { await model.retryDelivery(caseId: item.id) } },
             onDismiss: { requestDismiss(item) },
-            onGotIt: { Task { await model.dismiss(caseId: item.id) } }
+            onGotIt: { Task { await model.dismiss(caseId: item.id) } },
+            onOpen: { Task { await model.open(caseId: item.id, source: .queue) } }
         )
         // `LazyVStack` keeps this row's identity as it moves from
         // `needsYouCases` into this `waitingOnAgentCases` `ForEach` (same
@@ -317,10 +335,6 @@ struct QueueListView: View {
         // Amendment 2 evidence run). Folding the badge kind into `.id` forces
         // a fresh row the instant that status appears or changes.
         .id(Self.rowIdentity(caseId: item.id, status: item.status, deliveryStatus: deliveryStatus))
-        .contentShape(Rectangle())
-        .onTapGesture {
-            Task { await model.open(caseId: item.id, source: .queue) }
-        }
     }
 
     /// The row's own `.id()` (see `row(for:)`): `status` folded in alongside
@@ -355,52 +369,35 @@ struct QueueListView: View {
     }
 
     private var header: some View {
-        Group {
-            if isOffline {
-                HStack(spacing: 10) {
-                    Circle()
-                        .fill(Theme.Colors.daemonOfflineDot)
-                        .frame(width: 6, height: 6)
-                    Text("daemon offline")
-                        .knockTextStyle(Theme.Typography.daemonStatus11_5w500)
-                        .foregroundColor(Theme.Colors.ink2)
-                    Spacer(minLength: 0)
-                }
-            } else {
-                HStack(spacing: 8) {
-                    // `.brand`: the mark 16, 7 to the wordmark (500 15, −0.03 em).
-                    HStack(spacing: Theme.AskDoc.Chrome.brandGap) {
-                        KnockMarkView().frame(width: Theme.AskDoc.Chrome.markSize, height: Theme.AskDoc.Chrome.markSize)
-                        Text("waggle")
-                            .knockTextStyle(Theme.AskDoc.Chrome.brand)
-                            .foregroundColor(Theme.Colors.ink)
-                    }
-                    .accessibilityElement(children: .ignore)
-                    .accessibilityLabel("waggle")
-                    Spacer(minLength: 0)
-                    // Case map `.needs` and `.count`.
-                    Text("Needs you")
-                        .knockTextStyle(Theme.AskDoc.Chrome.needsLabel)
-                        .foregroundColor(Theme.Colors.ink)
-                    // The red count pill (WAG-257).
-                    Text("\(model.visibleNeedsYouCases.count)")
-                        .knockTextStyle(Theme.AskDoc.Chrome.countPill)
-                        .foregroundColor(model.visibleNeedsYouCases.isEmpty ? Theme.Colors.ink3 : Theme.Colors.onFill)
-                        .padding(Theme.AskDoc.Chrome.countPillInset)
-                        // Nothing needs you: the pill goes grey, not red.
-                        .background(Capsule().fill(model.visibleNeedsYouCases.isEmpty ? Theme.Colors.side : Theme.Colors.accent))
-                        .accessibilityLabel(model.visibleNeedsYouCases.count == 1 ? "1 request needs you" : "\(model.visibleNeedsYouCases.count) requests need you")
-                    foldButton
-                }
+        HStack(spacing: 8) {
+            // `.brand`: the mark 16, 7 to the wordmark (500 15, −0.03 em).
+            HStack(spacing: Theme.AskDoc.Chrome.brandGap) {
+                KnockMarkView().frame(width: Theme.AskDoc.Chrome.markSize, height: Theme.AskDoc.Chrome.markSize)
+                Text("waggle")
+                    .knockTextStyle(Theme.AskDoc.Chrome.brand)
+                    .foregroundColor(Theme.Colors.ink)
             }
+            .accessibilityElement(children: .ignore)
+            .accessibilityLabel("waggle")
+            Spacer(minLength: 0)
+            // Case map `.needs` and `.count`.
+            Text("Needs you")
+                .knockTextStyle(Theme.AskDoc.Chrome.needsLabel)
+                .foregroundColor(Theme.Colors.ink)
+            // The red count pill (WAG-257).
+            Text("\(model.visibleNeedsYouCases.count)")
+                .knockTextStyle(Theme.AskDoc.Chrome.countPill)
+                .foregroundColor(model.visibleNeedsYouCases.isEmpty ? Theme.Colors.ink3 : Theme.Colors.onFill)
+                .padding(Theme.AskDoc.Chrome.countPillInset)
+                // Nothing needs you: the pill goes grey, not red.
+                .background(Capsule().fill(model.visibleNeedsYouCases.isEmpty ? Theme.Colors.side : Theme.Colors.accent))
+                .accessibilityLabel(model.visibleNeedsYouCases.count == 1 ? "1 request needs you" : "\(model.visibleNeedsYouCases.count) requests need you")
+            foldButton
         }
         .padding(EdgeInsets(
             // HAIL-180: the lockup starts at the left edge, on a row under the traffic lights.
-            // The offline row keeps its old place.
-            top: isOffline ? 16 : QueueHeaderLayout.topInset(trafficLightsMaxX: trafficLightsMaxX),
-            leading: isOffline
-                ? Theme.Spacing.listHeaderLeadingReserve
-                : QueueHeaderLayout.leadingInset(trafficLightsMaxX: trafficLightsMaxX),
+            top: QueueHeaderLayout.topInset(trafficLightsMaxX: trafficLightsMaxX),
+            leading: QueueHeaderLayout.leadingInset(trafficLightsMaxX: trafficLightsMaxX),
             bottom: Theme.AskDoc.Chrome.headBottom, trailing: Theme.AskDoc.Chrome.sideInset))
         .background(TrafficLightsEdgeReader { trafficLightsMaxX = $0 })
     }
@@ -430,40 +427,36 @@ struct QueueListView: View {
 
     private func answeredRow(for item: Case) -> some View {
         let answeredAt = AnswerGrouping.answeredAt(item)
-        return AnsweredRowView(
+        return Button { Task { await model.open(caseId: item.id, source: .queue) } } label: { AnsweredRowView(
             item: item,
             ageLabel: answeredAt.map { CaseTimes.agoLabel(since: $0, now: model.now) } ?? "",
             ageTooltip: answeredAt.map { "Answered \(CaseTimes.arrivalTooltip(for: $0))" },
             isSelected: item.id == model.selectedCaseId,
             onDismiss: { requestDismiss(item) }
-        )
-        .contentShape(Rectangle())
-        .onTapGesture {
-            Task { await model.open(caseId: item.id, source: .queue) }
-        }
+        ) }
+        .buttonStyle(.hoverRow)
+        .accessibilityLabel(item.title)
+        .accessibilityAddTraits(item.id == model.selectedCaseId ? .isSelected : [])
     }
 
-    private var cachedLabel: some View {
-        HStack(spacing: 6) {
-            Image(systemName: "cloud.slash")
-                .font(.system(size: 10))
-                .foregroundColor(Theme.Colors.ink3)
-            Text("CACHED · READ-ONLY")
-                .knockTextStyle(Theme.Typography.cachedLabel11w600)
-                .foregroundColor(Theme.Colors.ink3)
-        }
-        .padding(Theme.AskDoc.Chrome.sectionInset)
-    }
-
-    /// The eight examples while there is nothing yet (WAG-338). A filtered or offline queue keeps its one line.
+    /// A filtered queue keeps its one line. Otherwise the list column is bare: the sample row and the card
+    /// carry the first run, and the pane beside it says the rest.
     @ViewBuilder private var emptyState: some View {
-        if model.sessionFilter == nil && !isOffline {
-            QueueEmptyStateView()
-        } else {
-            Text(model.sessionFilter != nil ? "No decisions from this session." : "No cached cases.")
+        if model.sessionFilter != nil {
+            Text("No decisions from this session.")
                 .knockTextStyle(Theme.Typography.body13w400)
                 .foregroundColor(Theme.Colors.ink2)
                 .padding(EdgeInsets(top: 18, leading: 18, bottom: 18, trailing: 18))
+        }
+    }
+
+    /// A tap on the sample row: the pane leaves any real request, then shows the sample.
+    private func openSample() {
+        model.goHome()
+        Task {
+            // The artifact is registered before the page opens, so it never asks the daemon for it.
+            await SampleRequest.prepare(client: model.client)
+            firstRun.openSample()
         }
     }
 
@@ -476,7 +469,7 @@ struct QueueListView: View {
     private var footer: some View {
         HStack(spacing: Theme.AskDoc.Chrome.footerGap) {
             QueueFooterSessionStatus(
-                connection: connection, activeCases: model.activeCases, isOffline: isOffline,
+                connection: connection, activeCases: model.activeCases, isOffline: isOffline, phase: starter.phase,
                 onToggle: { toggleSessions() },
                 buttonBackground: frameReader { sessionsButtonFrame = $0 })
             Spacer(minLength: 8)
@@ -573,6 +566,7 @@ private struct QueueFooterSessionStatus<ButtonBackground: View>: View {
     @ObservedObject var connection: ConnectionModel
     let activeCases: [Case]
     let isOffline: Bool
+    let phase: PausedCopy.Phase
     let onToggle: () -> Void
     let buttonBackground: ButtonBackground
 
@@ -584,7 +578,7 @@ private struct QueueFooterSessionStatus<ButtonBackground: View>: View {
         let workingCount = AgentStatus.workingCount(statuses)
         if isOffline || connection.liveSessions.isEmpty {
             Circle()
-                .fill(isOffline ? Theme.Colors.daemonOfflineDot : Theme.Colors.ok)
+                .fill(isOffline ? Theme.AskDoc.Colors.quiet : Theme.Colors.ok)
                 .frame(width: Theme.AskDoc.Chrome.dotSize, height: Theme.AskDoc.Chrome.dotSize)
         } else {
             // One grid for the busiest live session (HAIL-66).
@@ -593,7 +587,7 @@ private struct QueueFooterSessionStatus<ButtonBackground: View>: View {
                 .help(busiest.label)
         }
         Button(action: onToggle) {
-            Text(QueueFooterStatus.label(isOffline: isOffline, sessionCount: QueueFooterStatus.liveCount(connection.sessions)))
+            Text(QueueFooterStatus.label(isOffline: isOffline, phase: phase, sessionCount: QueueFooterStatus.liveCount(connection.sessions)))
                 .knockTextStyle(Theme.AskDoc.Chrome.footer)
                 .foregroundColor(Theme.Colors.ink3)
                 .lineLimit(1)

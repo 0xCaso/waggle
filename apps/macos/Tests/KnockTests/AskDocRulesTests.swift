@@ -205,20 +205,6 @@ struct AskDocRulesTests {
         #expect(controller.open == nil && controller.lastTarget(fullSize: true) == .fullSize)
     }
 
-    @Test @MainActor func theVersionChipStaysOnOneLine() {
-        func height(width: CGFloat?) -> CGFloat {
-            let host = NSHostingView(rootView: VersionChipView(revision: 12))
-            if let width {
-                host.setFrameSize(NSSize(width: width, height: 1000))
-                return host.fittingSize.height
-            }
-            return host.fittingSize.height
-        }
-        let natural = height(width: nil)
-        #expect(natural > 0 && natural < 30)
-        for width in [60, 90, 120] as [CGFloat] { #expect(height(width: width) == natural) }
-    }
-
     @Test @MainActor func aVariantChoiceSetsThePagesHash() {
         let item = ask(
             questions: [Question(

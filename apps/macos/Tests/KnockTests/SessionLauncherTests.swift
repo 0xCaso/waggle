@@ -3,18 +3,13 @@ import Foundation
 import Testing
 @testable import Knock
 
-// WAG-271: launch and send tests, driven through the New idea model. No test opens Terminal or starts claude: a fake launcher stands in.
+// WAG-271: launch and send tests, driven through a harness over the shared launcher. No test opens Terminal or starts claude: a fake launcher stands in.
 
 private final class FakeLauncher: TerminalLaunching, @unchecked Sendable {
     private let lock = NSLock()
     private var scripts: [String] = []
     var launched: [String] { lock.lock(); defer { lock.unlock() }; return scripts }
     func launch(script: String) throws { lock.lock(); scripts.append(script); lock.unlock() }
-}
-
-private actor SendLog {
-    var calls: [(String, String)] = []
-    func add(_ id: String, _ text: String) { calls.append((id, text)) }
 }
 
 // WAG-254: fakes for the app opener and the saved-default store. No test opens a real app, a
@@ -60,46 +55,20 @@ private final class FakeLaunchTargetStore: LaunchTargetStoring, @unchecked Senda
 
 @MainActor
 struct SessionLauncherTests {
-    private func session(
-        _ id: String, runtime: Runtime = .claude, state: SessionState = .live, canNudge: Bool = true,
-        cwd: String = "/Users/me/proj", growing: Bool? = nil
-    ) -> SessionInfo {
-        let context = growing.map {
-            SessionContext(
-                title: nil, goal: nil, said: nil, lastAction: nil, lastActionAt: nil, recent: [],
-                plan: nil, changes: nil, growing: $0, live: nil)
-        }
-        return SessionInfo(
-            id: id, runtime: runtime, taskName: "Task \(id)", project: "knock", branch: nil, cwd: cwd,
-            canNudge: canNudge, state: state, connectedAt: "2026-10-05T09:00:00.000Z",
-            lastSeenAt: "2026-10-05T09:55:00.000Z", context: context)
-    }
-
-    private func sessionNamed(_ id: String, project: String) -> SessionInfo {
-        SessionInfo(
-            id: id, runtime: .claude, taskName: "Task \(id)", project: project, branch: nil, cwd: "/Users/me/\(project)",
-            canNudge: true, state: .live, connectedAt: "2026-10-05T09:00:00.000Z",
-            lastSeenAt: "2026-10-05T09:55:00.000Z", context: nil)
-    }
-
-    private let now = KnockDateFormat.date(from: "2026-10-05T10:00:00.000Z")!
     private let file = URL(fileURLWithPath: "/tmp/docs/My PRD.md")
 
     private func model(
-        sessions: [SessionInfo] = [],
         launcher: TerminalLaunching = FakeLauncher(),
         path: String = "/bin",
         pasteboard: NSPasteboard = NSPasteboard(name: NSPasteboard.Name("knock-test-\(UUID().uuidString)")),
-        send: @escaping @Sendable (String, String) async throws -> SendPromptResult = { _, _ in SendPromptResult(sent: true) },
-        folderPicker: @escaping @MainActor (URL) -> URL? = { _ in nil },
         opener: ExternalAppOpening = FakeAppOpener(),
         store: LaunchTargetStoring = FakeLaunchTargetStore(),
         sleep: @escaping @Sendable (TimeInterval) async -> Void = { _ in }
-    ) -> IdeaLaunchHarness {
-        IdeaLaunchHarness(
-            fileURL: file, sessions: sessions, now: now, sendPrompt: send, launcher: launcher,
+    ) -> LaunchHarness {
+        LaunchHarness(
+            fileURL: file, launcher: launcher,
             resolvePath: { LoginShellPathResolution(path: path, shellSucceeded: true) }, pasteboard: pasteboard,
-            opener: opener, launchTargetStore: store, sleep: sleep, folderPicker: folderPicker)
+            opener: opener, launchTargetStore: store, sleep: sleep)
     }
 
     @Test func templatesPerGoal() {
@@ -117,177 +86,6 @@ struct SessionLauncherTests {
         #expect(DocumentPrompt.build(idea: "t", paths: ["/a b/it's \"x\".md"], goal: .review).contains("- \"/a b/it's \"x\".md\""))
     }
 
-    @Test func topicDefaultsToFileNameWithoutExtension() {
-        #expect(model().model.topic == "My PRD")
-        let m = model()
-        m.model.removeAttachment(file)
-        m.model.receive(files: [URL(fileURLWithPath: "/x/plan.v2.docx")])
-        m.model.removeAttachment(file)
-        #expect(m.model.topic == "plan.v2")
-    }
-
-    @Test func onlyLiveClaudeSessionsThatCanNudgeAreListed() {
-        let m = model(sessions: [
-            session("a"), session("b", canNudge: false), session("c", runtime: .codex),
-            session("d", state: .ended), session("e", growing: true),
-        ])
-        #expect(m.model.sessionOptions.map(\.id) == [.session("a"), .session("e")])
-        #expect(m.model.sessionOptions[0].statusWord == "idle")
-        #expect(m.model.sessionOptions[0].folder == "/Users/me/proj")
-    }
-
-    @Test func newSessionIsTheDefaultEvenWithRunningSessions() {
-        let m = model(sessions: [session("a")])
-        #expect(m.model.target == .newSession)
-        #expect(m.model.startLabel == "Start planning")
-    }
-
-    @Test func pickingASessionRetitlesTheButtonAndAFolderOrLaunchPickGoesBack() {
-        let m = model(sessions: [session("a"), session("e")])
-        m.model.chooseSession(.session("e"))
-        #expect(m.model.startLabel == "Send to Knock")
-        m.model.chooseNewSession()
-        #expect(m.model.target == .newSession)
-        #expect(m.model.startLabel == "Start planning")
-        m.model.chooseSession(.session("a"))
-        m.model.chooseFolder(URL(fileURLWithPath: "/Users/me/Desktop"))
-        #expect(m.model.target == .newSession)
-    }
-
-    @Test func aPickedSessionThatGoesAwayFallsBackToANewSession() {
-        let m = model(sessions: [session("a"), session("e")])
-        m.model.chooseSession(.session("e"))
-        m.model.updateSessions([session("a")], cases: [], now: now)
-        #expect(m.model.target == .newSession)
-        #expect(m.model.sessionOptions.map(\.id) == [.session("a")])
-    }
-
-    @Test func noRunningSessionsMeansNoOptions() {
-        #expect(model().model.sessionOptions.isEmpty)
-    }
-
-    @Test func projectNamesAreCleanedLikeTheQueue() {
-        let sessions = [
-            sessionNamed("a", project: "fragrant-hospital-fc8f1973"),
-            sessionNamed("b", project: "my_cool-app"),
-            sessionNamed("c", project: "Syllotips"),
-        ]
-        let m = model(sessions: sessions)
-        #expect(m.model.sessionOptions.map(\.name) == ["Fragrant hospital", "My cool app", "Syllotips"])
-        for option in m.model.sessionOptions {
-            #expect(!option.name.contains("Claude Code"))
-            #expect(!option.name.contains("/"))
-        }
-        m.model.chooseSession(.session("a"))
-        #expect(m.model.startLabel == "Send to Fragrant hospital")
-    }
-
-    @Test func folderNameShowsInsteadOfThePath() {
-        let m = model()
-        #expect(m.model.folderName == "docs")
-        m.model.chooseFolder(URL(fileURLWithPath: "/Users/me/Desktop"))
-        #expect(m.model.folderName == "Desktop")
-        #expect(m.launchTarget.metaLine(folder: m.model.folderName) == "Opens Terminal in Desktop and starts Claude Code.")
-    }
-
-    @Test func folderChipOpensThePickerAtTheCurrentFolder() {
-        var openedAt: URL?
-        let m = model(folderPicker: { start in
-            openedAt = start
-            return URL(fileURLWithPath: "/Users/me/Desktop")
-        })
-        m.model.pickFolder()
-        #expect(openedAt?.path == "/tmp/docs")
-        #expect(m.model.folderName == "Desktop")
-    }
-
-    @Test func cancelledPickerKeepsTheFolder() {
-        let m = model(folderPicker: { _ in nil })
-        m.model.pickFolder()
-        #expect(m.model.folderName == "docs")
-    }
-
-    @Test func designsGoalCopy() {
-        #expect(DocumentGoal.pen.title == "Screens to look at")
-        #expect(DocumentGoal.pen.detail == "Draw the key screens with any tool it has, or as images, and send them for review.")
-    }
-
-    @Test func sendUsesTheRpcWithTheIdeaAndFilesAndClearsTheBox() async {
-        let log = SendLog()
-        let m = model(sessions: [session("a")], send: { id, text in await log.add(id, text); return SendPromptResult(sent: true) })
-        m.model.idea = "Try a dark mode"
-        m.model.chooseSession(.session("a"))
-        let expected = m.model.prompt
-        var finished = false
-        m.onFinish = { finished = true }
-        await m.submit()
-        let calls = await log.calls
-        #expect(calls.count == 1)
-        #expect(calls[0].0 == "a")
-        #expect(calls[0].1 == expected)
-        #expect(calls[0].1.contains("Try a dark mode"))
-        #expect(calls[0].1.contains("/tmp/docs/My PRD.md"))
-        #expect(finished)
-        #expect(m.errorText == nil)
-        #expect(m.model.idea.isEmpty)
-    }
-
-    @Test func sendingToASessionNeverRunsTheLaunchTarget() async {
-        let launcher = FakeLauncher()
-        let opener = FakeAppOpener()
-        let m = model(sessions: [session("a")], launcher: launcher, opener: opener)
-        m.model.chooseSession(.session("a"))
-        await m.submit()
-        #expect(launcher.launched.isEmpty)
-        #expect(opener.openedURLs.isEmpty)
-    }
-
-    @Test func failedSendShowsAPlainErrorAndKeepsTheIdea() async {
-        let m = model(sessions: [session("a")], send: { _, _ in SendPromptResult(sent: false, reason: .sessionClosed) })
-        m.model.idea = "Keep me"
-        m.model.chooseSession(.session("a"))
-        var finished = false
-        m.onFinish = { finished = true }
-        await m.submit()
-        #expect(!finished)
-        #expect(m.errorText?.contains("closed") == true)
-        #expect(m.errorText?.contains("—") == false)
-        #expect(m.model.idea == "Keep me")
-        #expect(m.model.attachments == [file])
-    }
-
-    @Test func aDropAttachesTheFilesSetsTheFolderAndAsksForFocus() {
-        let m = model()
-        let ticks = m.model.focusTick
-        let a = URL(fileURLWithPath: "/Users/me/specs/a.png")
-        let b = URL(fileURLWithPath: "/Users/me/other/b.pdf")
-        m.model.receive(files: [a, b, URL(string: "https://x.com/a.md")!])
-        #expect(m.model.attachments == [file, a, b])
-        #expect(m.model.folder.path == "/Users/me/specs")
-        #expect(m.model.focusTick == ticks + 1)
-        m.model.receive(files: [])
-        #expect(m.model.focusTick == ticks + 1)
-    }
-
-    @Test func aDropDoesNotSaveTheFolderAsTheDefault() {
-        let suite = "knock-test-drop-\(UUID().uuidString)"
-        let defaults = UserDefaults(suiteName: suite)!
-        defer { defaults.removePersistentDomain(forName: suite) }
-        let m = NewIdeaModel(defaults: defaults, folderPicker: { _ in nil }, filePicker: { [] })
-        m.receive(files: [URL(fileURLWithPath: "/Users/me/specs/a.png")])
-        #expect(defaults.string(forKey: NewIdeaModel.folderKey) == nil)
-    }
-
-    @Test func shellQuoting() {
-        #expect(NewSessionCommand.shellQuote("a b") == "'a b'")
-        #expect(NewSessionCommand.shellQuote("it's") == "'it'\\''s'")
-        let evil = "x'; rm -rf ~; echo '$(whoami) `id`"
-        let script = NewSessionCommand.script(folder: "/tmp/a b", prompt: evil, claudePath: "/bin/claude", searchPath: "/bin")
-        #expect(script.contains("exec '/bin/claude' " + NewSessionCommand.shellQuote(evil)))
-        #expect(script.contains("cd -- '/tmp/a b' || exit 1"))
-        #expect(script.hasPrefix("#!/bin/zsh\n"))
-    }
-
     @Test func newSessionGoesThroughTheFakeLauncher() async throws {
         let dir = FileManager.default.temporaryDirectory.appendingPathComponent("knock-claude-\(UUID().uuidString)")
         try FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
@@ -298,8 +96,8 @@ struct SessionLauncherTests {
 
         let launcher = FakeLauncher()
         let m = model(launcher: launcher, path: dir.path)
-        m.model.idea = "It's \"mine\""
-        let expectedPrompt = m.model.prompt
+        m.idea = "It's \"mine\""
+        let expectedPrompt = m.prompt
         var finished = false
         m.onFinish = { finished = true }
         await m.submit()
@@ -345,7 +143,7 @@ struct SessionLauncherTests {
         let m = model()
         m.chooseLaunchTarget(.codexApp)
         #expect(m.launchTarget.mainLabel == "Start in the Codex app")
-        #expect(m.launchTarget.metaLine(folder: m.model.folderName) == "Opens the Codex app in docs with your prompt typed.")
+        #expect(m.launchTarget.metaLine(folder: m.folder.lastPathComponent) == "Opens the Codex app in docs with your prompt typed.")
     }
 
     @Test func claudeAppURLRoundTrips() {
@@ -459,11 +257,10 @@ struct SessionLauncherTests {
         let store = FakeLaunchTargetStore()
         let m = model(store: store)
         m.chooseLaunchTarget(.codexTerminal)
-        m.model.useAsDefault()
+        m.launcher.useCurrentAsDefault()
         #expect(store.load() == .codexTerminal)
         #expect(m.launcher.defaultTarget == .codexTerminal)
         #expect(!m.launcher.differsFromDefault)
-        #expect(m.model.pickIsDefault)
         #expect(model(store: store).launchTarget == .codexTerminal)
     }
 
@@ -477,23 +274,13 @@ struct SessionLauncherTests {
         #expect(Set(labels.keys) == Set(LaunchTarget.allCases))
         for (target, label) in labels { #expect(target.chipLabel == label) }
         let m = model()
-        #expect(m.model.chipLabel == "Claude Code · Terminal")
-        #expect(!m.model.chipDiffersFromDefault)
+        #expect(m.launchTarget.chipLabel == "Claude Code · Terminal")
+        #expect(!m.launcher.differsFromDefault)
         m.chooseLaunchTarget(.claudeApp)
-        #expect(m.model.chipLabel == "Claude Code · Claude app")
-        #expect(m.model.chipDiffersFromDefault)
+        #expect(m.launchTarget.chipLabel == "Claude Code · Claude app")
+        #expect(m.launcher.differsFromDefault)
         m.chooseLaunchTarget(.claudeTerminal)
-        #expect(!m.model.chipDiffersFromDefault)
-    }
-
-    @Test func aRunningSessionPickShowsOnTheChipAndCannotBeTheDefault() {
-        let m = model(sessions: [sessionNamed("s1", project: "waggle")])
-        m.model.chooseSession(.session("s1"))
-        #expect(m.model.chipLabel == "Waggle · Running session")
-        #expect(m.model.chipDiffersFromDefault)
-        #expect(!m.model.canUseAsDefault)
-        m.model.useAsDefault()
-        #expect(m.launcher.defaultTarget == .claudeTerminal)
+        #expect(!m.launcher.differsFromDefault)
     }
 
     @Test func theNextIdeaStartsFromTheDefaultAfterAStart() async {
@@ -502,7 +289,7 @@ struct SessionLauncherTests {
         m.chooseLaunchTarget(.claudeApp)
         await m.submit()
         #expect(m.launchTarget == .claudeTerminal)
-        #expect(m.model.chipLabel == "Claude Code · Terminal")
+        #expect(m.launchTarget.chipLabel == "Claude Code · Terminal")
         #expect(store.load() == nil)
     }
 
@@ -521,7 +308,7 @@ struct SessionLauncherTests {
         #expect(m.availability.unavailableText(.codexApp) != nil)
         m.chooseLaunchTarget(.codexApp)
         #expect(m.launchTarget != .codexApp)
-        #expect(!m.model.chipDiffersFromDefault || m.launchTarget != m.launcher.defaultTarget)
+        #expect(!m.launcher.differsFromDefault || m.launchTarget != m.launcher.defaultTarget)
     }
 
     @Test func userDefaultsStoreRoundTripsOneKey() {
@@ -562,7 +349,7 @@ struct SessionLauncherTests {
         let opener = FakeAppOpener()
         let m = model(launcher: launcher, path: dir.path, opener: opener)
         m.chooseLaunchTarget(.claudeApp)
-        m.model.idea = String(repeating: "x", count: ClaudeAppURL.maxPromptLength + 500)
+        m.idea = String(repeating: "x", count: ClaudeAppURL.maxPromptLength + 500)
         var finished = false
         m.onFinish = { finished = true }
         await m.submit()
@@ -579,7 +366,7 @@ struct SessionLauncherTests {
         let board = NSPasteboard(name: NSPasteboard.Name("knock-test-\(UUID().uuidString)"))
         let m = model(pasteboard: board, opener: opener)
         m.chooseLaunchTarget(.codexApp)
-        let expectedPrompt = m.model.prompt
+        let expectedPrompt = m.prompt
         var finished = false
         m.onFinish = { finished = true }
         await m.submit()

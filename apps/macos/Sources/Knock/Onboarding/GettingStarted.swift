@@ -28,12 +28,19 @@ struct GettingStartedState: Codable, Equatable {
     var tourFirstDone = false
     var tourRoundDone = false
     var tourCaseId: String?
+    /// The built-in sample request was answered here (Decide). It never goes to the daemon.
+    var sampleAnswered = false
+    /// The person dismissed the sample. It never shows again.
+    var sampleDismissed = false
+    /// A real request from the person's own session has arrived (the third Getting started line).
+    var ownRequest = false
 
     init(startedAt: Date) { self.startedAt = startedAt }
 
     private enum CodingKeys: String, CodingKey {
         case startedAt, connected, connectedAgent, jobSentAt, jobProject, jobAgent, jobSummary, decided, talked, notifications
         case designKit, hidden, workingOver, tourStarted, tourSkipped, tourFirstDone, tourRoundDone, tourCaseId
+        case sampleAnswered, sampleDismissed, ownRequest
     }
 
     /// Tolerant: a missing key keeps its default, so a later build can add a field without
@@ -58,6 +65,9 @@ struct GettingStartedState: Codable, Equatable {
         tourFirstDone = try c.decodeIfPresent(Bool.self, forKey: .tourFirstDone) ?? false
         tourRoundDone = try c.decodeIfPresent(Bool.self, forKey: .tourRoundDone) ?? false
         tourCaseId = try c.decodeIfPresent(String.self, forKey: .tourCaseId)
+        sampleAnswered = try c.decodeIfPresent(Bool.self, forKey: .sampleAnswered) ?? false
+        sampleDismissed = try c.decodeIfPresent(Bool.self, forKey: .sampleDismissed) ?? false
+        ownRequest = try c.decodeIfPresent(Bool.self, forKey: .ownRequest) ?? false
     }
 
     /// The state of a person who finished the old onboarding before this build: no list, no tour, nothing
@@ -68,6 +78,8 @@ struct GettingStartedState: Codable, Equatable {
         state.workingOver = true
         state.tourStarted = true
         state.tourSkipped = true
+        // A person who finished the old setup never sees the sample.
+        state.sampleDismissed = true
         return state
     }
 }
@@ -252,6 +264,46 @@ final class GettingStartedModel: ObservableObject {
         self.state = state
     }
 
+    // MARK: Three-line card and sample
+
+    /// The sample request is open in the main window. Not saved: a new launch starts on the home pane.
+    @Published private(set) var sampleOpen = false
+
+    var lines: [FirstRunLineItem] {
+        FirstRunRules.lines(
+            connected: state.connected, connectedAgent: state.connectedAgent,
+            sampleAnswered: state.sampleAnswered, ownRequest: state.ownRequest)
+    }
+
+    /// The Getting started card in the list column.
+    var isCardVisible: Bool { FirstRunRules.showsCard(lines: lines, hidden: state.hidden, forced: forcedVisible) }
+    var sampleAnswered: Bool { state.sampleAnswered }
+    var sampleDismissed: Bool { state.sampleDismissed }
+    /// The sample can still be opened: not answered, not dismissed.
+    var sampleAvailable: Bool { !state.sampleAnswered && !state.sampleDismissed }
+
+    func openSample() { if sampleAvailable { sampleOpen = true } }
+    func closeSample() { sampleOpen = false }
+
+    /// Decide on the sample: marked answered here, and nothing else happens. No daemon, agent or network.
+    func answerSample() {
+        sampleOpen = false
+        update { $0.sampleAnswered = true }
+    }
+
+    func dismissSample() {
+        sampleOpen = false
+        update { $0.sampleDismissed = true }
+    }
+
+    func open(_ line: FirstRunLine) {
+        switch line {
+        case .connect: onOpenAgents()
+        case .sample: openSample()
+        case .ownSession: break
+        }
+    }
+
     // MARK: List
 
     var items: [GettingStartedItem] {
@@ -369,6 +421,7 @@ final class GettingStartedModel: ObservableObject {
         var next = state
         if fresh.contains(where: { $0.latestReplyId != nil && Self.isDecision($0.latestReplyIntent) }) { next.decided = true }
         if fresh.contains(where: { $0.latestReplyId != nil && Self.isTalk($0.latestReplyIntent) }) { next.talked = true }
+        if fresh.contains(where: { !SampleAsk.isSample($0) }) { next.ownRequest = true }
         let first = fresh
             .filter { $0.status == .needsYou }
             .min { ($0.createdAtDate ?? .distantFuture) < ($1.createdAtDate ?? .distantFuture) }

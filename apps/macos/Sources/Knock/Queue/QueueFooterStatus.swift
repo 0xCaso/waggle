@@ -5,8 +5,8 @@ import Foundation
 /// pure function of the two inputs `QueueListView` already tracks, so it is
 /// unit-testable without a running daemon.
 enum QueueFooterStatus {
-    static func label(isOffline: Bool, sessionCount: Int) -> String {
-        guard !isOffline else { return "Daemon offline" }
+    static func label(isOffline: Bool, phase: PausedCopy.Phase = .paused, sessionCount: Int) -> String {
+        guard !isOffline else { return PausedCopy.footer(phase) }
         return "Connected · \(sessionCount) session\(sessionCount == 1 ? "" : "s")"
     }
 

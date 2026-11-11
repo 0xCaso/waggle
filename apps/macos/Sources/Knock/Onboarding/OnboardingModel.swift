@@ -23,6 +23,8 @@ final class OnboardingModel: ObservableObject {
         var status: Status
         /// HAIL-134: how Claude Code reaches Waggle, from the same doctor run.
         var plugin: PluginState = .none
+        /// A short plain line when the last Connect failed; `nil` otherwise. The row also shows Connect again.
+        var error: String?
         var id: Runtime { runtime }
     }
 
@@ -129,6 +131,7 @@ final class OnboardingModel: ObservableObject {
     private let markOnboarded: () -> Void
     private let isOnboarded: () -> Bool
     private let onFirstJobStarted: () -> Void
+    private let onSkip: () -> Void
     private let resolvedKnockBinaryPath: () -> String?
     private let now: () -> Date
 
@@ -147,10 +150,11 @@ final class OnboardingModel: ObservableObject {
         },
         startInTerminal: (@MainActor (String, URL, String) async -> String?)? = nil,
         copyToPasteboard: @escaping (String) -> Void = { OnboardingModel.copyToGeneralPasteboard($0) },
-        pickFolder: @escaping @MainActor () -> URL? = { NewIdeaModel.openFolderPanel(startingAt: FileManager.default.homeDirectoryForCurrentUser) },
+        pickFolder: @escaping @MainActor () -> URL? = { SendHelpers.openFolderPanel(startingAt: FileManager.default.homeDirectoryForCurrentUser) },
         markOnboarded: @escaping () -> Void,
         isOnboarded: @escaping () -> Bool = { OnboardingState.isOnboarded() },
         onFirstJobStarted: @escaping () -> Void = {},
+        onSkip: @escaping () -> Void = {},
         resolvedKnockBinaryPath: @escaping () -> String? = { KnockBinaryLocator.resolve()?.path },
         claudeApp: ClaudeAppModel = ClaudeAppModel(),
         now: @escaping () -> Date = { Date() }
@@ -168,6 +172,7 @@ final class OnboardingModel: ObservableObject {
         self.markOnboarded = markOnboarded
         self.isOnboarded = isOnboarded
         self.onFirstJobStarted = onFirstJobStarted
+        self.onSkip = onSkip
         self.resolvedKnockBinaryPath = resolvedKnockBinaryPath
         self.now = now
         claudeAppObservation = claudeApp.objectWillChange.sink { [weak self] _ in self?.objectWillChange.send() }
@@ -234,9 +239,22 @@ final class OnboardingModel: ObservableObject {
             didRegisterDevelopmentBuildPath = true
         }
         Task {
-            _ = await runner.run(["install", runtime.rawValue], onLine: { _ in })
-            applyConnectRows(await runDoctorRows())
+            let code = await runner.run(["install", runtime.rawValue], onLine: { _ in })
+            var refreshed = await runDoctorRows()
+            // A failed install says so on its row. If doctor still finds the agent connected, nothing failed for the person.
+            if code != 0, let index = refreshed.firstIndex(where: { $0.runtime == runtime }), refreshed[index].status != .connected {
+                refreshed[index].status = .notConnected
+                refreshed[index].error = Self.installFailureMessage(runtime: runtime, exitCode: code)
+            }
+            applyConnectRows(refreshed)
         }
+    }
+
+    /// The error line under a row after `waggle install` fails. A negative code means the process did not start.
+    static func installFailureMessage(runtime: Runtime, exitCode: Int32) -> String {
+        exitCode < 0
+            ? "Couldn't start the setup for \(runtime.displayName). Try again."
+            : "Couldn't connect \(runtime.displayName). Try again."
     }
 
     /// Evidence only: `KNOCK_EVIDENCE_ONBOARDING_SCREEN=firstjob` opens step 2 without a connected agent.
@@ -297,6 +315,14 @@ final class OnboardingModel: ObservableObject {
         Task { await preselectRecommendedReach(isOnboarded: wasOnboarded) }
         screen = .firstJob
         Task { await loadFirstJobData() }
+    }
+
+    /// "Skip for now": leaves setup from step 1 with or without an agent. The person counts as set up, so setup
+    /// does not come back on its own; every step stays open in Settings and in the list.
+    func skipSetup() {
+        guard ConnectStepRules.skipIsAvailable(on: screen) else { return }
+        markOnboarded()
+        onSkip()
     }
 
     /// "Back" from step 2.
@@ -401,9 +427,9 @@ final class OnboardingModel: ObservableObject {
         case .session(let choice):
             do {
                 let result = try await sendPrompt(choice.sessionId, prompt)
-                if result.sent { finishFirstJob(project: project, kind: kind) } else { startPhase = .failed(NewIdeaModel.failureText(result.reason)) }
+                if result.sent { finishFirstJob(project: project, kind: kind) } else { startPhase = .failed(SendHelpers.failureText(result.reason)) }
             } catch {
-                startPhase = .failed(NewIdeaModel.failureText(nil))
+                startPhase = .failed(SendHelpers.failureText(nil))
             }
         case .terminal:
             if let failure = await startInTerminal(prompt, URL(fileURLWithPath: folder), FirstJobPrompt.topic(kind)) {

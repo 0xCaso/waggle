@@ -40,17 +40,15 @@ struct SentAnswerCardTests {
         #expect(SentAnswerCopy.sentLine(sentAt: nil) == nil)
     }
 
-    @Test func theOnePageKeepsTheQuestionOnceSentButTheFullReviewKeepsTheRecap() {
-        func kind(_ lock: ReplyLockState, onePage: Bool, editing: Bool = false) -> ReviewWorkspaceView.RightColumnKind {
+    @Test func theFullWindowAndTheCasePaneShareTheAnsweredView() {
+        func kind(_ lock: ReplyLockState, editing: Bool = false) -> ReviewWorkspaceView.RightColumnKind {
             ReviewWorkspaceView.rightColumnKind(
-                lockState: lock, isEditingLockedAnswer: editing, isReviewingBeforeSend: false, tab: .question,
-                isOnePage: onePage)
+                lockState: lock, isEditingLockedAnswer: editing, tab: .question)
         }
         for lock in [ReplyLockState.queued, .delivered, .failed] {
-            #expect(kind(lock, onePage: true) == .askWithStatus)
-            #expect(kind(lock, onePage: false) == .answeredRecap)
+            #expect(kind(lock) == .askWithStatus)
         }
-        #expect(kind(.queued, onePage: true, editing: true) == .interact)
-        #expect(kind(.editable, onePage: true) == .interact)
+        #expect(kind(.queued, editing: true) == .interact)
+        #expect(kind(.editable) == .interact)
     }
 }

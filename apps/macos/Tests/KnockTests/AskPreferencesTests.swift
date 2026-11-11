@@ -214,13 +214,6 @@ struct AskPreferencesTests {
         #expect(model.learn == .steps)
     }
 
-    @Test func eightExamplesInTheQueueEmptyStateOrder() {
-        #expect(ExampleRequest.all.map(\.area) == [
-            "MARKETING", "DESIGN", "OPERATIONS", "FINANCE", "CODE", "WRITING", "DATA", "PERSONAL",
-        ])
-        #expect(ExampleRequest.all.allSatisfy { !$0.title.isEmpty && !$0.artifact.isEmpty && !$0.symbol.isEmpty })
-    }
-
     @Test func loadReadsTheStoredPreferencesAndTheText() async throws {
         let store = Store()
         let (client, server) = try await connectedClient(store: store)

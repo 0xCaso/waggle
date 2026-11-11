@@ -9,7 +9,7 @@ import Testing
 struct NoKnockCopyTests {
     /// Folders and files whose string literals can reach a person's screen in onboarding or Settings.
     private static let scanned: [String] = ["Onboarding", "Settings"]
-    private static let scannedFiles: [String] = ["Queue/FirstRunViews.swift", "Queue/QueueEmptyState.swift", "Support/AppTagline.swift"]
+    private static let scannedFiles: [String] = ["Queue/FirstRunViews.swift", "Queue/FirstRunRules.swift", "Queue/SampleRequest.swift", "Home/CaughtUpView.swift", "Support/AppTagline.swift"]
 
     private static var sourcesRoot: URL {
         URL(fileURLWithPath: #filePath)
@@ -113,7 +113,8 @@ struct NoKnockCopyTests {
         words += CoachMarkTourModel.Mark.allCases.flatMap { [$0.title, $0.body, $0.buttonLabel] }
         words += OnboardingStep.allCases.flatMap { [$0.label, $0.pillTitle] }
         words += [FirstJobPrompt.build(.findDecision, projectName: "Acme"), AgentOnIt.defaultSummary]
-        words += ExampleRequest.all.flatMap { [$0.title, $0.area, $0.artifact] } + [ExampleRequest.heading, ExampleRequest.subheading]
+        words += model.lines.flatMap { [$0.title, $0.hint] } + [FirstRunRules.sampleTitle, FirstRunRules.sampleMeta, FirstRunRules.sampleToolbarLine]
+        words += [FirstRunRules.caughtUpTitle, FirstRunRules.caughtUpSubtitle, FirstRunRules.caughtUpQuietLine]
         words += AgentInstructions.knockWhen + AgentInstructions.knockWont + AgentInstructions.everyAskCarries
         words += [AgentInstructions.text, OnboardingCopy.sessionPrompt, OnboardingCopy.projectLine]
         words += SettingsPage.allCases.flatMap { [$0.title, $0.subtitle] }
@@ -130,7 +131,10 @@ struct NoKnockCopyTests {
         defer { try? FileManager.default.removeItem(at: root) }
         var words = model.items.flatMap { [$0.title, $0.hint] }
         words += CoachMarkTourModel.Mark.allCases.flatMap { [$0.title, $0.body] }
-        words += ExampleRequest.all.map(\.title) + AgentInstructions.everyAskCarries
+        words += model.lines.flatMap { [$0.title, $0.hint] } + [FirstRunRules.sampleTitle, FirstRunRules.sampleMeta, FirstRunRules.sampleToolbarLine]
+        words += [FirstRunRules.caughtUpTitle, FirstRunRules.caughtUpSubtitle, FirstRunRules.caughtUpQuietLine]
+        words += SampleRequest.options.map(\.label) + [SampleRequest.knockCase.need, SampleRequest.knockCase.why, SampleRequest.artifactText]
+        words += AgentInstructions.everyAskCarries
         words += [FirstJobPrompt.build(.findDecision, projectName: "Acme"), GettingStartedModel.notificationsTipBody]
         for word in words { #expect(!word.contains("\u{2014}"), "em dash in: \(word)") }
     }

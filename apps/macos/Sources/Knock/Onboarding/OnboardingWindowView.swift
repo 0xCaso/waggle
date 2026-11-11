@@ -74,7 +74,8 @@ private struct OnboardingCardView: View {
     var body: some View {
         // The window itself is the card: the content runs to its own edges.
         VStack(alignment: .leading, spacing: 16) {
-            OnboardingProgressRow(current: model.screen.step)
+            // Step 1 names itself once, in its title: no pills above it.
+            if model.screen != .connect { OnboardingProgressRow(current: model.screen.step) }
             Group {
                 switch model.screen {
                 case .connect:

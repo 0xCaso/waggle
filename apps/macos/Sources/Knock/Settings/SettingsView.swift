@@ -39,19 +39,15 @@ struct SettingsView: View {
     private var page: some View {
         switch navigation.selected {
         case .agents:
-            AgentsSettingsView(client: client, onboardingModel: onboardingModel)
+            AgentsSettingsView(client: client)
         case .notifications:
             NotificationsSettingsView()
-        case .previews:
-            PreviewsSettingsView()
         case .screenshots:
             ScreenshotsSettingsView()
         case .artifacts:
             ArtifactsSettingsView(client: client)
         case .asks:
-            AsksSettingsView(model: askPreferences)
-        case .askLess:
-            AskLessSettingsView(client: client)
+            AsksSettingsView(model: askPreferences, client: client)
         case .phone:
             PhoneSettingsView(client: client)
         case .sharing:

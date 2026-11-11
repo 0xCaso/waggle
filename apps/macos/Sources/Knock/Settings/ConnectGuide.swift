@@ -186,9 +186,8 @@ struct GuideCodeRow: View {
             }
             .help("Copies \(text)")
             Spacer(minLength: 0)
-            Text("Waiting for your message…")
-                .knockTextStyle(Theme.Typography.body12_5w400)
-                .foregroundColor(Theme.Colors.ink3)
+            // Pulses while it waits; still under Reduce Motion (`MotionGate`).
+            LoadingStatus(label: "Waiting for your message…")
         }
     }
 }

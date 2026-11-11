@@ -32,6 +32,7 @@ final class OnboardingFakes {
     var pickedFolder: URL?
     var onboardedCalls = 0
     var firstJobStarted = 0
+    var skipCalls = 0
     var sessions: [SessionInfo] = []
     var cases: [Case] = []
     var isOnboarded = false
@@ -67,6 +68,7 @@ func makeOnboardingModel(
         markOnboarded: { fakes.onboardedCalls += 1 },
         isOnboarded: { fakes.isOnboarded },
         onFirstJobStarted: { fakes.firstJobStarted += 1 },
+        onSkip: { fakes.skipCalls += 1 },
         resolvedKnockBinaryPath: resolvedKnockBinaryPath,
         claudeApp: claudeApp ?? makeTempClaudeAppModel().model,
         now: now)

@@ -1,7 +1,7 @@
 import Foundation
 import SwiftUI
 
-/// HAIL-239: the optional "Design helpers" card in Settings › Agents. It adds or removes the
+/// HAIL-239: the optional "Design helpers" card in Settings › Artifacts. It adds or removes the
 /// Impeccable plugin (Apache 2.0) in Claude Code with `waggle design-helpers add|remove`, only on a
 /// click. The daemon runs the `claude plugin` commands; the claude CLI does the download.
 enum DesignHelpersCopy {

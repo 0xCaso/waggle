@@ -78,7 +78,7 @@ enum OnboardingProjects {
 }
 
 /// Which sessions can take a job from Waggle. The same rule as the New idea page
-/// (`NewIdeaModel.sendableSessions`): live Claude Code with a way to wake it.
+/// (`SendHelpers.sendableSessions`): live Claude Code with a way to wake it.
 enum FirstJobSessions {
     static func canTakeJob(_ session: SessionInfo) -> Bool {
         session.state == .live && session.runtime == .claude && session.canNudge

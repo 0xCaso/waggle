@@ -941,14 +941,13 @@ struct T3StartMenuTests {
         home: URL, server: FakeServer = FakeServer(), runner: FakeCLI = FakeCLI(), bin: URL,
         board: NSPasteboard = NSPasteboard(name: NSPasteboard.Name("knock-test-\(UUID().uuidString)")),
         store: LaunchTargetStoring? = nil
-    ) -> IdeaLaunchHarness {
-        let m = IdeaLaunchHarness(
-            fileURL: file, sessions: [], sendPrompt: { _, _ in SendPromptResult(sent: true) },
-            launcher: NoTerminalT3(),
+    ) -> LaunchHarness {
+        let m = LaunchHarness(
+            fileURL: file, launcher: NoTerminalT3(),
             resolvePath: { LoginShellPathResolution(path: bin.path, shellSucceeded: true) }, pasteboard: board,
             opener: app, launchTargetStore: store ?? MemoryTargetStore(), sleep: { _ in }, cliRunner: runner,
             homeDirectory: home.path, t3Secrets: secrets, t3Meta: meta, t3Server: server, environment: [:],
-            clock: { [now] in now }, folderPicker: { _ in nil })
+            clock: { [now] in now })
         m.folder = URL(fileURLWithPath: "/Users/me/waggle")
         return m
     }

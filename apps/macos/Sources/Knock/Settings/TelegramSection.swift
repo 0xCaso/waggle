@@ -16,12 +16,11 @@ struct TelegramSection: View {
                     busy: model.isBusy
                 )
                 let current = model.telegramStep
-                GuideStep(number: 1, title: "Make a bot in Telegram", current: current) { openBotFather }
-                GuideStep(number: 2, title: "Paste the bot token", current: current) { pasteToken }
-                GuideStep(number: 3, title: "Open your bot", current: current) { openBot }
-                GuideStep(number: 4, title: connectedTitle, current: current) { connected }
+                GuideStep(number: 1, title: "Make a bot and paste its token", current: current) { makeBot }
+                GuideStep(number: 2, title: "Open your bot", current: current) { openBot }
+                GuideStep(number: 3, title: connectedTitle, current: current) { connected }
             }
-            if let problem = model.status.error, model.problem == nil, model.telegramStep != 2 {
+            if let problem = model.status.error, model.problem == nil, model.telegramStep != 1 {
                 Text(problem)
                     .knockTextStyle(Theme.Typography.body12_5w400)
                     .foregroundColor(Theme.Colors.accent)
@@ -35,19 +34,14 @@ struct TelegramSection: View {
     }
 
     private var connectedTitle: String {
-        model.telegramStep == 4 ? "Connected to \(model.status.chatLabel ?? "your chat")" : "Connected"
+        model.telegramStep == 3 ? "Connected to \(model.status.chatLabel ?? "your chat")" : "Connected"
     }
 
-    private var openBotFather: some View {
+    /// Step 1: BotFather and the token box together. The token is checked from here, with no gate click between.
+    private var makeBot: some View {
         VStack(alignment: .leading, spacing: 10) {
             GuideText("BotFather is Telegram's own bot for making bots. Send it /newbot, pick a name for your bot, then copy the token it gives you.")
             GuideLinkButton(title: "Open BotFather", url: ConnectorLinks.botFather, open: model.open)
-            GuideNav(next: { model.goTelegram(2) }, nextTitle: "I have my token")
-        }
-    }
-
-    private var pasteToken: some View {
-        VStack(alignment: .leading, spacing: 10) {
             GuideText("The token looks like 123456789:ABC... Waggle checks it with Telegram.")
             HStack(alignment: .top, spacing: 8) {
                 GuideTokenField(
@@ -60,7 +54,6 @@ struct TelegramSection: View {
                     .disabled(model.isBusy || model.token.trimmingCharacters(in: .whitespaces).isEmpty
                         || model.telegramTokenProblem != nil)
             }
-            GuideNav(back: { model.goTelegram(1) })
         }
     }
 

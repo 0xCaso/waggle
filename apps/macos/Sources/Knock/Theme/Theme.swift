@@ -73,12 +73,6 @@ enum Theme {
         /// The violet of the "writing the detail" status grid (HAIL-66).
         static let writing = Color(hex: 0x5B4BDB)
 
-        /// M11's daemon-offline status dot (`SyfHH` → `mqbDJ`, `#D64545`).
-        /// Not a design variable (flagged in mvp-values.md §1.1 and §7.5);
-        /// kept here, not inline, so it stays a single named source of truth
-        /// pending a decision on whether it should just be `accent`.
-        static let daemonOfflineDot = Color(hex: 0xD64545)
-
         /// macOS system traffic-light colours drawn on M3/M11 (`aWM03`,
         /// `SyfHH` → "Traffic lights"). Fixed system colours, not tokens.
         static let trafficLightRed = Color(hex: 0xFF5F57)
@@ -243,22 +237,7 @@ enum Theme {
             font: .custom(FontFamily.sans, size: 12),
             size: 12, lineHeight: nil, letterSpacing: nil
         )
-        /// List header "daemon offline" text (§M11 `SyfHH` → `vMVTx` →
-        /// `yN1GR`): Inter 11.5/500, not a § 1.2 table row.
-        static let daemonStatus11_5w500 = TextStyle(
-            font: .custom(FontFamily.sans, size: 11.5).weight(.medium),
-            size: 11.5, lineHeight: nil, letterSpacing: nil
-        )
-        /// "CACHED · READ-ONLY" list label (§M11 `SyfHH` → `ejzOb` →
-        /// `y3mH4`): Inter 11/600, letter-spacing 0.5. Close to, but not
-        /// exactly, the § 1.2 `label-caps 10.5/600` row (that one is 10.5pt);
-        /// kept distinct since the node is explicitly 11pt.
-        static let cachedLabel11w600 = TextStyle(
-            font: .custom(FontFamily.sans, size: 11).weight(.semibold),
-            size: 11, lineHeight: nil, letterSpacing: 0.5
-        )
-        /// M11 body chips "Review" / "Blocking" / "Claude Code" (§M11
-        /// `SyfHH` → `XE3cO`): Inter 11.5/600, not a § 1.2 table row.
+        /// The "new" chip beside a version number: Inter 11.5/600.
         static let chipLabel11_5w600 = TextStyle(
             font: .custom(FontFamily.sans, size: 11.5).weight(.semibold),
             size: 11.5, lineHeight: nil, letterSpacing: nil

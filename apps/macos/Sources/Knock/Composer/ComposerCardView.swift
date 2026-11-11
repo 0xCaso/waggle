@@ -10,6 +10,7 @@ import SwiftUI
 /// `AnsweredAskColumnView` covers the review workspace's own locked/answered
 /// display and never reaches this view).
 struct ComposerCardView: View {
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @ObservedObject var composer: ComposerViewModel
     @ObservedObject var sendFlow: SendFlowController
     @ObservedObject var deliveryState: DeliveryStateViewModel
@@ -124,7 +125,7 @@ struct ComposerCardView: View {
                         if part != .optionsOnly { replyField }
                     case .updateWithOptions(let updatedAt, let firstAt):
                         if part != .replyOnly {
-                            updateHeader(updatedAt)
+                            updateHeader(updatedAt).padding(.bottom, OptionCardStyle.updateHeaderGap)
                             optionsSection(withFirst: true, firstAt: firstAt)
                         }
                         if part != .optionsOnly { replyField }
@@ -296,7 +297,11 @@ struct ComposerCardView: View {
                     onRuleOut: !isFirstSet && composer.supportsDiscuss ? { composer.toggleRuleOut(option.id) } : nil,
                     isOpen: open == index + 1,
                     onSelect: {
-                        if isFirstSet { composer.selectFirstOption(option.id) } else { composer.selectOption(option.id) }
+                        // A click opens the row with a short height change. Number keys and Cmd+D call the
+                        // composer directly, so they never animate.
+                        ReducedMotion.animate(reduceMotion: reduceMotion, .easeOut(duration: CalmOption.openDuration)) {
+                            if isFirstSet { composer.selectFirstOption(option.id) } else { composer.selectOption(option.id) }
+                        }
                     }
                 )
                 if index < list.count - 1 && !calm {
@@ -305,7 +310,6 @@ struct ComposerCardView: View {
             }
         }
         .padding(calm && part != .optionsOnly ? EdgeInsets(top: 10, leading: 14, bottom: 10, trailing: 14) : EdgeInsets())
-        .animation(.easeOut(duration: CalmOption.openDuration), value: open)
     }
 
     /// The pick-several header, shared with the items of a step (WAG-334).

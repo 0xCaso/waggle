@@ -71,6 +71,14 @@ final class ClaudeAppModel: ObservableObject {
         if errorMessage == nil, status == .connected { LaunchMigrationStatus.shared.claudeAppFailure = nil }
     }
 
+    /// The Claude app is on this Mac: its app folder, or the settings folder it makes on first launch.
+    static func isInstalled(config: ClaudeDesktopConfig, fileManager: FileManager = .default) -> Bool {
+        let home = fileManager.homeDirectoryForCurrentUser.path
+        return fileManager.fileExists(atPath: "/Applications/Claude.app")
+            || fileManager.fileExists(atPath: home + "/Applications/Claude.app")
+            || fileManager.fileExists(atPath: config.fileURL.deletingLastPathComponent().path)
+    }
+
     var canShowFile: Bool { FileManager.default.fileExists(atPath: config.fileURL.path) }
 
     func showFile() {
@@ -113,7 +121,8 @@ struct ClaudeRuntimeGroupView: View {
                 showsReconnectWhenConnected: showsReconnectWhenConnected,
                 onRetry: onRetry,
                 onRemoveOldEntry: onRemoveOldEntry,
-                isNested: true)
+                isNested: true,
+                oneAction: appStyle == .onboarding)
             ClaudeAppPlaceRow(model: appModel, style: appStyle)
         }
         .padding(EdgeInsets(top: 0, leading: 0, bottom: showsDivider ? 14 : 0, trailing: 0))
@@ -162,12 +171,8 @@ struct ClaudeAppPlaceRow: View {
                 Group {
                     if model.isConnected {
                         if style == .onboarding {
-                            Button(action: model.remove) {
-                                Text("Remove")
-                                    .knockTextStyle(Theme.Typography.buttonSm12_5w600)
-                                    .foregroundColor(Theme.Colors.ink2)
-                            }
-                            .buttonStyle(.plain).pointerCursor()
+                            // Setup shows a connected state, not a second control (`ConnectStepRules`).
+                            EmptyView()
                         } else {
                             SettingsSecondaryButton(icon: "trash", title: "Remove", action: model.remove)
                         }

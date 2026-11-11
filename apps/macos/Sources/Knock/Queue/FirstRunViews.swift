@@ -104,8 +104,8 @@ struct AgentOnItCard: View {
     }
 }
 
-/// Where the tip for the notifications line points. Published by the line, drawn by `MainWindowView`: the
-/// tip sits beside the list, over the ask, and a sibling view would hide it.
+/// Where the tip for the notifications line points. No line publishes it any more (the notifications line left
+/// the list), so the tip never shows. Kept so `MainWindowView` still compiles against it.
 struct NotificationsLineAnchorKey: PreferenceKey {
     static let defaultValue: Anchor<CGRect>? = nil
     static func reduce(value: inout Anchor<CGRect>?, nextValue: () -> Anchor<CGRect>?) {
@@ -113,7 +113,8 @@ struct NotificationsLineAnchorKey: PreferenceKey {
     }
 }
 
-/// The getting started list under the queue (screen 7): six lines that tick themselves.
+/// The Getting started card under the list (the first-run batch): three lines that tick themselves. It hides
+/// when all three are done, or after Hide.
 struct GettingStartedView: View {
     @ObservedObject var model: GettingStartedModel
 
@@ -129,13 +130,9 @@ struct GettingStartedView: View {
                     .knockTextStyle(Theme.Typography.caption11_5w400)
                     .foregroundColor(Theme.Colors.ink3)
             }
-            .padding(.bottom, 4)
-            ProgressBar(fraction: model.fraction)
-                .padding(.bottom, 6)
-            ForEach(model.items) { item in
-                GettingStartedRow(
-                    item: item, isHighlighted: item.line == .notifications && model.highlightsNotifications,
-                    onOpen: { model.open(item.line) })
+            .padding(.bottom, 6)
+            ForEach(model.lines) { item in
+                GettingStartedRow(item: item, onOpen: { model.open(item.line) })
             }
         }
         .padding(14)
@@ -146,32 +143,12 @@ struct GettingStartedView: View {
     }
 }
 
-private struct ProgressBar: View {
-    let fraction: Double
-
-    var body: some View {
-        GeometryReader { proxy in
-            ZStack(alignment: .leading) {
-                Capsule().fill(Theme.Colors.side)
-                Capsule().fill(Theme.Colors.ok).frame(width: proxy.size.width * fraction)
-            }
-        }
-        .frame(height: Theme.Spacing.progressBarHeight)
-        .animation(.easeOut(duration: 0.25), value: fraction)
-        .accessibilityElement()
-        .accessibilityLabel("Getting started progress")
-        .accessibilityValue("\(Int((fraction * 6).rounded())) of 6 done")
-    }
-}
-
 private struct GettingStartedRow: View {
-    let item: GettingStartedItem
-    let isHighlighted: Bool
+    let item: FirstRunLineItem
     let onOpen: () -> Void
     @State private var isHovering = false
 
     var body: some View {
-        // The row opens its place; the small button on the right does the one thing the line says.
         HStack(alignment: .top, spacing: 8) {
             check
             VStack(alignment: .leading, spacing: 1) {
@@ -184,20 +161,13 @@ private struct GettingStartedRow: View {
                     .fixedSize(horizontal: false, vertical: true)
             }
             Spacer(minLength: 4)
-            if let label = item.actionLabel {
-                SettingsSecondaryButton(title: label, action: onOpen)
-                .accessibilityLabel("\(label): \(item.title)")
-            }
         }
         .padding(EdgeInsets(top: 5, leading: 4, bottom: 5, trailing: 4))
-        .background(
-            RoundedRectangle(cornerRadius: Theme.Radius.regionBox)
-                .fill(isHighlighted ? Theme.Colors.honeySoft : isHovering ? Theme.Colors.list : Color.clear))
+        .background(RoundedRectangle(cornerRadius: Theme.Radius.regionBox).fill(isHovering ? Theme.Colors.list : Color.clear))
         .contentShape(Rectangle())
         .onTapGesture(perform: onOpen)
         .onHover { isHovering = $0 }
         .help(item.hint)
-        .anchorPreference(key: NotificationsLineAnchorKey.self, value: .bounds) { isHighlighted ? $0 : nil }
         .accessibilityElement(children: .combine)
         .accessibilityAddTraits(.isButton)
         .accessibilityValue(item.isDone ? "done" : "not done")
@@ -213,6 +183,26 @@ private struct GettingStartedRow: View {
         }
         .frame(width: Theme.Spacing.tickSize, height: Theme.Spacing.tickSize)
         .padding(.top, 1)
+    }
+}
+
+/// The one sample row in the list column. It looks like a queue row, with the selected look while open.
+struct SampleRequestRow: View {
+    let isOpen: Bool
+    let onOpen: () -> Void
+    let onDismiss: () -> Void
+
+    var body: some View {
+        QueueStatusRow(dotColor: Theme.Colors.honey500, title: FirstRunRules.sampleTitle, meta: FirstRunRules.sampleMeta)
+            .background(isOpen ? Theme.AskDoc.Chrome.selectedFill : Color.clear)
+            .overlay(alignment: .leading) {
+                if isOpen { Rectangle().fill(Theme.AskDoc.Chrome.selectedBar).frame(width: 3) }
+            }
+            .contentShape(Rectangle())
+            .onTapGesture(perform: onOpen)
+            .contextMenu { Button("Dismiss sample", role: .destructive, action: onDismiss) }
+            .accessibilityAddTraits(.isButton)
+            .accessibilityIdentifier("sample-request-row")
     }
 }
 

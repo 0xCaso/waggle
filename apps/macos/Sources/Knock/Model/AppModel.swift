@@ -251,6 +251,8 @@ final class AppModel: ObservableObject {
     /// resubmit a reply saved locally even for a case whose workspace is not
     /// currently open.
     let sendCoordinator: SendCoordinator
+    /// Decide on the built-in sample request is delivered here, in this process only.
+    let sampleCoordinator: SendCoordinator
 
     /// WAG-280: one comment store per case. The case page, its side panel, the full page, an own window
     /// and the review workspace all read and write this one, so a pin placed on one surface shows on
@@ -345,6 +347,7 @@ final class AppModel: ObservableObject {
         // `KNOCK_EVIDENCE_DECIDED_OPEN=1` (WAG-412 evidence): the "Decided for you" list starts open.
         self.autoDecidedOpen = environment["KNOCK_EVIDENCE_DECIDED_OPEN"] == "1"
         self.sendCoordinator = SendCoordinator(client: client, store: PendingReplyStore(environment: environment))
+        self.sampleCoordinator = SendCoordinator.local(client: client)
         self.pendingOpenCaseId = environment["KNOCK_OPEN_CASE"]
         // WAG-358: comments of a sent reply never stay pending for a later round.
         sendCoordinator.onDelivered = { [commentStores] reply in

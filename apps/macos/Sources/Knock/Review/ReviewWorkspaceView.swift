@@ -189,6 +189,7 @@ struct ReviewWorkspaceView: View {
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
         .background(Theme.Colors.win)
+        .overlay(alignment: .bottom) { CommentUndoLineView(store: viewModel.commentsStore) }
         .onAppear {
             unsentWorkRegistry?.registerUnsentWorkProbe(id: probeId) { [weak sendFlow, weak viewModel] in
                 (sendFlow?.hasUnsentWork ?? false) || (viewModel?.editSession?.hasChanges ?? false)
@@ -360,7 +361,7 @@ struct ReviewWorkspaceView: View {
     /// Comment option (docs/stories/HAIL-34.md fold: "delivered review
     /// workspace still shows the Interact | Comment switch ... Comment mode
     /// is off"). Same condition `rightColumnKind` uses to route to
-    /// `.answeredRecap` - Comment mode is unreachable there either way, but
+    /// `.askWithStatus` - Comment mode is unreachable there either way, but
     /// the switch itself lives in `ArtifactViewerView`, outside `rightColumn`,
     /// so it needs its own copy of this check. A `static func`, not a private
     /// `var`, so it is unit-testable the same way `rightColumnKind` is.
@@ -377,14 +378,8 @@ struct ReviewWorkspaceView: View {
         switch Self.rightColumnKind(
             lockState: detail.case.replyLockState,
             isEditingLockedAnswer: sendFlow.isEditingLockedAnswer,
-            isReviewingBeforeSend: sendFlow.isReviewingBeforeSend,
-            tab: viewModel.tab,
-            isOnePage: fold != nil
+            tab: viewModel.tab
         ) {
-        case .reviewBeforeSend:
-            ReviewBeforeSendColumnView(sendFlow: sendFlow, task: detail.task)
-        case .answeredRecap:
-            AnsweredAskColumnView(detail: detail, sendFlow: sendFlow, onRetryDelivery: onRetryDelivery, lateBar: lateBar)
         case .askWithStatus:
             askColumn(sentCard: sentCard)
         case .comments:
@@ -471,28 +466,23 @@ struct ReviewWorkspaceView: View {
     /// Which right column to show, as a pure function of state (docs/stories/
     /// HAIL-34.md operator report 21:37: "the review workspace ignores the
     /// delivery state ... Open review still opens a live composer") -
-    /// unit-testable without hosting the view. `.answeredRecap` (`Case.
-    /// replyLockState != .editable`, and "Change answer" has not put
-    /// `sendFlow` back into edit mode) takes priority over `tab`, which is
-    /// what makes the Question | Comments switch itself unreachable while
-    /// locked - `AnsweredAskColumnView` has no tabs of its own (HAIL-56: its
-    /// one recap view already merges the answer and its comments, so there
-    /// is nothing separate for a switch to pick between).
+    /// unit-testable without hosting the view. Once the answer is locked
+    /// (`Case.replyLockState != .editable`, and "Change answer" has not put
+    /// `sendFlow` back into edit mode) the column is `.askWithStatus`, the same
+    /// view the case pane shows after Decide: the question stays, with its tabs,
+    /// and the answer box is the status card ("YOU PICKED", Applied). It takes
+    /// priority over `tab`. The full window and the one page share it.
     enum RightColumnKind: Equatable {
-        case reviewBeforeSend
-        case answeredRecap
-        /// The one page, answer sent: the question stays, the answer box is the status card.
+        /// Answer sent: the question stays, the answer box is the status card.
         case askWithStatus
         case comments
         case interact
     }
 
     static func rightColumnKind(
-        lockState: ReplyLockState, isEditingLockedAnswer: Bool, isReviewingBeforeSend: Bool, tab: ReviewColumnTab,
-        isOnePage: Bool = false
+        lockState: ReplyLockState, isEditingLockedAnswer: Bool, tab: ReviewColumnTab
     ) -> RightColumnKind {
-        if isReviewingBeforeSend { return .reviewBeforeSend }
-        if lockState != .editable && !isEditingLockedAnswer { return isOnePage ? .askWithStatus : .answeredRecap }
+        if lockState != .editable && !isEditingLockedAnswer { return .askWithStatus }
         return tab == .comments ? .comments : .interact
     }
 }

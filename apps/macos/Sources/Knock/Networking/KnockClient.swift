@@ -57,6 +57,8 @@ actor KnockClient {
 
     /// Decoded capture images by "<capture id>|<kind>" (PERF-2), see `captureImageData`.
     private var captureImageCache: [String: Data] = [:]
+    /// Artifacts that live on this Mac only, by case id: the built-in sample request. Never asked of the daemon.
+    private var localArtifacts: [String: ArtifactPathResult] = [:]
 
     private var nextId = 1
     private var pending: [Int: (Result<Data, Error>) -> Void] = [:]
@@ -384,8 +386,13 @@ extension KnockClient {
         try await call("cases.get", params: CasesGetParams(id: id))
     }
 
+    func registerLocalArtifact(caseId: String, result: ArtifactPathResult) {
+        localArtifacts[caseId] = result
+    }
+
     func artifactPath(caseId: String, revision: Int) async throws -> ArtifactPathResult {
-        try await call("artifact.path", params: ArtifactPathParams(caseId: caseId, revision: revision))
+        if let local = localArtifacts[caseId] { return local }
+        return try await call("artifact.path", params: ArtifactPathParams(caseId: caseId, revision: revision))
     }
 
     /// One capture's image, base64 as stored (PERF-2: `cases.get` carries none).

@@ -85,7 +85,7 @@ struct OnboardingFirstJobModelTests {
         fakes.promptResult = SendPromptResult(sent: false, reason: .notSupported)
         let (model, _) = await ready(fakes: fakes)
         await model.startFirstJob()
-        #expect(model.startPhase == .failed(NewIdeaModel.failureText(.notSupported)))
+        #expect(model.startPhase == .failed(SendHelpers.failureText(.notSupported)))
         #expect(fakes.firstJobStarted == 0)
         #expect(!model.gettingStarted.isDone(.job))
         #expect(model.gettingStarted.agentOnIt == nil)

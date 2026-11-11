@@ -33,6 +33,8 @@ struct ArtifactViewerView: View {
     @StateObject private var changesHub = WriteUpChangesHub()
     /// Cancel with changes asks first (HAIL-168).
     @State private var confirmingDiscard = false
+    /// The version that arrived while this page was on show; the header marks it "new" for a few seconds.
+    @State private var newMarkRevision: Int?
 
     /// The toolbar's Open menu (WAG-309): the artifact on show in a window of its own, or in the browser.
     /// `nil` hides the item.
@@ -70,23 +72,25 @@ struct ArtifactViewerView: View {
     private var showsTabStrip: Bool { artifactTabList.count > 1 }
 
     /// The artifact's version, once (WAG-309). With the tab strip the tab names the artifact, so only "v8"
-    /// shows; else the name and the version. The capture position is in the filmstrip only.
+    /// shows; else the name and the version. While an older version is on show it reads "v2 of 3".
+    /// The capture position is in the filmstrip only.
     private var chromeText: String {
-        let revision: Int
         let title: String
         switch artifactState {
         case .loading, .failed: return ""
-        case .screenshot(_, let r): (revision, title) = (r, ArtifactTabs.defaultTitle(.screenshot))
-        case .htmlBundle(_, _, let r, _): return showsTabStrip ? "v\(r)" : ArtifactVersionLabel.chrome(title: ArtifactTabs.defaultTitle(.htmlBundle), revision: r)
-        case .htmlBundleUnavailable(let r): return showsTabStrip ? "v\(r)" : "Prototype · v\(r) · preview unavailable"
-        case .diagram(_, _, let r, _): (revision, title) = (r, ArtifactTabs.defaultTitle(.diagram))
-        case .markdown(_, let r):
+        case .screenshot: title = ArtifactTabs.defaultTitle(.screenshot)
+        case .htmlBundle, .htmlBundleUnavailable: title = ArtifactTabs.defaultTitle(.htmlBundle)
+        case .diagram: title = ArtifactTabs.defaultTitle(.diagram)
+        case .markdown:
             // HAIL-168: with the person's edit the version chips say which version this is.
             if viewModel.humanRevision != nil { return showsTabStrip ? "" : ArtifactTabs.defaultTitle(.markdown) }
-            (revision, title) = (r, ArtifactTabs.defaultTitle(.markdown))
-        case .screenshots(let r): (revision, title) = (r, ArtifactTabs.defaultTitle(.screenshots))
+            title = ArtifactTabs.defaultTitle(.markdown)
+        case .screenshots: title = ArtifactTabs.defaultTitle(.screenshots)
         }
-        return showsTabStrip ? "v\(revision)" : ArtifactVersionLabel.chrome(title: title, revision: revision)
+        guard let revision = artifactState.revision else { return "" }
+        var text = ArtifactVersionLabel.header(title: showsTabStrip ? nil : title, revision: revision, latest: nil)
+        if case .htmlBundleUnavailable = artifactState, !showsTabStrip { text += " · preview unavailable" }
+        return text
     }
 
     private var showsIsolationBadges: Bool {
@@ -111,16 +115,12 @@ struct ArtifactViewerView: View {
 
     private var interactAvailable: Bool { artifactState.interactAvailable }
 
-    /// docs/design/mvp-values.md §M9: the version chip and "vN arrived"
-    /// banner only ever describe a *just-returned* revision, never a case's
-    /// unremarkable first one (see the Choices ledger).
-    private var revisionArrival: RevisionArrival? { viewModel.revisionArrival }
     private var olderRevision: OlderRevisionDisplay? { viewModel.olderRevisionDisplay }
 
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
             if let olderRevision {
-                olderRevisionTabs(olderRevision)
+                olderRevisionTabs(olderRevision).zIndex(1)
                 olderRevisionStage(olderRevision)
                     .frame(maxWidth: .infinity, maxHeight: .infinity)
             } else {
@@ -132,9 +132,6 @@ struct ArtifactViewerView: View {
                 }
                 if let staleNote = viewModel.staleArtifactNote {
                     staleArtifactLine(staleNote)
-                }
-                if let revisionArrival = ArtifactStatusLine.arrivalToShow(arrival: revisionArrival, staleNote: viewModel.staleArtifactNote) {
-                    revisionArrivedBanner(revisionArrival)
                 }
                 stage
                     .frame(maxWidth: .infinity, maxHeight: .infinity)
@@ -153,6 +150,15 @@ struct ArtifactViewerView: View {
             alignment: .trailing
         )
         .animation(reduceMotion ? nil : .easeOut(duration: 0.2), value: compareActive)
+        .animation(.easeOut(duration: 0.2), value: newMarkRevision)
+        .onChange(of: arrivals) { old, new in
+            guard let mark = ArtifactVersionLabel.newMark(from: old, to: new, latest: latestRevision) else { return }
+            newMarkRevision = mark
+            Task { @MainActor in
+                try? await Task.sleep(for: .seconds(ArtifactVersionLabel.newMarkSeconds))
+                if newMarkRevision == mark { newMarkRevision = nil }
+            }
+        }
         .task(id: compareAvailable) {
             if compareAvailable { compare.applyEvidenceOnce(ProcessInfo.processInfo.environment["KNOCK_EVIDENCE_COMPARE"]) }
         }
@@ -544,29 +550,49 @@ struct ArtifactViewerView: View {
         }
     }
 
+    /// The artifact tabs, in the live header and in the older version's header alike. While an older version
+    /// is on show a tab opens read-only (WAG-351), except the tab of the newest version, which is the live one.
+    private var tabStrip: some View {
+        ArtifactTabStrip(tabs: artifactTabList, selectedId: selectedTabId) { tab in
+            guard tab.id != selectedTabId else { return }
+            if viewModel.olderRevisionDisplay != nil {
+                if tab.revision == latestRevision { viewModel.returnToLatestRevision() } else { viewModel.viewRevision(tab.revision) }
+            } else { Task { await viewModel.show(revision: tab.revision) } }
+        }
+        .frame(minWidth: 150)
+        .layoutPriority(-1)
+    }
+
+    /// The newest version of the case, as the header says "v2 of 3".
+    private var arrivals: ArtifactVersionLabel.Arrivals {
+        .init(caseId: viewModel.detail?.case.id, count: viewModel.detail?.revisions.count ?? 0)
+    }
+
+    private var latestRevision: Int? {
+        (viewModel.detail?.revisions.map(\.n).max()).map { max($0, artifactState.revision ?? 0) } ?? artifactState.revision
+    }
+
     private func artifactTabsRow(showsCaptureChip: Bool, showsBadges: Bool = true) -> some View {
         HStack(spacing: 6) {
-            if showsTabStrip {
-                ArtifactTabStrip(tabs: artifactTabList, selectedId: selectedTabId) { tab in
-                    guard tab.id != selectedTabId else { return }
-                    // Reading an earlier round (WAG-351): its tabs open read-only, as "See vN" does.
-                    if viewModel.olderRevisionDisplay != nil { viewModel.viewRevision(tab.revision) }
-                    else { Task { await viewModel.show(revision: tab.revision) } }
-                }
-                .frame(minWidth: 150)
-                .layoutPriority(-1)
-            }
+            if showsTabStrip { tabStrip }
             Text(chromeText)
                 .knockTextStyle(Theme.Typography.monoMeta12w400)
                 .foregroundColor(Theme.Colors.ink2)
                 .lineLimit(1)
                 .fixedSize(horizontal: true, vertical: false)
+            if let mark = newMarkRevision, mark == artifactState.revision {
+                Text("new")
+                    .knockTextStyle(Theme.Typography.chipLabel11_5w600)
+                    .foregroundColor(Theme.Colors.ds)
+                    .padding(EdgeInsets(top: 1, leading: 6, bottom: 1, trailing: 6))
+                    .background(Theme.Colors.dsUpdateFill)
+                    .cornerRadius(Theme.Radius.chip)
+                    .transition(.opacity)
+                    .accessibilityLabel("New version")
+            }
             if isMarkdown, viewModel.humanRevision != nil {
                 versionChips(selectedBase: false)
                 compareButton
-            }
-            if let revisionArrival {
-                versionChip(revisionArrival.latestRevision)
             }
             if showsCaptureChip, mode == .comment, let capture = viewModel.commentsStore.currentCapture,
                !isLivePrototype || viewModel.showsStillOverLive {
@@ -654,12 +680,6 @@ struct ArtifactViewerView: View {
         .cornerRadius(Theme.Radius.chip)
     }
 
-    /// "v3 · latest" (docs/design/mvp-values.md §M9 `z8L5gE`): the
-    /// `ds`-coloured chip naming a case's just-returned revision. Only shown
-    /// alongside `revisionArrivedBanner` - an unremarkable single-revision
-    /// case has nothing new to flag (see Choices).
-    private func versionChip(_ revision: Int) -> some View { VersionChipView(revision: revision) }
-
     /// One plain line when the newest update sent no artifact (HAIL-146).
     private func staleArtifactLine(_ note: StaleArtifactNote) -> some View {
         HStack(spacing: 8) {
@@ -680,60 +700,40 @@ struct ArtifactViewerView: View {
         .accessibilityIdentifier("stale-artifact-note")
     }
 
-    /// The full-width "v3 arrived" banner (docs/design/mvp-values.md §M9
-    /// `un8Zh`), between the artifact tabs and the hint bar.
-    private func revisionArrivedBanner(_ arrival: RevisionArrival) -> some View {
-        HStack(spacing: 8) {
-            Image(systemName: "sparkles")
-                .font(.system(size: 14))
-                .foregroundColor(Theme.Colors.ds)
-            Text("v\(arrival.latestRevision) arrived")
-                .knockTextStyle(Theme.Typography.revisionBannerTitle12_5w600)
-                .foregroundColor(Theme.Colors.ds)
-        }
-        .padding(EdgeInsets(top: 9, leading: 24, bottom: 9, trailing: 24))
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .background(Theme.Colors.dsSoft)
-        .overlay(
-            Rectangle().fill(Theme.Colors.line).frame(height: 1),
-            alignment: .bottom
-        )
-    }
-
-    /// The read-only header shown while browsing an earlier revision (the
-    /// §M9 "view v<n-1>" link): a plain "vN · read-only" label, no toggle -
-    /// there is nothing to Interact/Comment with here (Non-goal: no comment
-    /// migration between revisions) - and a way back to the live latest one.
+    /// The header while browsing an earlier revision (the "view v<n-1>" link): the same tab strip, then one
+    /// quiet marker, "v2 of 3", and a "See latest" action. There is nothing to Interact/Comment with here
+    /// (Non-goal: no comment migration between revisions).
     private func olderRevisionTabs(_ older: OlderRevisionDisplay) -> some View {
-        HStack(spacing: 6) {
-            if viewModel.humanRevision?.baseRevision == older.revision {
-                versionChips(selectedBase: true)
-            }
-            Text("v\(older.revision) · read-only")
+        let showsChips = viewModel.humanRevision?.baseRevision == older.revision
+        let title = (selectedTab ?? singleTab).map { ArtifactTabs.defaultTitle($0.kind) }
+        return HStack(spacing: 6) {
+            if showsTabStrip { tabStrip }
+            if showsChips { versionChips(selectedBase: true) }
+            // With the person's edit the chips name the versions, so the text adds no second one.
+            Text(showsChips ? "" : ArtifactVersionLabel.header(title: showsTabStrip ? nil : title, revision: older.revision, latest: latestRevision))
                 .knockTextStyle(Theme.Typography.monoMeta12w400)
                 .foregroundColor(Theme.Colors.ink2)
+                .lineLimit(1)
+                .fixedSize(horizontal: true, vertical: false)
             Spacer(minLength: 0)
             Button(action: { viewModel.returnToLatestRevision() }) {
                 HStack(spacing: 4) {
                     Image(systemName: "chevron.left")
                         .font(.system(size: 11))
-                    Text(backToLatestLabel)
+                    Text("See latest")
                 }
                 .knockTextStyle(Theme.Typography.priorRevisionLink12w500)
                 .foregroundColor(Theme.Colors.ink2)
+                .contentShape(Rectangle())
             }
             .buttonStyle(.plain).pointerCursor()
+            .help(latestRevision.map { "Back to v\($0)" } ?? "Back to the latest version")
         }
-        .padding(EdgeInsets(top: 12, leading: 24, bottom: 12, trailing: 24))
+        .padding(EdgeInsets(top: showsTabStrip ? 8 : 12, leading: 24, bottom: showsTabStrip ? 8 : 12, trailing: 24))
         .overlay(
             Rectangle().fill(Theme.Colors.line).frame(height: 1),
             alignment: .bottom
         )
-    }
-
-    private var backToLatestLabel: String {
-        guard let latest = revisionArrival?.latestRevision ?? viewModel.artifactState.revision else { return "Back to latest" }
-        return "Back to v\(latest) · latest"
     }
 
     /// The browsed revision's own artifact (HAIL-142), then every capture staged
@@ -1105,26 +1105,5 @@ struct ArtifactViewerView: View {
         .background(Theme.Colors.accentSoft)
         .cornerRadius(Theme.Radius.card)
         .padding(28)
-    }
-}
-
-/// "v3 · latest". One line at any width: it keeps its own size and never wraps (WAG-284).
-struct VersionChipView: View {
-    let revision: Int
-
-    var body: some View {
-        HStack(spacing: 5) {
-            Image(systemName: "arrow.triangle.branch")
-                .font(.system(size: 11))
-                .foregroundColor(Theme.Colors.ds)
-            Text("v\(revision) · latest")
-                .knockTextStyle(Theme.Typography.versionChipLabel11w600)
-                .foregroundColor(Theme.Colors.ds)
-                .lineLimit(1)
-        }
-        .fixedSize()
-        .padding(EdgeInsets(top: 3, leading: 7, bottom: 3, trailing: 7))
-        .background(Theme.Colors.dsSoft)
-        .cornerRadius(Theme.Radius.chip)
     }
 }

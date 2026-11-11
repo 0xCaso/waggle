@@ -134,7 +134,7 @@ final class AskCommentsHub: ObservableObject {
     }
 
     func deleteNote(id: String) {
-        store?.deleteComment(id: id)
+        store?.deleteCommentWithUndo(id: id)
         ui.open = nil
     }
 

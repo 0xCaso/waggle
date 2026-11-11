@@ -31,8 +31,6 @@ enum RequestStatus {
     }
 
     enum Kind: Equatable {
-        /// The app has no connection to the Waggle service: the page is dimmed and has no answer box.
-        case offline
         /// The agent finished and needs no answer.
         case done
         /// The service was offline when Send was pressed: the reply is saved on this Mac.
@@ -98,7 +96,6 @@ enum RequestStatus {
 
     struct Input {
         var item: Case
-        var isOffline = false
         /// `AppModel.deliveryStatusByCaseId[case]`: the outcome the service confirmed.
         var confirmed: DeliveryState? = nil
         /// The page's own send (`SendFlowController.deliveryState`): sending, or not sent and why.
@@ -121,7 +118,6 @@ enum RequestStatus {
         item.sessionState == .ended ? ClaudeCheck.standaloneAnswer(for: item) : nil
     }
 
-    static let offlineHelp = "The Waggle service is offline. The page shows the copy saved on this Mac."
     static let savedOnMac = "Your reply is saved on this Mac."
     static let unreachable = "The agent session is unreachable. Retry sends this same reply once, never twice."
     static let hideLabel = "Hide this message"
@@ -129,9 +125,6 @@ enum RequestStatus {
     /// The one status line of the request, or `nil` when there is nothing to say.
     static func line(_ input: Input) -> Line? {
         let item = input.item
-        if input.isOffline {
-            return Line(kind: .offline, text: "Offline", help: offlineHelp)
-        }
         if item.isDone {
             return Line(
                 kind: .done, text: "Done · \(item.runtimeLabel) finished and needs no answer", tone: .ok, actions: [.gotIt])
@@ -180,7 +173,7 @@ enum RequestStatus {
         switch input.local {
         case .offline:
             return Line(
-                kind: .notSent, text: "Not sent", reason: "The Waggle service is offline. \(savedOnMac)",
+                kind: .notSent, text: "Not sent", reason: "Waggle is paused. \(savedOnMac)",
                 tone: .failed, actions: [.retry], canHide: true)
         case .refused(let reason):
             let trimmed = reason.trimmingCharacters(in: .whitespacesAndNewlines)
@@ -391,7 +384,6 @@ struct RequestStatusLineView: View {
 
     private var neutralSymbol: String {
         switch line.kind {
-        case .offline: "wifi.slash"
         case .sessionClosed: "moon.zzz"
         case .saved: "tray.and.arrow.down"
         case .handedOver: "arrow.uturn.forward.circle"
