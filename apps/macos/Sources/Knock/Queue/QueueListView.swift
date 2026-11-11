@@ -387,7 +387,7 @@ struct QueueListView: View {
             // The red count pill (WAG-257).
             Text("\(model.visibleNeedsYouCases.count)")
                 .knockTextStyle(Theme.AskDoc.Chrome.countPill)
-                .foregroundColor(model.visibleNeedsYouCases.isEmpty ? Theme.Colors.ink3 : Theme.Colors.onFill)
+                .foregroundColor(model.visibleNeedsYouCases.isEmpty ? Theme.Colors.ink3 : Theme.Colors.onAccent)
                 .padding(Theme.AskDoc.Chrome.countPillInset)
                 // Nothing needs you: the pill goes grey, not red.
                 .background(Capsule().fill(model.visibleNeedsYouCases.isEmpty ? Theme.Colors.side : Theme.Colors.accent))

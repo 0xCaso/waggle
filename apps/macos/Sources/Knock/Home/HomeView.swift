@@ -85,7 +85,6 @@ struct HomeView: View {
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
         }
         .background(Theme.Colors.win)
-        .preferredColorScheme(.light)
         .task { await pluginOffer.startIfNeeded() }
     }
 }

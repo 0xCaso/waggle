@@ -102,7 +102,6 @@ struct KnockApp: App {
                 .background(SettingsLaunchGate())
                 .background(MainWindowOpenBridge())
                 .background(MainWindowRegistrar())
-                .preferredColorScheme(.light)
         }
         .defaultSize(width: 1440, height: 900)
         // M3/M11 draw the traffic lights inline in the Inbox list's header,
@@ -151,7 +150,6 @@ struct KnockApp: App {
             OnboardingWindowView(model: onboardingModel)
                 .background(OnboardingAutoCloseGate())
                 .background(MainWindowOpenBridge())
-                .preferredColorScheme(.light)
         }
         .windowStyle(.hiddenTitleBar)
         .windowResizability(.contentSize)
@@ -162,7 +160,6 @@ struct KnockApp: App {
         Settings {
             SettingsView(client: model.client, askPreferences: model.askPreferences, onboardingModel: onboardingModel)
                 .background(MainWindowOpenBridge())
-                .preferredColorScheme(.light)
         }
     }
 }

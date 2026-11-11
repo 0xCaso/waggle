@@ -32,8 +32,17 @@ one control: System, Light or Dark."
 ## Comments
 none
 
+## Palette (approved)
+- Surfaces: sidebar #141517, canvas #18191C, window #1C1E21. Text: #F1F1EF, body #C5C7CB, meta #9C9EA3.
+- Honey and red fills do not change. Green (#4CC38A) and blue (#8DA6FF) are lighter so they read as text.
+- The primary button is light with dark text (`onFill` #16181A). Two new tokens: `onAccent` (white on red, both
+  looks) and `accentText` (red as text, #FF8A80 in the dark look).
+- Agent's note: a `KNOCK_APPEARANCE` env value (dark, system) picks the look in a test build until task 2 adds
+  the setting.
+
 ## Open questions
-- The dark values of the 48 theme tokens. Not drawn yet. Task 1 draws them and asks.
+- Closed 2026-11-11: the human approved the dark palette (case c_61023221-f738-4e16-a943-b4a5ab670e53) from
+  captures of four real screens in both looks. The values are in Theme/Theme.swift (`Color(light:dark:)`).
 - Where the control lives in Settings. The agent's default: a new "Appearance" row on an existing page, not a
   tenth page.
 

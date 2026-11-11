@@ -12,6 +12,10 @@ enum AppAppearance {
 
     /// Sets the app-wide appearance. `app` is injectable for tests.
     static func apply(to app: NSApplication = NSApplication.shared) {
-        app.appearance = NSAppearance(named: name)
+        switch ProcessInfo.processInfo.environment["KNOCK_APPEARANCE"] {
+        case "dark": app.appearance = NSAppearance(named: .darkAqua)
+        case "system": app.appearance = nil
+        default: app.appearance = NSAppearance(named: name)
+        }
     }
 }

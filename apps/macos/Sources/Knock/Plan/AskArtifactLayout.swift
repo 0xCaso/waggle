@@ -146,7 +146,7 @@ struct PinnedArtifactBar: View {
             Button(action: onOpen) {
                 Text("Open")
                     .knockTextStyle(Theme.Typography.buttonSm12_5w600)
-                    .foregroundColor(.white)
+                    .foregroundColor(Theme.Colors.onFill)
                     .padding(.horizontal, 12)
                     .padding(.vertical, 5)
                     .background(RoundedRectangle(cornerRadius: Theme.Radius.recommendedBlock).fill(Theme.Colors.ink))
@@ -156,7 +156,7 @@ struct PinnedArtifactBar: View {
             .accessibilityLabel("Open \(AskLayout.foldTitle(model.selectedTab))")
         }
         .padding(EdgeInsets(top: 6, leading: 12, bottom: 6, trailing: 6))
-        .background(RoundedRectangle(cornerRadius: 10).fill(Color.white))
+        .background(RoundedRectangle(cornerRadius: 10).fill(Theme.Colors.win))
         .overlay(RoundedRectangle(cornerRadius: 10).stroke(Theme.Colors.ink, lineWidth: 1))
         .padding(EdgeInsets(top: 8, leading: 14, bottom: 8, trailing: 14))
         .onChange(of: composer.selectedOptionId) { _, _ in follow() }

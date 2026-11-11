@@ -29,7 +29,6 @@ struct SettingsView: View {
         }
         .frame(width: 820)
         .background(Theme.Colors.win)
-        .preferredColorScheme(.light)
         .background(SettingsEvidenceShot())
         .onAppear { navigation.reportPage() }
         .task { await navigation.loadSharing { try await client.sharingGet() } }

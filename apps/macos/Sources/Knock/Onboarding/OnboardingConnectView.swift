@@ -103,6 +103,5 @@ struct AgentInstructionsFullTextSheet: View {
         // under Knock's light-theme ink text: unreadable (operator, 29 Sep).
         // Knock is light-only, like its other windows.
         .background(Theme.Colors.win)
-        .preferredColorScheme(.light)
     }
 }

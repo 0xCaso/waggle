@@ -128,7 +128,6 @@ struct ShareSheetView: View {
         .padding(24)
         .frame(width: 440)
         .background(Theme.Colors.win)
-        .preferredColorScheme(.light)
         .onDisappear { model.clearProblem() }
         .confirmationDialog(AccountLogic.stopConfirmTitle, isPresented: $confirmsStop) {
             Button("Stop sharing", role: .destructive) { Task { await model.stopSharing() } }
