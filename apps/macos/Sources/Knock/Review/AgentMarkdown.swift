@@ -2,8 +2,8 @@ import Foundation
 
 /// One block of an agent's text (HAIL-70, operator decision 29 Sep: agent text
 /// renders as safe markdown). A small parser on purpose: paragraphs, bullets one
-/// level deep, numbered lists. Headings keep their text and lose the "#". Images,
-/// HTML and tables stay as plain text lines. It never produces a link or an
+/// level deep, numbered lists, pipe tables (decision 2026-11-11). Headings keep their text and lose the "#".
+/// Images and HTML stay as plain text lines. It never produces a link or an
 /// image, so nothing here can open or load anything.
 enum AgentMarkdownBlock: Equatable {
     case paragraph(String)

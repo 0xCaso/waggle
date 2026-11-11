@@ -407,7 +407,8 @@ Field guidance (HAIL-37): the tool schema the shim publishes for `tools/list` ca
 
 Agent text (`need`, `why`, `recommendation_why`, and the `message` of `waggle_update`) renders as
 safe markdown in the app (operator decision 29 Sep, HAIL-70): paragraphs, bullet and numbered lists,
-bold, italics and inline code. No links (they show as plain text), no images, no HTML. The app never
+bold, italics, inline code and pipe tables (a header row, a `---` row, then body rows cut or padded to the header's cells;
+docs/decisions/2026-11-11-tables-in-agent-text.md). No links (they show as plain text), no images, no HTML. The app never
 opens or loads anything from this text. The queue row and notifications show one plain line with the
 markers stripped.
 
@@ -1234,7 +1235,7 @@ The unified diff has 2 lines of context. The `waggle_guide` topic `after-the-rep
 "When the person edits your document, use their version as the base."
 
 Safe markdown still holds: the app saves only the supported markdown (headings, bold, italics,
-inline code, lists, paragraphs). It never writes a link, an image or HTML into the text.
+inline code, lists, paragraphs, pipe tables). It never writes a link, an image or HTML into the text.
 
 ### Errors that say what to tell the user (HAIL-38)
 

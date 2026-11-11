@@ -22,7 +22,7 @@ only when the work changes.
 ## need: the first line stands alone
 
 The queue preview shows only the need's first sentence. Put the decision there, not context.
-Need and round messages render bold, italics, inline code and lists. Bold the key words; keep the first line the question.
+Need and round messages render bold, italics, inline code, lists and pipe tables. Bold the key words; keep the first line the question.
 
 WRONG
     need: "I've been working on the checkout flow for a while and I think there might be two
