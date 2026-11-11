@@ -294,8 +294,8 @@ struct ConversationTabView: View {
 
 /// One message as the mockup's `.msg`: a bubble with who and when on top (mono 10.5, quiet) and the text in full
 /// (12.5/1.5). The agent's bubble is on the side fill; yours is ink with white text and sits 40 pt in from the left,
-/// "picked up" at the right of its header. The newest agent message after a reply has the latest fill and a 2 pt
-/// link bar on its left (`.msg.latestm`).
+/// "picked up" at the right of its header. The newest agent message after a reply has the latest fill, with no bar
+/// on its left (operator review, 11 Nov).
 struct ConversationMessageView: View {
     let header: String
     let text: String
@@ -326,9 +326,6 @@ struct ConversationMessageView: View {
         .padding(Column.messagePadding)
         .frame(maxWidth: .infinity, alignment: .leading)
         .background(background)
-        .overlay(alignment: .leading) {
-            if isLatest { Rectangle().fill(Theme.Colors.link).frame(width: 2) }
-        }
         .clipShape(RoundedRectangle(cornerRadius: Column.messageRadius))
         .padding(.leading, isYours ? 40 : 0)
     }
