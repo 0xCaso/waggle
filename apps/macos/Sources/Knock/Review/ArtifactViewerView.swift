@@ -33,6 +33,8 @@ struct ArtifactViewerView: View {
     @StateObject private var changesHub = WriteUpChangesHub()
     /// Cancel with changes asks first (HAIL-168).
     @State private var confirmingDiscard = false
+    /// The version that arrived while this page was on show; the header marks it "new" for a few seconds.
+    @State private var newMarkRevision: Int?
 
     /// The toolbar's Open menu (WAG-309): the artifact on show in a window of its own, or in the browser.
     /// `nil` hides the item.
@@ -148,6 +150,15 @@ struct ArtifactViewerView: View {
             alignment: .trailing
         )
         .animation(reduceMotion ? nil : .easeOut(duration: 0.2), value: compareActive)
+        .animation(.easeOut(duration: 0.2), value: newMarkRevision)
+        .onChange(of: arrivals) { old, new in
+            guard let mark = ArtifactVersionLabel.newMark(from: old, to: new, latest: latestRevision) else { return }
+            newMarkRevision = mark
+            Task { @MainActor in
+                try? await Task.sleep(for: .seconds(ArtifactVersionLabel.newMarkSeconds))
+                if newMarkRevision == mark { newMarkRevision = nil }
+            }
+        }
         .task(id: compareAvailable) {
             if compareAvailable { compare.applyEvidenceOnce(ProcessInfo.processInfo.environment["KNOCK_EVIDENCE_COMPARE"]) }
         }
@@ -553,6 +564,10 @@ struct ArtifactViewerView: View {
     }
 
     /// The newest version of the case, as the header says "v2 of 3".
+    private var arrivals: ArtifactVersionLabel.Arrivals {
+        .init(caseId: viewModel.detail?.case.id, count: viewModel.detail?.revisions.count ?? 0)
+    }
+
     private var latestRevision: Int? {
         (viewModel.detail?.revisions.map(\.n).max()).map { max($0, artifactState.revision ?? 0) } ?? artifactState.revision
     }
@@ -565,6 +580,16 @@ struct ArtifactViewerView: View {
                 .foregroundColor(Theme.Colors.ink2)
                 .lineLimit(1)
                 .fixedSize(horizontal: true, vertical: false)
+            if let mark = newMarkRevision, mark == artifactState.revision {
+                Text("new")
+                    .knockTextStyle(Theme.Typography.chipLabel11_5w600)
+                    .foregroundColor(Theme.Colors.ds)
+                    .padding(EdgeInsets(top: 1, leading: 6, bottom: 1, trailing: 6))
+                    .background(Theme.Colors.dsUpdateFill)
+                    .cornerRadius(Theme.Radius.chip)
+                    .transition(.opacity)
+                    .accessibilityLabel("New version")
+            }
             if isMarkdown, viewModel.humanRevision != nil {
                 versionChips(selectedBase: false)
                 compareButton

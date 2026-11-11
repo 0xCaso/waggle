@@ -74,6 +74,16 @@ struct WAG309Tests {
         #expect(ArtifactVersionLabel.captureChip(n: 1, captureRevision: 7, artifactRevision: 8, time: "14:02") == "Capture 1 · from v7 · 14:02")
     }
 
+    @Test func aVersionThatArrivesOnThePageIsMarkedNew() {
+        typealias A = ArtifactVersionLabel.Arrivals
+        #expect(ArtifactVersionLabel.newMark(from: A(caseId: "c1", count: 2), to: A(caseId: "c1", count: 3), latest: 3) == 3)
+        // The first load, another request, and a tab or older-version switch show no mark.
+        #expect(ArtifactVersionLabel.newMark(from: A(caseId: nil, count: 0), to: A(caseId: "c1", count: 3), latest: 3) == nil)
+        #expect(ArtifactVersionLabel.newMark(from: A(caseId: "c1", count: 0), to: A(caseId: "c1", count: 1), latest: 1) == nil)
+        #expect(ArtifactVersionLabel.newMark(from: A(caseId: "c1", count: 2), to: A(caseId: "c2", count: 3), latest: 3) == nil)
+        #expect(ArtifactVersionLabel.newMark(from: A(caseId: "c1", count: 3), to: A(caseId: "c1", count: 3), latest: 3) == nil)
+    }
+
     @Test func fullSizeOpenMenuHasWindowAndBrowserButNoFullSize() {
         #expect(ArtifactFullSizeOpenMenu.items(kind: .htmlBundle, hasWindow: true, hasBrowser: true) == [.window, .browser])
         #expect(ArtifactFullSizeOpenMenu.items(kind: .markdown, hasWindow: true, hasBrowser: true) == [.window])

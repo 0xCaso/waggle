@@ -16,6 +16,22 @@ enum ArtifactVersionLabel {
         return "\(title) · \(version)"
     }
 
+    /// What the header watches to see a version arrive: the request and how many versions it has.
+    struct Arrivals: Equatable {
+        let caseId: String?
+        let count: Int
+    }
+
+    /// The version to mark as "new" in the header: the newest one, when the same request gets one more
+    /// version while its page is on show. `nil` on the first load, on a move to another request, and on a
+    /// tab or older-version switch (the count stays the same).
+    static func newMark(from old: Arrivals, to new: Arrivals, latest: Int?) -> Int? {
+        guard let id = new.caseId, id == old.caseId, old.count > 0, new.count > old.count else { return nil }
+        return latest
+    }
+    /// How long the "new" mark stays, in seconds.
+    static let newMarkSeconds: Double = 4
+
     /// "from v7" when a capture was taken on another version than the artifact on show, else `nil`:
     /// the capture then adds no version words, because the toolbar already says it.
     static func captureOrigin(captureRevision: Int, artifactRevision: Int?) -> String? {
