@@ -154,7 +154,7 @@ enum RequestStatus {
         if case .delivered(let at)? = input.confirmed, item.replyLockState == .delivered {
             return Line(
                 kind: .delivered, text: DeliveryState.delivered(at: at).footerDeliveredLine ?? "Delivered ✓", tone: .ok,
-                actions: item.kind == .review ? [.viewReview] : [])
+                actions: item.kind == .review ? [.copyAnswer, .viewReview] : [.copyAnswer])
         }
         if item.latestReplyState == .handedOver {
             return Line(kind: .handedOver, text: ReplyApplyCopy.handedOver)

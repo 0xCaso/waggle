@@ -91,7 +91,10 @@ struct RequestStatusTests {
             item: item(status: .resolved, replyState: .delivered), confirmed: .delivered(at: Date())))
         #expect(delivered?.kind == .delivered)
         #expect(delivered?.text.hasPrefix("Delivered ✓") == true)
-        #expect(delivered?.actions == [])
+        #expect(delivered?.actions == [.copyAnswer])
+        let review = line(.init(
+            item: item(status: .resolved, kind: .review, replyState: .delivered), confirmed: .delivered(at: Date())))
+        #expect(review?.actions == [.copyAnswer, .viewReview])
     }
 
     @Test func aClosedSessionBeforeTheAnswerOffersANewSession() {
