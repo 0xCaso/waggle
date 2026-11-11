@@ -43,7 +43,7 @@ struct SentAnswerCardTests {
     @Test func theFullWindowAndTheCasePaneShareTheAnsweredView() {
         func kind(_ lock: ReplyLockState, editing: Bool = false) -> ReviewWorkspaceView.RightColumnKind {
             ReviewWorkspaceView.rightColumnKind(
-                lockState: lock, isEditingLockedAnswer: editing, isReviewingBeforeSend: false, tab: .question)
+                lockState: lock, isEditingLockedAnswer: editing, tab: .question)
         }
         for lock in [ReplyLockState.queued, .delivered, .failed] {
             #expect(kind(lock) == .askWithStatus)

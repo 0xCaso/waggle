@@ -377,11 +377,8 @@ struct ReviewWorkspaceView: View {
         switch Self.rightColumnKind(
             lockState: detail.case.replyLockState,
             isEditingLockedAnswer: sendFlow.isEditingLockedAnswer,
-            isReviewingBeforeSend: sendFlow.isReviewingBeforeSend,
             tab: viewModel.tab
         ) {
-        case .reviewBeforeSend:
-            ReviewBeforeSendColumnView(sendFlow: sendFlow, task: detail.task)
         case .askWithStatus:
             askColumn(sentCard: sentCard)
         case .comments:
@@ -475,7 +472,6 @@ struct ReviewWorkspaceView: View {
     /// and the answer box is the status card ("YOU PICKED", Applied). It takes
     /// priority over `tab`. The full window and the one page share it.
     enum RightColumnKind: Equatable {
-        case reviewBeforeSend
         /// Answer sent: the question stays, the answer box is the status card.
         case askWithStatus
         case comments
@@ -483,9 +479,8 @@ struct ReviewWorkspaceView: View {
     }
 
     static func rightColumnKind(
-        lockState: ReplyLockState, isEditingLockedAnswer: Bool, isReviewingBeforeSend: Bool, tab: ReviewColumnTab
+        lockState: ReplyLockState, isEditingLockedAnswer: Bool, tab: ReviewColumnTab
     ) -> RightColumnKind {
-        if isReviewingBeforeSend { return .reviewBeforeSend }
         if lockState != .editable && !isEditingLockedAnswer { return .askWithStatus }
         return tab == .comments ? .comments : .interact
     }

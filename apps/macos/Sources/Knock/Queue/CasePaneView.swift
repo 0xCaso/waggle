@@ -165,7 +165,7 @@ struct CasePaneDetailView: View {
         // `KNOCK_PANE_SELECT_OPTION=<option id>` (Amendments): the
         // orchestrator's evidence hook for a non-default selection, since it
         // cannot click a specific option row itself - the same pattern as
-        // `KNOCK_REVIEW_STEP`/`KNOCK_REVIEW_MODE`.
+        // `KNOCK_REVIEW_MODE`.
         if isEvidenceHookTarget, let optionId = environment["KNOCK_PANE_SELECT_OPTION"],
            detail.case.options.contains(where: { $0.id == optionId }) {
             sendFlow.composer.selectOption(optionId)

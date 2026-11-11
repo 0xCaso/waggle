@@ -84,10 +84,9 @@ struct SessionActivity: Equatable {
         return seconds < 5 ? "just now" : "\(CaseTimes.compactDuration(seconds)) ago"
     }
 
-    /// "<project> · <branch>", or just the project when there is no branch.
+    /// The project in plain words, the same name the rest of the app uses. No branch.
     static func title(_ session: SessionInfo) -> String {
-        guard let branch = session.branch, !branch.isEmpty else { return session.project }
-        return "\(session.project) · \(branch)"
+        ProjectName.display(project: session.project)
     }
 
     /// "up 2h 14m", the session's age.

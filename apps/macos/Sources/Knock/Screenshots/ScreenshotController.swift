@@ -122,7 +122,7 @@ final class ScreenshotController {
         hasScreenAccess: @escaping () -> Bool = { CGPreflightScreenCaptureAccess() },
         requestScreenAccess: @escaping () -> Void = { _ = CGRequestScreenCaptureAccess() },
         makeLauncher: @escaping () -> SessionStarting = { SessionLauncher() },
-        folderPicker: @escaping @MainActor (URL) -> URL? = NewIdeaModel.openFolderPanel,
+        folderPicker: @escaping @MainActor (URL) -> URL? = SendHelpers.openFolderPanel,
         snipFolder: URL = SnipFiles.folder(),
         showsWindows: Bool = true,
         loadSessions: @escaping () async -> [SessionInfo],

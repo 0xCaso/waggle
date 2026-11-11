@@ -389,7 +389,7 @@ enum NewSessionFolders {
 
     /// The New idea saved folder, else the home folder (the same default as the New idea page).
     static func savedFolder(defaults: UserDefaults = .standard, home: URL = FileManager.default.homeDirectoryForCurrentUser) -> URL {
-        defaults.string(forKey: NewIdeaModel.folderKey).map { URL(fileURLWithPath: $0, isDirectory: true) } ?? home
+        defaults.string(forKey: SendHelpers.folderKey).map { URL(fileURLWithPath: $0, isDirectory: true) } ?? home
     }
 
     /// "Claude Code in Terminal". Conductor has no agent line, so it reads "Conductor".

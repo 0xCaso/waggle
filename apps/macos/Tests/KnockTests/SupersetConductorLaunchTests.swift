@@ -240,12 +240,11 @@ struct SupersetConductorModelTests {
         path: String, home: String = "/nonexistent-home", runner: FakeCLIRunner = FakeCLIRunner(),
         opener: FakeOpener = FakeOpener(), store: LaunchTargetStoring = FakeStore(),
         board: NSPasteboard = NSPasteboard(name: NSPasteboard.Name("knock-test-\(UUID().uuidString)"))
-    ) -> IdeaLaunchHarness {
-        let m = IdeaLaunchHarness(
-            fileURL: file, sessions: [], sendPrompt: { _, _ in SendPromptResult(sent: true) }, launcher: NoTerminal(),
+    ) -> LaunchHarness {
+        let m = LaunchHarness(
+            fileURL: file, launcher: NoTerminal(),
             resolvePath: { LoginShellPathResolution(path: path, shellSucceeded: true) }, pasteboard: board,
-            opener: opener, launchTargetStore: store, sleep: { _ in }, cliRunner: runner, homeDirectory: home,
-            folderPicker: { _ in nil })
+            opener: opener, launchTargetStore: store, sleep: { _ in }, cliRunner: runner, homeDirectory: home)
         m.folder = URL(fileURLWithPath: "/Users/me/waggle")
         return m
     }
@@ -374,19 +373,17 @@ struct SupersetConductorModelTests {
     }
 }
 
-// WAG-269: New idea uses the same targets, greyed reasons and fallbacks as Start from a document.
+// WAG-269: a launch uses the same targets, greyed reasons and fallbacks everywhere.
 @MainActor
-struct NewIdeaLaunchTargetTests {
+struct LaunchTargetFallbackTests {
     private func idea(
         path: String, runner: FakeCLIRunner = FakeCLIRunner(), opener: FakeOpener = FakeOpener(),
         store: FakeStore = FakeStore(), board: NSPasteboard = NSPasteboard(name: .init("knock-idea-\(UUID().uuidString)"))
-    ) -> NewIdeaModel {
-        let launcher = SessionLauncher(
-            launcher: NoTerminal(), resolvePath: { LoginShellPathResolution(path: path, shellSucceeded: true) }, pasteboard: board,
+    ) -> LaunchHarness {
+        LaunchHarness(
+            fileURL: nil, folder: URL(fileURLWithPath: "/Users/me/waggle"), launcher: NoTerminal(),
+            resolvePath: { LoginShellPathResolution(path: path, shellSucceeded: true) }, pasteboard: board,
             opener: opener, launchTargetStore: store, cliRunner: runner, homeDirectory: "/nonexistent-home")
-        return NewIdeaModel(
-            launcher: launcher, defaults: UserDefaults(suiteName: "new-idea-\(UUID().uuidString)")!,
-            homeDirectory: URL(fileURLWithPath: "/Users/me/waggle"), folderPicker: { _ in nil }, filePicker: { [] })
     }
 
     @Test func aSavedSupersetPickFallsBackWithItsGreyedReason() async throws {
@@ -399,10 +396,10 @@ struct NewIdeaLaunchTargetTests {
         runner.stub("projects list", CLIResult(exitCode: 1, stdout: "", stderr: "Not logged in"))
         let m = idea(path: bin.path, runner: runner, store: FakeStore(.codexSuperset))
         await m.loadAvailability()
-        #expect(m.launcher.availability.unavailableText(.codexSuperset) == "Sign in to Superset first")
-        #expect(m.launcher.launchTarget == .claudeTerminal)
-        m.launcher.chooseLaunchTarget(.claudeSuperset)
-        #expect(m.launcher.launchTarget != .claudeSuperset)
+        #expect(m.availability.unavailableText(.codexSuperset) == "Sign in to Superset first")
+        #expect(m.launchTarget == .claudeTerminal)
+        m.chooseLaunchTarget(.claudeSuperset)
+        #expect(m.launchTarget != .claudeSuperset)
     }
 
     @Test func startOpensTheSupersetWorkspaceNamedFromTheIdea() async throws {
@@ -414,9 +411,9 @@ struct NewIdeaLaunchTargetTests {
         runner.stub("ws open", ok(""))
         let m = idea(path: bin.path, runner: runner)
         await m.loadAvailability()
-        m.launcher.chooseLaunchTarget(.claudeSuperset)
+        m.chooseLaunchTarget(.claudeSuperset)
         m.idea = "\nCheaper onboarding\nmore detail"
-        await m.start()
+        await m.submit()
         let create = try #require(runner.calls.first { $0.arguments.starts(with: ["ws", "create"]) })
         #expect(create.arguments.contains("Cheaper onboarding"))
         #expect(m.idea == "")
@@ -429,10 +426,10 @@ struct NewIdeaLaunchTargetTests {
         let board = NSPasteboard(name: .init("knock-idea-\(UUID().uuidString)"))
         let m = idea(path: "/nonexistent-knock", opener: opener, board: board)
         await m.loadAvailability()
-        m.launcher.chooseLaunchTarget(.conductor)
+        m.chooseLaunchTarget(.conductor)
         m.idea = "An idea"
         let prompt = m.prompt
-        await m.start()
+        await m.submit()
         #expect(opener.opened.count == 1)
         #expect(board.string(forType: .string) == prompt)
     }
@@ -443,9 +440,9 @@ struct NewIdeaLaunchTargetTests {
         opener.openSucceeds = false
         let m = idea(path: "/nonexistent-knock", opener: opener)
         await m.loadAvailability()
-        m.launcher.chooseLaunchTarget(.conductor)
+        m.chooseLaunchTarget(.conductor)
         m.idea = "An idea"
-        await m.start()
+        await m.submit()
         #expect(m.idea == "An idea")
         #expect(m.errorText == "Waggle could not open Conductor. The prompt is on your clipboard.")
     }
