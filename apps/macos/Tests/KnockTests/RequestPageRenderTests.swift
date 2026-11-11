@@ -265,6 +265,19 @@ struct RequestPageRenderTests {
             recommendationWhy: why, options: longOld, status: .needsYou, hasArtifact: false,
             createdAt: "2026-11-10T10:00:00Z", updatedAt: "2026-11-10T10:00:00Z")
         try render("55-gist-old-pane-1000x980", oldCase, width: 1000, height: 980)
+        // Pros and cons that wrap in a narrow column: each line keeps its own room (no line drawn over the next).
+        let wrap = Option(
+            id: "w", label: "One page per work, with a timeline", title: "One page per work",
+            proPoints: ["Same movement as Percorso", "One proof for each work, and you select it", "The timeline stays on top"],
+            conPoints: ["Longer to build than a list of links", "The photos must be cut again for the new size"])
+        let wrapCards = VStack(alignment: .leading, spacing: CalmOption.rowGap) {
+            CalmOptionRowView(
+                option: wrap, position: 1, isSelected: true, isRecommended: true,
+                recommendationWhy: "each work gets its own proof.", onLean: {}, onRuleOut: {}, isOpen: true, onSelect: {})
+        }
+        .padding(EdgeInsets(top: 14, leading: 18, bottom: 10, trailing: 18))
+        try renderView("56-gist-wrapping-points-360", width: 360, height: 420, scale: 2, wrapCards)
+        try renderView("57-gist-wrapping-points-440", width: 440, height: 380, scale: 2, wrapCards)
         // "Show the full points" open.
         setenv("KNOCK_EVIDENCE_FULL_POINTS", "1", 1)
         defer { unsetenv("KNOCK_EVIDENCE_FULL_POINTS") }

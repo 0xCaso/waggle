@@ -1274,12 +1274,19 @@ struct CSSText: NSViewRepresentable {
     }
 
     func sizeThatFits(_ proposal: ProposedViewSize, nsView: CSSTextNSView, context: Context) -> CGSize? {
+        fitSize(proposedWidth: proposal.width)
+    }
+
+    func fitSize(proposedWidth: CGFloat?) -> CGSize {
+        let width = proposedWidth ?? .greatestFiniteMagnitude
         let text = attributed
-        let width = proposal.width ?? .greatestFiniteMagnitude
-        let rect = text.boundingRect(
-            with: NSSize(width: width.isFinite ? width : 1e6, height: 1e6), options: [.usesLineFragmentOrigin])
-        // The width the lines take, as a CSS flex item's: a title leaves the rest of the row to its tag.
-        return CGSize(width: min(ceil(rect.width), width), height: rect.height)
+        let used = CSSTextNSView.usedSize(text, width: width.isFinite ? width : 1e6)
+        // The width the lines take, as a CSS flex item's: a title leaves the rest of the row to its tag. TextKit wraps a
+        // line a little before its used width (about 2 pt), so the width grows until the drawing keeps the same lines;
+        // else the view gets a width where a line wraps and the next line draws over it.
+        var fit = min(ceil(used.width), width)
+        while fit < width, CSSTextNSView.usedSize(text, width: fit).height > used.height + 0.5 { fit = min(fit + 1, width) }
+        return CGSize(width: fit, height: ceil(used.height))
     }
 
     /// The width of one line of this text, for a cut at a whole word.
@@ -1299,6 +1306,18 @@ final class CSSTextNSView: NSView {
     override func hitTest(_ point: NSPoint) -> NSView? { nil }
     override func isAccessibilityElement() -> Bool { true }
     override func accessibilityRole() -> NSAccessibility.Role? { .staticText }
+
+    /// The size the text's lines take at `width`, laid out exactly as `draw` lays them out.
+    static func usedSize(_ text: NSAttributedString, width: CGFloat) -> CGSize {
+        let storage = NSTextStorage(attributedString: text)
+        let layout = NSLayoutManager()
+        let container = NSTextContainer(size: NSSize(width: width, height: 1e6))
+        container.lineFragmentPadding = 0
+        storage.addLayoutManager(layout)
+        layout.addTextContainer(container)
+        layout.ensureLayout(for: container)
+        return layout.usedRect(for: container).size
+    }
 
     override func draw(_ dirtyRect: NSRect) {
         // A frame rounded to the pixel can be a hair under the text's height; the container has room to spare below,

@@ -165,6 +165,36 @@ struct OptionGistTests {
         #expect(OptionGist.Hanging.textInset == 17)
     }
 
+    /// A point that wraps asks for the room of every line it draws, so the next point starts below it (no overlap).
+    @Test func aWrappedPointAsksForTheHeightOfAllItsLines() {
+        FontRegistration.registerBundledFonts()
+        let line = CSSText(
+            runs: [.init(text: "+", semibold: true, color: .green), .init(text: "One proof for each work, and you select it", color: .black)],
+            lineHeight: GistCardStyle.pointLineHeight, hanging: true)
+        let one = CSSTextNSView.usedSize(line.attributed, width: 1000)
+        for width in [120, 150, 170, 190] as [CGFloat] {
+            let used = CSSTextNSView.usedSize(line.attributed, width: width)
+            let storage = NSTextStorage(attributedString: line.attributed)
+            let layout = NSLayoutManager()
+            let container = NSTextContainer(size: NSSize(width: width, height: 1000))
+            container.lineFragmentPadding = 0
+            storage.addLayoutManager(layout)
+            layout.addTextContainer(container)
+            var lines = 0
+            layout.enumerateLineFragments(forGlyphRange: layout.glyphRange(for: container)) { _, _, _, _, _ in lines += 1 }
+            #expect(lines >= 2)
+            #expect(abs(used.height - CGFloat(lines) * one.height) < 0.5)
+            #expect(used.width <= width)
+        }
+        // The width it asks for keeps it on the lines it was measured with: at the used width alone TextKit wraps it.
+        let short = CSSText(
+            runs: [.init(text: "+", semibold: true, color: .green), .init(text: "Same movement as Percorso", color: .black)],
+            lineHeight: GistCardStyle.pointLineHeight, hanging: true)
+        let fit = short.fitSize(proposedWidth: 190)
+        #expect(abs(fit.height - CSSTextNSView.usedSize(short.attributed, width: 1000).height) < 1)
+        #expect(CSSTextNSView.usedSize(short.attributed, width: fit.width).height <= fit.height)
+    }
+
     @Test func codeInAPointIsAChip() {
         let runs = CSSText.inlineRuns("A fail means `v0.4.1` here", color: .black)
         #expect(runs.map(\.text) == ["A fail means ", "v0.4.1", " here"])
