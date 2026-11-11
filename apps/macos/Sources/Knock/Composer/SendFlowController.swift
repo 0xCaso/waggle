@@ -352,7 +352,7 @@ final class SendFlowController: ObservableObject {
             clearAfterSend()
             onSent()
         case .offline:
-            errorMessage = "Not sent · Waggle service is offline. Your reply is saved on this Mac and will send when it reconnects."
+            errorMessage = "Not sent. Waggle is paused. Your reply is saved on this Mac and will send when Waggle starts again."
         case .refused(let reason):
             errorMessage = "Not sent · Waggle refused the reply. \(reason)"
         case .failed, .idle, .sending, .delivered:
@@ -416,7 +416,7 @@ final class SendFlowController: ObservableObject {
             // the socket. `errorMessage` is kept for `SendFlowControllerTests`
             // (`#expect(flow.errorMessage == nil)` on the success path); the
             // M8 offline banner (`deliveryState`) is what the UI shows now.
-            errorMessage = "Not sent · Waggle service is offline. Your reply is saved on this Mac and will send when it reconnects."
+            errorMessage = "Not sent. Waggle is paused. Your reply is saved on this Mac and will send when Waggle starts again."
         case .refused(let reason):
             errorMessage = "Not sent · Waggle refused the reply. \(reason)"
         case .failed, .idle, .sending, .delivered:

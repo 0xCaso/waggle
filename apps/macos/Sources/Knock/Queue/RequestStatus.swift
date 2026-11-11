@@ -173,7 +173,7 @@ enum RequestStatus {
         switch input.local {
         case .offline:
             return Line(
-                kind: .notSent, text: "Not sent", reason: "The Waggle service is offline. \(savedOnMac)",
+                kind: .notSent, text: "Not sent", reason: "Waggle is paused. \(savedOnMac)",
                 tone: .failed, actions: [.retry], canHide: true)
         case .refused(let reason):
             let trimmed = reason.trimmingCharacters(in: .whitespacesAndNewlines)
