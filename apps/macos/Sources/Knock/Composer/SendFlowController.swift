@@ -348,7 +348,7 @@ final class SendFlowController: ObservableObject {
     /// `deliveryState` has already left `.idle` for this attempt - the M8
     /// offline/failed banners replace the composer with a Retry action
     /// instead, and `⌘↵`'s hidden button stays wired the whole time
-    /// (`ComposerFooterView`/`ReviewBeforeSendColumnView`), so this guard is
+    /// (`ComposerFooterView`), so this guard is
     /// what stops that shortcut from starting a second, distinct send while
     /// one is already showing its outcome.
     func confirmSend() async {
@@ -570,7 +570,7 @@ final class SendFlowController: ObservableObject {
     /// The review-before-send section heading's "on ..." phrase (HAIL-40):
     /// `commentsStore.screenLabel(for:)` for a screenshots case ("Screen N[ ·
     /// caption]"), else the pre-HAIL-40 "Capture N (vM)" - the single place
-    /// `ReviewBeforeSendColumnView`/`CommentsColumnView` both read this label
+    /// `CommentsColumnView` reads this label
     /// from, so the wording is never duplicated a third time.
     func captureLabel(for capture: CaptureRecord) -> String {
         commentsStore.screenLabel(for: capture) ?? "Capture \(capture.n) (v\(capture.revision))"
