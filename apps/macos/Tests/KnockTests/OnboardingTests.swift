@@ -166,6 +166,47 @@ struct OnboardingModelTests {
         #expect(invocations == [["doctor"], ["install", "claude"], ["doctor"]])
     }
 
+    @Test func aFailedInstallShowsAnErrorOnItsRowAndConnectIsOfferedAgain() async throws {
+        let runner = FakeCommandRunner()
+        await runner.script(["doctor"], lines: [
+            "ok    claude found",
+            "fail  Claude Code MCP server registered  (fix: waggle install claude)",
+        ])
+        await runner.script(["install", "claude"], code: 1)
+        let model = makeModel(runner: runner)
+
+        model.start()
+        try await waitUntil { rows(model)?.first { $0.runtime == .claude }?.status == .notConnected }
+        #expect(rows(model)?.first { $0.runtime == .claude }?.error == nil)
+
+        model.connect(.claude)
+        try await waitUntil { rows(model)?.first { $0.runtime == .claude }?.error != nil }
+
+        let row = rows(model)?.first { $0.runtime == .claude }
+        #expect(row?.error == "Couldn't connect Claude Code. Try again.")
+        #expect(row?.status == .notConnected, "Connect is available again")
+        #expect(!model.connectSucceeded)
+    }
+
+    @Test func aSuccessfulInstallLeavesNoError() async throws {
+        let runner = FakeCommandRunner()
+        await runner.script(["doctor"], lines: [
+            "ok    claude found",
+            "fail  Claude Code MCP server registered  (fix: waggle install claude)",
+        ])
+        await runner.script(["doctor"], lines: ["ok    claude found", "ok    Claude Code MCP server registered"])
+        let model = makeModel(runner: runner)
+        model.start()
+        try await waitUntil { rows(model)?.first { $0.runtime == .claude }?.status == .notConnected }
+        model.connect(.claude)
+        try await waitUntil { model.connectSucceeded }
+        #expect(rows(model)?.allSatisfy { $0.error == nil } == true)
+    }
+
+    @Test func installFailureMessageSaysWhenTheProcessDidNotStart() {
+        #expect(OnboardingModel.installFailureMessage(runtime: .claude, exitCode: -1) == "Couldn't start the setup for Claude Code. Try again.")
+    }
+
     @Test func treatsNoParsedChecksAsFailureRatherThanVacuousSuccess() async throws {
         let runner = FakeCommandRunner()
         let model = makeModel(runner: runner)

@@ -4,7 +4,8 @@ import SwiftUI
 /// offline", §M11 `SyfHH` → `S9dILy`).
 struct OfflineBannerView: View {
     let onStartService: () -> Void
-    let onViewLog: () -> Void
+    /// `nil` hides "View log": there is no daemon log file to open.
+    let onViewLog: (() -> Void)?
 
     var body: some View {
         VStack(alignment: .leading, spacing: 8) {
@@ -34,12 +35,14 @@ struct OfflineBannerView: View {
                 }
                 .buttonStyle(.plain).pointerCursor()
 
-                Button(action: onViewLog) {
-                    Text("View log")
-                        .knockTextStyle(Theme.Typography.buttonSm12_5w500)
-                        .foregroundColor(Theme.Colors.ink2)
+                if let onViewLog {
+                    Button(action: onViewLog) {
+                        Text("View log")
+                            .knockTextStyle(Theme.Typography.buttonSm12_5w500)
+                            .foregroundColor(Theme.Colors.ink2)
+                    }
+                    .buttonStyle(.plain).pointerCursor()
                 }
-                .buttonStyle(.plain).pointerCursor()
             }
         }
         .padding(EdgeInsets(top: 14, leading: 18, bottom: 14, trailing: 18))

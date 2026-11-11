@@ -110,10 +110,12 @@ struct MainWindowView: View {
                 }
             }
         }
-        .overlay(alignment: .topTrailing) {
-            // The "Sent" toast (HAIL-79): 14 pt from the top and right edges.
-            SentToastView(model: model)
-                .padding(14)
+        .overlay(alignment: .bottomLeading) {
+            // The "Sent" toast (HAIL-79) lives in the list column, above its footer. With the list folded
+            // (or no list on screen) it has no column, so it sits at the window's bottom left instead.
+            if queueFolded || model.openProject != nil || model.reviewRequestCaseId != nil {
+                SentToastView(model: model).padding(.leading, 2)
+            }
         }
         .overlay(alignment: .bottomTrailing) {
             // Bottom-right corner (operator, 29 Sep: "bottom right corner,

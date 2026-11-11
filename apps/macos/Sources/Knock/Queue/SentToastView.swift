@@ -5,7 +5,8 @@ import SwiftUI
 /// gone by 5 s in total, whichever is first (C10: the status line keeps the state after that).
 struct SentToastClock: Equatable, Sendable {
     static let cap: TimeInterval = 5
-    static let fadeDuration: TimeInterval = 0.25
+    /// The exit is 150 ms ease-out (docs/decisions/2026-11-11-ui-audit-batches.md).
+    static let fadeDuration: TimeInterval = 0.15
     static let deliveredHold: TimeInterval = 2.5
 
     private(set) var elapsed: TimeInterval = 0
@@ -44,13 +45,19 @@ struct SentToastContent: Equatable {
     func youLine(answer: String) -> String { answer.isEmpty ? "" : "You → \(answer)" }
 }
 
-/// The light "Sent" card in the window's top right (HAIL-79, prototype
-/// variation 2). It follows the reply's delivery and fades itself.
+/// The light "Sent" card in the list column, above the footer, so it covers no control of the
+/// next request (HAIL-79, prototype variation 2). It follows the reply's delivery and fades itself.
 struct SentToastView: View {
     @ObservedObject var model: AppModel
     @ObservedObject private var motion = MotionGate.shared
     @State private var isShown = false
     @State private var isHovering = false
+
+    /// The card rises 8 pt from the footer as it fades in.
+    private static let enterOffset: CGFloat = 8
+    /// Ease-out, 280 ms: under the 300 ms limit.
+    private static let enterAnimation = Animation.timingCurve(0.23, 1, 0.32, 1, duration: 0.28)
+    private static let exitAnimation = Animation.easeOut(duration: SentToastClock.fadeDuration)
 
     var body: some View {
         if let toast = model.sentToast {
@@ -101,7 +108,7 @@ struct SentToastView: View {
             .padding(.top, 2)
         }
         .padding(EdgeInsets(top: 12, leading: 14, bottom: 12, trailing: 14))
-        .frame(width: 340, alignment: .leading)
+        .frame(maxWidth: 340, alignment: .leading)
         .background(Theme.Colors.win)
         .clipShape(RoundedRectangle(cornerRadius: 12))
         .overlay(RoundedRectangle(cornerRadius: 12).stroke(Theme.Colors.line, lineWidth: 1))
@@ -109,8 +116,11 @@ struct SentToastView: View {
             color: Theme.Shadow.sentToast.color, radius: Theme.Shadow.sentToast.blur / 2,
             x: Theme.Shadow.sentToast.offset.width, y: Theme.Shadow.sentToast.offset.height
         )
+        .padding(.horizontal, 12)
+        .padding(.bottom, 10)
         .opacity(isShown ? 1 : 0)
-        .offset(y: isShown || motion.reduceMotion ? 0 : -8)
+        // Reduce Motion: the card only fades. It never moves.
+        .offset(y: isShown || motion.reduceMotion ? 0 : Self.enterOffset)
         .onHover { isHovering = $0 }
         .accessibilityElement(children: .contain)
     }
@@ -119,7 +129,7 @@ struct SentToastView: View {
     private func run(_ toast: SentToast) async {
         isShown = false
         await Task.yield()
-        withAnimation(.timingCurve(0.23, 1, 0.32, 1, duration: 0.28)) { isShown = true }
+        withAnimation(Self.enterAnimation) { isShown = true }
         var clock = SentToastClock()
         let step: TimeInterval = 0.1
         while !clock.shouldFade {
@@ -127,7 +137,7 @@ struct SentToastView: View {
             if Task.isCancelled { return }
             clock.advance(by: step, isHovering: isHovering, isDelivered: model.sentToastPhase == .delivered)
         }
-        withAnimation(.easeIn(duration: SentToastClock.fadeDuration)) { isShown = false }
+        withAnimation(Self.exitAnimation) { isShown = false }
         try? await Task.sleep(for: .seconds(SentToastClock.fadeDuration))
         if Task.isCancelled { return }
         model.dismissSentToast(id: toast.id)
