@@ -1,62 +1,74 @@
 import SwiftUI
 
-/// The right column's Decision | Comments switch (HAIL-56 contract, frames
-/// `ovd06`/`PPM9l` node `PBNIR`/`CdVIh` "Column tabs"): sits at the top of
-/// both `AskColumnView` and `CommentsColumnView`'s scrollable content, above
-/// their own title/heading - the same 24pt-leading/20pt-top position both
-/// already pad their content to.
+/// The decision column's Decision · Conversation · Comments switch (C8): one component at the top of the
+/// column in the case pane and in full size (`AskColumnView`, `CommentsColumnView`).
 ///
-/// Independent of `ReviewMode` (the canvas toolbar's Interact/Comment tool):
-/// selecting a tab here only changes which of the two columns renders, and a
-/// tool switch alone never moves this (`ReviewViewModel.tab`, see its own
-/// doc).
+/// Independent of `ReviewMode` (the canvas toolbar's Interact/Comment tool): selecting a tab here only changes
+/// what the column shows, and a tool switch alone never moves this (`ReviewViewModel.tab`, see its own doc).
 struct ReviewColumnTabsView: View {
     let tab: ReviewColumnTab
-    /// The session's total comment count, for the Comments segment's count
-    /// badge - hidden at 0, the same threshold `AskColumnView.
-    /// commentsSummaryPrefix` uses for its own "· Show" line.
+    /// The case's comment count, for the Comments badge; hidden at 0.
     let commentCount: Int
+    /// The rounds of the conversation, as the mockup's "Conversation 3"; nil hides it.
+    var conversationCount: Int? = nil
+    /// A new agent message you have not opened the Conversation tab for (`ConversationDot`).
+    var conversationDot = false
+    /// Team comments you have not seen yet (`CommentsDot`).
+    var commentsDot = false
     let onSelect: (ReviewColumnTab) -> Void
 
     var body: some View {
         HStack(spacing: 2) {
-            segment(.question, label: "Decision", badgeCount: nil)
-            segment(.comments, label: "Comments", badgeCount: commentCount > 0 ? commentCount : nil)
+            segment(.question, label: "Decision", badgeCount: nil, dot: false)
+            segment(.conversation, label: "Conversation", badgeCount: conversationCount, dot: conversationDot)
+            segment(.comments, label: "Comments", badgeCount: commentCount > 0 ? commentCount : nil, dot: commentsDot)
         }
         .padding(3)
         .background(Theme.Colors.side)
-        .cornerRadius(Theme.Radius.columnTabsTrack)
+        .clipShape(RoundedRectangle(cornerRadius: Column.tabsTrackRadius))
     }
 
-    private func segment(_ value: ReviewColumnTab, label: String, badgeCount: Int?) -> some View {
+    private typealias Column = Theme.AskDoc.Column
+
+    private func segment(_ value: ReviewColumnTab, label: String, badgeCount: Int?, dot: Bool) -> some View {
         let isActive = tab == value
         return HStack(spacing: 6) {
+            // `.tabs span`: 500 13, ink3; the open tab ink on white. The line box is the CSS one (13 × 1.45).
             Text(label)
-                .knockTextStyle(isActive ? Theme.Typography.buttonSm12_5w600 : Theme.Typography.buttonSm12_5w500)
-                .foregroundColor(isActive ? Theme.Colors.ink : Theme.Colors.ink2)
+                .knockTextStyle(Column.tabLabel)
+                .foregroundColor(isActive ? Theme.Colors.ink : Theme.Colors.ink3)
+                .lineLimit(1)
+                .fixedSize()
+                .frame(height: Column.lineBox(13))
             if let badgeCount {
-                countBadge(badgeCount, isActive: isActive)
+                countBadge(badgeCount)
+            }
+            if dot {
+                Circle().fill(Theme.Colors.link).frame(width: 6, height: 6)
+                    .accessibilityHidden(true)
             }
         }
-        .padding(EdgeInsets(top: 6, leading: 10, bottom: 6, trailing: 10))
+        .padding(.vertical, 6)
         .frame(maxWidth: .infinity)
-        .background(isActive ? Theme.Colors.win : Color.clear)
-        .cornerRadius(Theme.Radius.columnTabsSegment)
-        .shadow(
-            color: isActive ? Theme.Shadow.columnTab.color : .clear,
-            radius: Theme.Shadow.columnTab.blur / 2,
-            x: Theme.Shadow.columnTab.offset.width, y: Theme.Shadow.columnTab.offset.height
-        )
+        .background(
+            RoundedRectangle(cornerRadius: Column.tabSegmentRadius)
+                .fill(isActive ? Theme.Colors.win : Color.clear)
+                .shadow(
+                    color: isActive ? Theme.Shadow.columnTab.color : .clear,
+                    radius: Column.tabShadowBlur / 2,
+                    x: Theme.Shadow.columnTab.offset.width, y: Theme.Shadow.columnTab.offset.height))
         .contentShape(Rectangle())
         .onTapGesture { onSelect(value) }.pointerCursor()
+        .accessibilityElement(children: .ignore)
+        .accessibilityLabel(label + (badgeCount.map { ", \($0)" } ?? "") + (dot ? ", new" : ""))
+        .accessibilityAddTraits(isActive ? [.isButton, .isSelected] : .isButton)
     }
 
-    private func countBadge(_ count: Int, isActive: Bool) -> some View {
+    /// `.tabs .n`: mono 400 11, quiet, no fill.
+    private func countBadge(_ count: Int) -> some View {
         Text("\(count)")
-            .knockTextStyle(Theme.Typography.countBadge10_5w600)
-            .foregroundColor(isActive ? Theme.Colors.win : Theme.Colors.ink2)
-            .padding(EdgeInsets(top: 1, leading: 6, bottom: 1, trailing: 6))
-            .background(isActive ? Theme.Colors.accent : Theme.Colors.line)
-            .cornerRadius(Theme.Radius.countBadge)
+            .knockTextStyle(Column.tabCount)
+            .foregroundColor(Theme.AskDoc.Colors.quiet)
+            .fixedSize()
     }
 }

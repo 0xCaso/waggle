@@ -18,14 +18,17 @@ enum AskBarMode: Equatable {
     }
 }
 
-/// Where an ask's options show. An option sits in one place only: the bottom bar of a simple ask.
+/// Where an ask's options show. An option sits in one place only: the option list of a simple ask (in the pane's
+/// decision column, above the answer box; in the full-size workspace, its bar).
 /// The old boxed Decision card is gone, so no ask ever lists its options twice.
 enum AskOptionsPlace: Equatable {
     case bottomBar
 }
 
-/// The decision layouts that have a fixed bottom bar (WAG-291). On each, the options to decide sit in the
-/// bar and never in the scroll above it; the review step has no options, only the picks summary.
+/// The decision layouts that have a fixed bottom bar (WAG-291): today the full-size workspace and an artifact
+/// opened as the page's full page. On each, the options to decide sit in the bar and never in the scroll above it;
+/// the review step has no options, only the picks summary. The pane's decision column is the other way round: its
+/// options scroll with the page and its bar holds only the answer box and the send row (`AskLayout`, C1).
 enum DecisionLayout: CaseIterable, Equatable {
     /// A simple ask: the options, the note and Decide.
     case single

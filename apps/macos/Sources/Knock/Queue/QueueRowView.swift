@@ -57,8 +57,11 @@ struct QueueRowView: View {
         }
     }
 
-    /// Dims the row's text (M11 cached rows, the waiting group).
-    private var rowOpacity: Double { (isOfflineCached || (isDimmed && !item.isDone)) ? 0.5 : 1 }
+    /// Dims the row's text (M11 cached rows). The waiting group takes mockup B's `.row.done` look instead.
+    private var rowOpacity: Double { isOfflineCached ? 0.5 : 1 }
+
+    /// Mockup B `.row.done`: an answered row (still held by the agent, or done) has a 500 ink2 title.
+    private var isAnsweredLook: Bool { isDimmed || item.isDone }
 
     /// A failed delivery or a reply stuck after its session ended still needs you, so its notice takes the
     /// meta line. Every other row shows the plain "project · agent · time" line.
@@ -70,8 +73,8 @@ struct QueueRowView: View {
 
     private var metaLine: some View {
         Text(row.meta)
-            .knockTextStyle(Theme.Typography.caption11_5w400)
-            .foregroundColor(Theme.Colors.ink3)
+            .knockTextStyle(Theme.AskDoc.Chrome.rowMeta)
+            .foregroundColor(Theme.AskDoc.Colors.quiet)
             .lineLimit(1)
             .truncationMode(.tail)
             .help(optional: timeTooltip)
@@ -79,13 +82,14 @@ struct QueueRowView: View {
 
     private var gotItButton: some View {
         Button(action: onGotIt) {
+            // The case map's `.btn-s`.
             Text("Got it")
-                .knockTextStyle(Theme.Typography.buttonSm12_5w500)
+                .knockTextStyle(Theme.AskDoc.Chrome.smallButton)
                 .foregroundColor(Theme.Colors.ink)
-                .padding(EdgeInsets(top: 4, leading: 10, bottom: 4, trailing: 10))
+                .padding(Theme.AskDoc.Chrome.smallButtonInset)
                 .background(Theme.Colors.win)
-                .cornerRadius(Theme.Radius.buttonSmall)
-                .overlay(RoundedRectangle(cornerRadius: Theme.Radius.buttonSmall).stroke(Theme.Colors.line2, lineWidth: 1))
+                .cornerRadius(Theme.AskDoc.Chrome.smallButtonRadius)
+                .overlay(RoundedRectangle(cornerRadius: Theme.AskDoc.Chrome.smallButtonRadius).stroke(Theme.Colors.line2, lineWidth: 1))
         }
         .buttonStyle(.plain).pointerCursor()
         .accessibilityLabel("Got it")
@@ -95,69 +99,62 @@ struct QueueRowView: View {
     private var unreadMark: some View {
         Circle()
             .fill(Theme.Colors.honey500)
-            .frame(width: 8, height: 8)
+            .frame(width: Theme.AskDoc.Chrome.dotSize, height: Theme.AskDoc.Chrome.dotSize)
             .help(unreadComments == 1 ? "1 new comment from your team" : "\(unreadComments) new comments from your team")
             .accessibilityLabel(unreadComments == 1 ? "1 new comment" : "\(unreadComments) new comments")
             .opacity(rowOpacity)
     }
 
+    /// The artifact kind (no mockup counterpart): a plain quiet glyph, as quiet as the meta line.
     private var iconTile: some View {
         Image(systemName: row.icon?.systemImage ?? "")
             .font(.system(size: 12))
-            .foregroundColor(Theme.Colors.ink3)
-            .frame(width: 28, height: 28)
-            .background(Theme.Colors.side)
-            .cornerRadius(7)
+            .foregroundColor(Theme.AskDoc.Colors.quiet)
+            .frame(width: 18, height: 18)
             .help(row.icon?.label ?? "")
             .accessibilityLabel(row.icon?.label ?? "")
     }
 
     var body: some View {
-        ZStack(alignment: .topLeading) {
-            if isSelected {
-                Rectangle()
-                    .fill(Theme.Colors.ink)
-                    .frame(width: Theme.Spacing.selectionBarWidth)
-                    .frame(maxHeight: .infinity)
-            }
-            HStack(alignment: .center, spacing: 10) {
-                // The dot sits level with the title's first line, whether the title takes one line or two.
-                HStack(alignment: .top, spacing: 10) {
-                    RowDot(color: dotColor, pulses: row.dot == .working && !isOfflineCached)
-                        .padding(.top, 6)
-                        .opacity(isOfflineCached ? 0.5 : 1)
-                    VStack(alignment: .leading, spacing: 3) {
-                        Text(row.title)
-                            .knockTextStyle(Theme.AskDoc.Typography.sidebarRow14w600)
-                            .foregroundColor(Theme.Colors.ink)
-                            .lineLimit(2)
-                            .truncationMode(.tail)
-                            .fixedSize(horizontal: false, vertical: true)
-                            .frame(maxWidth: .infinity, alignment: .leading)
-                        if hasNotice {
-                            notice
-                        } else {
-                            metaLine
-                        }
+        HStack(alignment: .center, spacing: 10) {
+            // `.row`: the dot on the title's first baseline, 9 to the text; the title wraps to two lines.
+            HStack(alignment: .firstTextBaseline, spacing: Theme.AskDoc.Chrome.rowGap) {
+                RowDot(color: dotColor, pulses: row.dot == .working && !isOfflineCached)
+                    .sidebarDotOnBaseline()
+                    .opacity(isOfflineCached ? 0.5 : 1)
+                VStack(alignment: .leading, spacing: Theme.AskDoc.Chrome.rowMetaGap) {
+                    Text(row.title)
+                        .knockTextStyle(isAnsweredLook ? Theme.AskDoc.Chrome.rowTitleDone : Theme.AskDoc.Chrome.rowTitle)
+                        .foregroundColor(isAnsweredLook ? Theme.Colors.ink2 : Theme.Colors.ink)
+                        .lineLimit(2)
+                        .truncationMode(.tail)
+                        .fixedSize(horizontal: false, vertical: true)
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                    if hasNotice {
+                        notice
+                    } else {
+                        metaLine
                     }
                 }
-                .opacity(rowOpacity)
-                if unreadComments > 0 { unreadMark }
-                if item.isDone { gotItButton }
-                if row.icon != nil {
-                    iconTile.opacity(rowOpacity)
-                }
             }
-            .padding(EdgeInsets(top: 11, leading: isFollowUp ? 32 : 18, bottom: 11, trailing: 14))
+            .opacity(rowOpacity)
+            if unreadComments > 0 { unreadMark }
+            if item.isDone { gotItButton }
+            if row.icon != nil {
+                iconTile.opacity(rowOpacity)
+            }
         }
+        .padding(EdgeInsets(
+            top: Theme.AskDoc.Chrome.rowInset.top, leading: Theme.AskDoc.Chrome.rowInset.leading + (isFollowUp ? 14 : 0),
+            bottom: Theme.AskDoc.Chrome.rowInset.bottom, trailing: Theme.AskDoc.Chrome.rowInset.trailing))
         .frame(maxWidth: .infinity, alignment: .leading)
-        .background(isOfflineCached ? Theme.Colors.sel : (isSelected ? Theme.Colors.honeySoft : Color.clear))
-        .overlay(
-            Rectangle()
-                .fill(isSelected ? Theme.Colors.line2 : Theme.Colors.line)
-                .frame(height: 1),
-            alignment: .bottom
-        )
+        // `.row.sel`: white, a 3 pt honey bar on the left, no line between rows.
+        .background(isOfflineCached ? Theme.Colors.sel : (isSelected ? Theme.AskDoc.Chrome.selectedFill : Color.clear))
+        .overlay(alignment: .leading) {
+            if isSelected {
+                Rectangle().fill(Theme.AskDoc.Chrome.selectedBar).frame(width: Theme.AskDoc.Chrome.selectedBarWidth)
+            }
+        }
         .contextMenu {
             Button(item.isDone ? "Got it" : "Dismiss", action: item.isDone ? onGotIt : onDismiss)
         }
@@ -174,7 +171,7 @@ struct QueueRowView: View {
                 Image(systemName: "exclamationmark.circle.fill")
                     .font(.system(size: 10))
                 Text("Delivery failed · Retry")
-                    .knockTextStyle(Theme.Typography.keyHint10_5w400)
+                    .knockTextStyle(Theme.AskDoc.Chrome.rowMeta)
             }
             .foregroundColor(Theme.Colors.accent)
             .contentShape(Rectangle())
@@ -188,10 +185,10 @@ struct QueueRowView: View {
         HStack(spacing: 4) {
             Image(systemName: "moon.zzz")
                 .font(.system(size: 10))
-                .foregroundColor(Theme.Colors.ink3)
+                .foregroundColor(Theme.AskDoc.Colors.quiet)
             Text(SessionClosedCopy.mark)
-                .knockTextStyle(Theme.Typography.keyHint10_5w400)
-                .foregroundColor(Theme.Colors.ink3)
+                .knockTextStyle(Theme.AskDoc.Chrome.rowMeta)
+                .foregroundColor(Theme.AskDoc.Colors.quiet)
         }
         .accessibilityElement(children: .combine)
     }
@@ -218,7 +215,7 @@ struct RowDot: View {
 }
 
 /// A queue row that is not a case: a state dot, a title and one meta line, drawn exactly like `QueueRowView`
-/// (same padding, same title and meta styles, same hairline). "Your agent is on it" uses it (WAG-341).
+/// (same padding, same title and meta styles). "Your agent is on it" uses it (WAG-341).
 struct QueueStatusRow: View {
     let dotColor: Color
     var pulses = false
@@ -226,25 +223,24 @@ struct QueueStatusRow: View {
     let meta: String
 
     var body: some View {
-        HStack(alignment: .top, spacing: 10) {
+        HStack(alignment: .firstTextBaseline, spacing: Theme.AskDoc.Chrome.rowGap) {
             RowDot(color: dotColor, pulses: pulses)
-                .padding(.top, 6)
-            VStack(alignment: .leading, spacing: 3) {
+                .sidebarDotOnBaseline()
+            VStack(alignment: .leading, spacing: Theme.AskDoc.Chrome.rowMetaGap) {
                 Text(title)
-                    .knockTextStyle(Theme.AskDoc.Typography.sidebarRow14w600)
+                    .knockTextStyle(Theme.AskDoc.Chrome.rowTitle)
                     .foregroundColor(Theme.Colors.ink)
                     .lineLimit(2)
                     .frame(maxWidth: .infinity, alignment: .leading)
                 Text(meta)
-                    .knockTextStyle(Theme.Typography.caption11_5w400)
-                    .foregroundColor(Theme.Colors.ink3)
+                    .knockTextStyle(Theme.AskDoc.Chrome.rowMeta)
+                    .foregroundColor(Theme.AskDoc.Colors.quiet)
                     .lineLimit(1)
                     .truncationMode(.tail)
             }
         }
-        .padding(EdgeInsets(top: 11, leading: 18, bottom: 11, trailing: 14))
+        .padding(Theme.AskDoc.Chrome.rowInset)
         .frame(maxWidth: .infinity, alignment: .leading)
-        .overlay(Rectangle().fill(Theme.Colors.line).frame(height: 1), alignment: .bottom)
         .accessibilityElement(children: .combine)
     }
 }

@@ -2,33 +2,8 @@ import Testing
 import CoreGraphics
 @testable import Knock
 
-/// WAG-411: the chip row never drops a chip. It scrolls, and fades the side that has more.
+/// WAG-411: the quick replies. The chip row is gone (C5): they sit at the top of the "Ask for…" panel.
 struct PillFitTests {
-    @Test func noFadeWhenEverythingFits() {
-        let fades = ChipRowEdges.fades(offset: 0, content: 400, container: 500)
-        #expect(!fades.leading && !fades.trailing)
-    }
-
-    @Test func noFadeBeforeTheWidthIsKnown() {
-        let fades = ChipRowEdges.fades(offset: 0, content: 800, container: 0)
-        #expect(!fades.leading && !fades.trailing)
-    }
-
-    @Test func fadeOnTheEndAtTheStart() {
-        let fades = ChipRowEdges.fades(offset: 0, content: 800, container: 400)
-        #expect(!fades.leading && fades.trailing)
-    }
-
-    @Test func fadeOnBothSidesInTheMiddle() {
-        let fades = ChipRowEdges.fades(offset: 150, content: 800, container: 400)
-        #expect(fades.leading && fades.trailing)
-    }
-
-    @Test func fadeOnTheStartAtTheEnd() {
-        let fades = ChipRowEdges.fades(offset: 400, content: 800, container: 400)
-        #expect(fades.leading && !fades.trailing)
-    }
-
     @Test func aTypedDraftStaysBeforeTheQuickReply() {
         #expect(QuickReply.message(draft: nil, reply: .letsDiscuss) == "Let's discuss")
         #expect(QuickReply.message(draft: "  \n", reply: .showMeMore) == "Show me more")

@@ -571,11 +571,12 @@ struct LiveArtifactBoxView: View {
         }
         .onGeometryChange(for: CGRect.self, of: { $0.frame(in: .named(StickyHeader.space)) }) { if sticksHeader { EvidenceLayoutLog.event("artifact.boxFrame", "old=\(boxFrame) new=\($0)"); boxFrame = $0 } }
         .frame(maxHeight: fillsHeight ? .infinity : nil, alignment: .top)
+        // Case map `.card`: 1 pt `--line`, radius 10, white.
         .background(Theme.Colors.win)
-        .clipShape(RoundedRectangle(cornerRadius: Theme.Radius.card))
+        .clipShape(RoundedRectangle(cornerRadius: Theme.AskDoc.Chrome.cardRadius))
         .overlay(
-            RoundedRectangle(cornerRadius: Theme.Radius.card)
-                .stroke(Theme.Stroke.card.color, lineWidth: Theme.Stroke.card.width))
+            RoundedRectangle(cornerRadius: Theme.AskDoc.Chrome.cardRadius)
+                .stroke(Theme.Colors.line, lineWidth: 1))
         .onGeometryChange(for: CGFloat.self, of: { $0.size.width }) { EvidenceLayoutLog.event("artifact.boxWidth", "old=\(boxWidth) new=\($0)"); boxWidth = $0 }
         .onChange(of: canComment, initial: true) { _, allowed in model.setCanComment(allowed) }
         // C and Esc work while the box has focus (WAG-311). A click in the box, or a tool, gives it focus.
@@ -662,24 +663,23 @@ struct LiveArtifactBoxView: View {
         return LiveArtifactGeometry.height(boxWidth: boxWidth, viewport: viewport)
     }
 
+    /// Case map `.card-h`: 40 high, padding 0 10, gap 6, a line under it, white. The tabs are `.tab-a`; one artifact
+    /// shows as the one selected tab ("Case map"), then the version (`.ver`) and "Open full size ↗" (`.btn-s`).
     private var header: some View {
-        HStack(spacing: 6) {
+        HStack(spacing: Theme.AskDoc.Chrome.cardHeaderGap) {
             if model.tabs.count > 1 {
                 ArtifactTabStrip(tabs: model.tabs, selectedId: model.selectedTab?.id) { tab in
                     model.select(tab.id); onInteract()
                 }
                 .layoutPriority(0)
             } else if let tab = model.selectedTab {
-                Image(systemName: Self.symbol(tab.kind)).font(.system(size: 13)).foregroundColor(Theme.Colors.ink2)
-                Text(Self.caption(tab))
-                    .knockTextStyle(Theme.Typography.labelCaps10_5w600)
-                    .foregroundColor(Theme.Colors.ink3)
-                    .lineLimit(1)
+                ArtifactTabLabel(symbol: Self.symbol(tab.kind), title: Self.caption(tab), isOn: true)
+                    .help(tab.title)
             }
             if fillsHeight, let meta = versionLine {
                 Text(meta)
-                    .knockTextStyle(Theme.Typography.monoMetaRow10_5w400)
-                    .foregroundColor(Theme.Colors.ink3)
+                    .knockTextStyle(Theme.AskDoc.Chrome.version)
+                    .foregroundColor(Theme.AskDoc.Colors.quiet)
                     .lineLimit(1)
                     .fixedSize()
             }
@@ -687,9 +687,10 @@ struct LiveArtifactBoxView: View {
             WriteUpChangesControls(hub: changesHub)
             openMenu.layoutPriority(1)
         }
-        .padding(EdgeInsets(top: 8, leading: 10, bottom: 8, trailing: 10))
+        .padding(.horizontal, Theme.AskDoc.Chrome.cardHeaderSide)
+        .frame(minHeight: Theme.AskDoc.Chrome.cardHeaderHeight)
         .frame(maxWidth: .infinity, alignment: .leading)
-        .background(Theme.Colors.list)
+        .background(Theme.Colors.win)
         .overlay(Rectangle().fill(Theme.Colors.line).frame(height: 1), alignment: .bottom)
     }
 
@@ -709,12 +710,12 @@ struct LiveArtifactBoxView: View {
             kind: tab?.kind, hasWindow: onOpenWindow != nil && tab != nil, hasBrowser: onOpenBrowser != nil && tab != nil)
         return HStack(spacing: 0) {
             Button(action: onOpen) {
-                HStack(spacing: 5) {
-                    Text("Open full size").knockTextStyle(Theme.Typography.buttonSm12_5w500).lineLimit(1)
-                    Image(systemName: "arrow.up.right").font(.system(size: 10, weight: .semibold))
+                HStack(spacing: 4) {
+                    Text("Open full size").knockTextStyle(Theme.AskDoc.Chrome.smallButton).lineLimit(1)
+                    Image(systemName: "arrow.up.right").font(.system(size: 9, weight: .medium))
                 }
-                .foregroundColor(Theme.Colors.ink2)
-                .padding(EdgeInsets(top: 4, leading: 10, bottom: 4, trailing: 8))
+                .foregroundColor(Theme.Colors.ink)
+                .padding(Theme.AskDoc.Chrome.smallButtonInset)
                 .contentShape(Rectangle())
             }
             .buttonStyle(.plain).pointerCursor()
@@ -744,8 +745,8 @@ struct LiveArtifactBoxView: View {
             }
         }
         .background(Theme.Colors.win)
-        .cornerRadius(6)
-        .overlay(RoundedRectangle(cornerRadius: 6).stroke(Theme.Colors.line2, lineWidth: 1))
+        .cornerRadius(Theme.AskDoc.Chrome.smallButtonRadius)
+        .overlay(RoundedRectangle(cornerRadius: Theme.AskDoc.Chrome.smallButtonRadius).stroke(Theme.Colors.line2, lineWidth: 1))
         .fixedSize()
     }
 
@@ -927,15 +928,10 @@ struct DecisionArtifactView: View {
     var followsComposer = true
 
     var body: some View {
-        VStack(spacing: 14) {
-            LiveArtifactBoxView(
-                model: model, caseKind: caseKind, client: client, onOpen: onOpen, onInteract: onInteract,
-                fillsHeight: fillsHeight, onOpenWindow: onOpenWindow, onOpenBrowser: onOpenBrowser, canComment: canComment)
-            if let store = model.commentsStore {
-                ArtifactCommentsSection(
-                    model: model, store: store, onOpenFullSize: onOpen, maxHeight: fillsHeight ? 280 : nil)
-            }
-        }
+        // The comment list is in the decision column's Comments tab (C8); the box keeps the pins.
+        LiveArtifactBoxView(
+            model: model, caseKind: caseKind, client: client, onOpen: onOpen, onInteract: onInteract,
+            fillsHeight: fillsHeight, onOpenWindow: onOpenWindow, onOpenBrowser: onOpenBrowser, canComment: canComment)
             .onChange(of: composer.selectedOptionId) { _, _ in follow() }
             .task { follow() }
     }

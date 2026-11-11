@@ -16,6 +16,8 @@ enum ReviewMode: Equatable {
 /// touches this.
 enum ReviewColumnTab: Equatable {
     case question
+    /// The thread as messages (C8): the pane and full size alike.
+    case conversation
     case comments
 }
 

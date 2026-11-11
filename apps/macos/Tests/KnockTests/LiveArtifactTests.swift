@@ -169,16 +169,16 @@ struct LiveArtifactTests {
 
     // MARK: the plan page
 
-    @Test func anyAskWithAnArtifactGoesSideBySideOnAWideWindow() {
-        #expect(AskLayout.layout(width: 1400, hasArtifact: true) == .sideBySide)
-        #expect(AskLayout.layout(width: 1000, hasArtifact: true) == .sideBySide)
-        // Under about 1000 px the page stacks.
-        #expect(AskLayout.layout(width: 999, hasArtifact: true) == .stacked)
-        #expect(AskLayout.layout(width: 800, hasArtifact: true) == .stacked)
+    @Test func anyAskWithAnArtifactPutsItBesideTheColumnOnAWideWindow() {
+        #expect(AskLayout.layout(width: 1400, hasArtifact: true) == .beside)
+        #expect(AskLayout.layout(width: 1000, hasArtifact: true) == .beside)
+        // Under 440 + 480 pt the artifact folds to the pinned bar.
+        #expect(AskLayout.layout(width: 919, hasArtifact: true) == .folded)
+        #expect(AskLayout.layout(width: 800, hasArtifact: true) == .folded)
     }
 
-    @Test func anAskWithoutAnArtifactStaysStacked() {
-        #expect(AskLayout.layout(width: 1600, hasArtifact: false) == .stacked)
+    @Test func anAskWithoutAnArtifactIsTheColumnAlone() {
+        #expect(AskLayout.layout(width: 1600, hasArtifact: false) == .page)
     }
 
     @Test func theFoldedRowNamesThePlanWriteUpOrTheArtifact() {
@@ -197,17 +197,6 @@ struct LiveArtifactTests {
         #expect(answered.locked && answered.pickedId == "a")
         let open = ComposerCardView.answeredRows(isLocked: false, deliveryIdle: true, yourAnswerOptionId: nil, selectedOptionId: "b")
         #expect(!open.locked)
-    }
-
-    @Test func theRightColumnNeverGetsUnder320() {
-        // 43% of the width is the question column: 320 px needs about 745 px, so the 1000 px floor wins.
-        #expect(AskLayout.minQuestionWidth <= 1000 * (1 - AskLayout.artifactShare))
-        #expect(AskLayout.artifactShare == 0.57)
-    }
-
-    @Test func theStageLabelShowsOnceNotInTheHoneyBox() {
-        // The honey box keeps its own label; the stage label belongs to the track.
-        #expect(NeedCalloutView(need: "n", why: nil).label == "WHAT I NEED FROM YOU")
     }
 
     @Test func theHoneyBoxNamesTheQuestion() {

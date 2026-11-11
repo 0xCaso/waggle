@@ -1,12 +1,12 @@
 import SwiftUI
 
 /// The hidden keys of an answer dock (WAG-334): Cmd-D takes the recommendation, Cmd-Return sends, the digit keys
-/// 1 to 9 pick a row, Return sends the ticks, and "?" opens "Ask for more detail". One view for the single dock
+/// 1 to 9 pick a row, Return sends the ticks, and "?" opens the "Ask for…" panel (C5). One view for the single dock
 /// (`ComposerCardView`) and the steps dock (`AnswersBarView`), so a key means the same in both. The digit, Return
 /// and "?" keys guard on `isTextFocused` in their action: AppKit resolves a plain key equivalent before it routes
 /// the keystroke to the focused text field, so the guard has to live in the action.
 struct DockShortcutsView: View {
-    /// While the detail panel is open it wires its own keys (1 to 5, Esc, Cmd-Return).
+    /// While the "Ask for…" panel is open it wires its own keys (1 to 9 and 0, Esc, Cmd-Return).
     var isAskingForDetail = false
     var isTextFocused: Bool
     /// Return acts as the primary button while ticks are made on a pick-several point.

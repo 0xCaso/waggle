@@ -1,4 +1,5 @@
 import Foundation
+import SwiftUI
 
 /// WAG-410: the agent session of a case ended. "Continue in a new session" starts a new one with the
 /// question, the options and the operator's answer, through the same launcher as Start from a document.
@@ -104,5 +105,38 @@ enum ContinueEvidence {
 
     static var clickDelay: Double? {
         ProcessInfo.processInfo.environment["KNOCK_EVIDENCE_CONTINUE_CLICK"].flatMap(Double.init)
+    }
+}
+
+/// The "Continue in a new session" button and what it says after the click (WAG-410).
+struct ContinueInNewSessionButton: View {
+    @ObservedObject var model: ContinueInNewSessionModel
+    let action: () -> Void
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 4) {
+            Button(action: action) {
+                // The size of the status line's other buttons (C10).
+                Text(model.phase == .starting ? ContinueInNewSessionCopy.starting : ContinueInNewSessionCopy.label)
+                    .knockTextStyle(Theme.Typography.buttonSm12_5w500)
+                    .foregroundColor(Theme.Colors.onFill)
+                    .padding(EdgeInsets(top: 4, leading: 10, bottom: 4, trailing: 10))
+                    .background(Theme.Colors.ink)
+                    .cornerRadius(Theme.Radius.buttonSmall)
+                    .fixedSize()
+            }
+            .buttonStyle(.plain).pointerCursor()
+            .disabled(model.phase == .starting)
+            switch model.phase {
+            case .started:
+                Text(ContinueInNewSessionCopy.started)
+                    .knockTextStyle(Theme.Typography.caption11_5w400).foregroundColor(Theme.Colors.ink2)
+            case .failed(let message):
+                Text(message)
+                    .knockTextStyle(Theme.Typography.caption11_5w400).foregroundColor(Theme.Colors.accent)
+            case .idle, .starting:
+                EmptyView()
+            }
+        }
     }
 }

@@ -110,11 +110,15 @@ struct ClickReachTests {
             if inScrollView(atWindowY: y) { break }
             dockTop = y
         }
-        #expect(dockTop > 150, "the dock holds the option rows and the note field")
+        // Full size has the pane's column (C9): the options scroll with the question, the dock holds only the
+        // answer box and the send row.
+        #expect(dockTop > 30, "the dock holds the answer box and the send row")
+        #expect(dockTop < 150, "the option rows scroll with the question, not in the dock")
         for y in stride(from: 4.0, through: dockTop, by: 2.0) {
             #expect(!inScrollView(atWindowY: y), "a click at y=\(y) in the dock must not reach the scroll view")
         }
-        for y in stride(from: dockTop + 4, to: 650.0, by: 2.0) where !inScrollView(atWindowY: y) && y < 650 {
+        // The tabs sit pinned above the scroll (C8), about 54 pt at the top of the 700 pt column.
+        for y in stride(from: dockTop + 4, to: 640.0, by: 2.0) where !inScrollView(atWindowY: y) && y < 640 {
             Issue.record("the dock reaches y=\(y), above where the scroll view ends")
             break
         }

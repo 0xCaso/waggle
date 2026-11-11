@@ -81,7 +81,7 @@ struct PaneWidthTests {
         let dock = ComposerCardView(
             composer: flow.composer, sendFlow: flow, deliveryState: flow.deliveryState, recommendationId: "o0",
             commentCount: 0, placeholder: "Add a note", isLocked: false, yourAnswerOptionId: nil, yourAnswerOptionIds: [],
-            lockedMessage: nil, onOpenReview: nil, maxOptionsHeight: 280, showsFullOptions: true, showsFailure: false)
+            lockedMessage: nil, onOpenReview: nil, maxOptionsHeight: 280, showsFullOptions: true, showsStatus: false)
         #expect(askedWidth(dock) <= Self.limit)
     }
 

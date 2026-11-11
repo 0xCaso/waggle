@@ -18,16 +18,40 @@ struct CalmCardTests {
             createdAt: "2026-10-07T10:00:00Z", updatedAt: "2026-10-07T10:00:00Z")
     }
 
-    @Test func barRowsNeverExpand() {
-        #expect(CalmOption.rowsExpand == false)
+    @Test func thePickedCardOpensAndAPickSeveralListOpensNone() {
+        #expect(CalmOption.openPosition(selected: 1, recommended: 2, isCheckbox: false) == 1)
+        #expect(CalmOption.openPosition(selected: 1, recommended: 2, isCheckbox: true) == nil)
         #expect(OptionChipView.isSelected(optionId: "a", isLocked: false, yourAnswerOptionId: nil, selectedOptionId: "a"))
     }
 
-    @Test func chipCountsFollowTheLists() {
-        #expect(CalmOption.chipCounts(pros: ["a", "b"], cons: ["c"]) == (2, 1))
-        #expect(CalmOption.chipCounts(pros: [], cons: []) == (0, 0))
-        #expect(CalmOption.goodTip(2) == "2 good points" && CalmOption.watchTip(1) == "1 thing to watch")
+    @Test func theTeaserFollowsTheLists() {
+        #expect(CalmOption.teaser(pros: ["a", "b"], cons: ["c"]) == CalmOption.Teaser(pro: "a", con: "c", more: 1))
+        #expect(CalmOption.teaser(pros: ["a"], cons: [], effects: ["x", "y"]) == CalmOption.Teaser(pro: "a", con: nil, more: 2))
+        // No pros and no cons: no line, even with effects.
+        #expect(CalmOption.teaser(pros: [], cons: [], effects: ["x"]) == nil)
         #expect(CalmOption.tooltipDelay == 0.4 && CalmOption.blockFade == 0.15)
+    }
+
+    @Test func theReasonReadsAsOneLine() {
+        #expect(CalmOption.becauseLine("it is safe.", isRecommended: true) == "Why I recommend it: it is safe.")
+        #expect(CalmOption.becauseLine("fast.", isRecommended: false) == "Why: fast.")
+        #expect(CalmOption.listLabel == "Your choice")
+        // Mockup template `multi`: the label names the limit; the count is in the answer area.
+        #expect(MultiSelectCopy.listLabel(max: 4) == "Pick up to 4" && MultiSelectCopy.listLabel(max: nil) == "Pick any")
+    }
+
+    @Test func onlyPlainOneParagraphTextSkipsTheMarkdownView() {
+        #expect(CalmOption.isPlainLine("The options are the page."))
+        #expect(!CalmOption.isPlainLine("Use **bold** here"))
+        #expect(!CalmOption.isPlainLine("Two\nparagraphs"))
+        #expect(!CalmOption.isPlainLine("Cited [[s:1]]"))
+    }
+
+    @Test func cssLineHeightsUseTheDrawnLineOfTheBundledFonts() {
+        // 12 / 1.45 → a 17.4 pt line box over SwiftUI's 15 pt line; 10.5 / 1 → 10.5 over 14.
+        #expect(OptionCardStyle.drawnLineHeight(size: 12, mono: false) == 15)
+        #expect(OptionCardStyle.drawnLineHeight(size: 10.5, mono: true) == 14)
+        #expect(OptionCardStyle.drawnLineHeight(size: 13.5, mono: false) == 17)
     }
 
     @Test func yourPickBlockFollowsTheSelectionAndFallsBackToTheRecommendation() {
@@ -114,7 +138,7 @@ struct CalmCardTests {
         // A point's answers carry pros and cons and show cards (WAG-257).
         let point = PointOption(label: "Cards", pros: ["Easy"], cons: ["Roomy"])
         #expect(point.hasPoints)
-        #expect(CalmOption.goodTip(1) == "1 good point")
+        #expect(CalmOption.teaser(pros: point.pros, cons: point.cons) == CalmOption.Teaser(pro: "Easy", con: "Roomy", more: 0))
     }
 
     @Test func noCopyHasAnEmDash() {

@@ -10,6 +10,9 @@ struct AnswersBarView: View {
     var isChanging = false
     /// The tallest the points of a step get before they scroll inside the bar (about 40% of the window).
     var maxPointsHeight: CGFloat = DecisionDock.minCap
+    /// The pane's decision column lists the step's points in its scroll (`StepPointsInColumn`, C1); the bar then
+    /// shows them only as the "Ask for more detail" panel, which replaces them while it is open.
+    var pointsInColumn = false
     @State private var pointsHeight: CGFloat = 0
     @State private var isNoteFocused = false
 
@@ -17,18 +20,25 @@ struct AnswersBarView: View {
         let _ = EvidenceLayoutLog.bump("body.answersBar")
         VStack(spacing: 0) {
             if deliveryState.state == .idle {
-                if doc.isStepped, let question = doc.currentQuestion { stepPoints(question) }
-                ObservedFiles(files: sendFlow.composer.files) { _ in promptBar }
+                if doc.isStepped, let question = doc.currentQuestion {
+                    // In the pane's column the points, and the "Ask for…" panel in their place, scroll with the page (C5).
+                    if !pointsInColumn { stepPoints(question) }
+                }
+                ObservedFiles(files: sendFlow.composer.files) { _ in
+                    // Observes the composer too, so "Ask for…" shows on while its panel is open.
+                    AskingForDetail(composer: sendFlow.composer) { _ in promptBar }
+                }
             } else {
-                DeliveryBannerView(
-                    state: deliveryState.state, replySummary: sendFlow.deliveryReplySummary,
-                    onRetry: { Task { await sendFlow.retryDelivery() } })
-                    .padding(14)
+                if let line = RequestStatus.localLine(deliveryState.state, item: sendFlow.composer.knockCase) {
+                    RequestStatusLineView(line: line, onAction: { if $0 == .retry { Task { await sendFlow.retryDelivery() } } })
+                        .padding(14)
+                }
             }
         }
         .boundedIdealWidth()
-        .background(Theme.Colors.win.shadow(Theme.Shadow.dockUp))
-        .overlay(Rectangle().fill(Theme.Colors.line2).frame(height: 1), alignment: .top)
+        // The answer area (mockup `.ans`): one plain 1 pt `line` on top, no shadow.
+        .background(Theme.Colors.win)
+        .overlay(Rectangle().fill(Theme.Colors.line).frame(height: 1), alignment: .top)
         .onAppear {
             // Evidence only (WAG-330): `KNOCK_EVIDENCE_DRAFT_TEXT=<text>` fills the note, so a capture shows "Ask".
             if let text = ProcessInfo.processInfo.environment["KNOCK_EVIDENCE_DRAFT_TEXT"], !text.isEmpty {
@@ -74,7 +84,6 @@ struct AnswersBarView: View {
         return PromptBarCore(
             text: $doc.note,
             placeholder: PromptBarLogic.placeholder(.steps),
-            maxLines: PromptBarLogic.paneMaxLines,
             quietLabels: PromptBarLogic.answersQuietLabels(doc: doc, comments: comments),
             pillLabels: PromptBarLogic.answersPillLabels(doc: doc, comments: comments),
             canSend: stepping || canSend,
@@ -86,7 +95,16 @@ struct AnswersBarView: View {
             },
             onSend: { if stepping && !doc.stepTalksNow(comments: comments) { doc.next() } else { send() } },
             files: sendFlow.composer.files,
+            askFor: doc.showsAskForDetail ? askForButton : nil,
             isFocused: $isNoteFocused)
+    }
+
+    /// "Ask for…" at the left of the send row (C5): opens the panel in the step's place, or closes it.
+    private var askForButton: PromptBarCore.AskForButton {
+        let composer = sendFlow.composer
+        return .init(isOpen: composer.isAskingForDetail, toggle: {
+            if composer.isAskingForDetail { composer.cancelAskingForDetail() } else { composer.beginAskingForDetail(fromDots: true) }
+        })
     }
 
     private var canSend: Bool { doc.canSend(comments: sendFlow.pinnedCommentCount, hasFiles: sendFlow.composer.hasFiles) }
@@ -123,13 +141,48 @@ private struct ObservedFiles<Content: View>: View {
     var body: some View { content(files) }
 }
 
-/// The points of one step in the bar (WAG-304): "DECIDE · n", the rows of each point and, as the last row,
-/// "Ask for more detail" as on a single decision. It opens the same panel and sends a `more_detail` reply.
+/// Re-draws its content when the composer starts or stops asking for more detail: the bar observes `sendFlow`,
+/// one object above the composer.
+private struct AskingForDetail<Content: View>: View {
+    @ObservedObject var composer: ComposerViewModel
+    @ViewBuilder let content: (Bool) -> Content
+
+    var body: some View { content(composer.isAskingForDetail) }
+}
+
+/// The points of the current step in the pane's decision column (C1): the same rows as the bar had, scrolling with
+/// the page above the answer box. They show while the step can be answered; the "Ask for more detail" panel takes
+/// their place in the bar.
+struct StepPointsInColumn: View {
+    let question: Question
+    @Binding var doc: QuestionsDocModel
+    let sendFlow: SendFlowController
+    @ObservedObject var composer: ComposerViewModel
+    @ObservedObject var deliveryState: DeliveryStateViewModel
+    let isLocked: Bool
+
+    var body: some View {
+        if Self.shows(isLocked: isLocked, deliveryIdle: deliveryState.state == .idle) {
+            StepPointsView(question: question, doc: $doc, sendFlow: sendFlow, composer: composer, inColumn: true)
+        }
+    }
+
+    /// While the step can be answered: an open answer, nothing in flight. With the "Ask for…" panel open the panel
+    /// takes the points' place here, in the column's scroll, so the send row under it stays on screen (C5).
+    static func shows(isLocked: Bool, deliveryIdle: Bool) -> Bool {
+        !isLocked && deliveryIdle
+    }
+}
+
+/// The points of one step (WAG-304): "DECIDE · n" and the rows of each point. "Ask for…" in the send row opens the
+/// same panel as a single decision in their place (C5), and it sends a `more_detail` reply about this step.
 struct StepPointsView: View {
     let question: Question
     @Binding var doc: QuestionsDocModel
     let sendFlow: SendFlowController
     @ObservedObject var composer: ComposerViewModel
+    /// In the pane's column (C1): the panel is a card of its own there.
+    var inColumn = false
 
     private var about: String? { doc.isStepped ? AgentMarkdown.singleLine(question.title) : nil }
 
@@ -138,6 +191,7 @@ struct StepPointsView: View {
             AskForDetailPanelView(
                 composer: composer, onSend: { sendFlow.askForMoreDetail(about: about) },
                 onSendFormat: { sendFlow.askForMoreDetail(format: $0, about: about) })
+            .modifier(AskForPanelCard(isCard: inColumn))
         } else {
             VStack(alignment: .leading, spacing: 8) {
                 // A lone point reads like a single decision: no "DECIDE" label (WAG-326).
@@ -150,12 +204,6 @@ struct StepPointsView: View {
                     ItemRowsView(
                         number: index + 1, point: point, questionId: question.id, pointCount: question.points.count,
                         doc: $doc, inBar: true)
-                }
-                if doc.showsAskForDetail {
-                    Rectangle().fill(Theme.Colors.line).frame(height: 1)
-                    AskForDetailRowView(
-                        composer: composer, onSend: { sendFlow.askForMoreDetail(about: about) },
-                        onSendFormat: { sendFlow.askForMoreDetail(format: $0, about: about) })
                 }
             }
         }

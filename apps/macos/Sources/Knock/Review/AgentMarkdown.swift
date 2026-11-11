@@ -11,6 +11,8 @@ enum AgentMarkdownBlock: Equatable {
     /// `level` is 0, or 1 for an indented bullet.
     case bullet(level: Int, text: String)
     case numbered(level: Int, index: Int, text: String)
+    /// A pipe table: a header row, a `---` separator row, then body rows. Every row has as many cells as the header.
+    case table(headers: [String], rows: [[String]])
 }
 
 enum AgentMarkdown {
@@ -28,8 +30,25 @@ enum AgentMarkdown {
             paragraph = []
         }
 
-        for raw in text.replacingOccurrences(of: "\r\n", with: "\n").components(separatedBy: "\n") {
+        let lines = text.replacingOccurrences(of: "\r\n", with: "\n").components(separatedBy: "\n")
+        var i = 0
+        while i < lines.count {
+            let raw = lines[i]
+            i += 1
             let trimmed = raw.trimmingCharacters(in: .whitespaces)
+            if trimmed.contains("|"), i < lines.count, isTableSeparator(lines[i]) {
+                flush()
+                let headers = tableCells(trimmed)
+                i += 1
+                var rows: [[String]] = []
+                while i < lines.count, lines[i].contains("|"), !lines[i].trimmingCharacters(in: .whitespaces).isEmpty {
+                    rows.append(fitted(tableCells(lines[i]), to: headers.count))
+                    i += 1
+                }
+                blocks.append(.table(headers: headers, rows: rows))
+                nextIndex = 1
+                continue
+            }
             if trimmed.isEmpty {
                 flush()
                 nextIndex = 1
@@ -77,7 +96,7 @@ enum AgentMarkdown {
         let lines = SourceMarkers.strip(text).replacingOccurrences(of: "\r\n", with: "\n").components(separatedBy: "\n").compactMap {
             raw -> String? in
             let trimmed = raw.trimmingCharacters(in: .whitespaces)
-            guard !trimmed.isEmpty else { return nil }
+            guard !trimmed.isEmpty, !isTableSeparator(trimmed) else { return nil }
             let body = listMarker(trimmed)?.text ?? headingText(trimmed) ?? trimmed
             let plain = String(inline(body).characters).trimmingCharacters(in: .whitespaces)
             return plain.isEmpty ? nil : plain
@@ -104,6 +123,8 @@ enum AgentMarkdown {
             case .paragraph(let body), .heading(let body): line = plain(body)
             case .bullet(let level, let body): line = String(repeating: "  ", count: level) + "- " + plain(body)
             case .numbered(let level, let n, let body): line = String(repeating: "  ", count: level) + "\(n). " + plain(body)
+            case .table(let headers, let rows):
+                line = ([headers] + rows).map { "| " + $0.map(plain).joined(separator: " | ") + " |" }.joined(separator: "\n")
             }
             if index > 0 {
                 let kind: (AgentMarkdownBlock) -> Int = {
@@ -134,12 +155,15 @@ enum AgentMarkdown {
     static func copyableCommands(_ text: String) -> [String] {
         var found: [String] = []
         for block in blocks(text) {
-            let body: String
+            let bodies: [String]
             switch block {
-            case .paragraph(let t), .heading(let t), .bullet(_, let t), .numbered(_, _, let t): body = t
+            case .paragraph(let t), .heading(let t), .bullet(_, let t), .numbered(_, _, let t): bodies = [t]
+            case .table(let headers, let rows): bodies = headers + rows.flatMap { $0 }
             }
+            for body in bodies {
             for span in codeSpans(body) where span.count > longCodeSpan && !found.contains(span) {
                 found.append(span)
+            }
             }
         }
         if found.isEmpty, looksLikeCommand(text) {
@@ -193,6 +217,36 @@ enum AgentMarkdown {
         case .numbered(let level, let index, let text): .numbered(level: level, index: index, text: text + " " + line)
         default: nil
         }
+    }
+
+    /// A `|---|:--:|` row: only dashes, colons, spaces and pipes, with at least one dash and one pipe.
+    static func isTableSeparator(_ line: String) -> Bool {
+        let trimmed = line.trimmingCharacters(in: .whitespaces)
+        guard trimmed.contains("-"), trimmed.contains("|") else { return false }
+        return trimmed.allSatisfy { "-:| ".contains($0) }
+    }
+
+    /// The cells of one table row, without the outer pipes. `\|` stays a pipe inside a cell.
+    static func tableCells(_ line: String) -> [String] {
+        var body = line.trimmingCharacters(in: .whitespaces)
+        if body.hasPrefix("|") { body.removeFirst() }
+        if body.hasSuffix("|"), !body.hasSuffix("\\|") { body.removeLast() }
+        var cells: [String] = []
+        var cell = ""
+        var escaped = false
+        for ch in body {
+            if escaped { cell.append(ch == "|" ? "|" : "\\\(ch)"); escaped = false; continue }
+            if ch == "\\" { escaped = true; continue }
+            if ch == "|" { cells.append(cell.trimmingCharacters(in: .whitespaces)); cell = ""; continue }
+            cell.append(ch)
+        }
+        if escaped { cell.append("\\") }
+        cells.append(cell.trimmingCharacters(in: .whitespaces))
+        return cells
+    }
+
+    private static func fitted(_ cells: [String], to count: Int) -> [String] {
+        cells.count >= count ? Array(cells.prefix(count)) : cells + Array(repeating: "", count: count - cells.count)
     }
 
     static func headingText(_ line: String) -> String? {

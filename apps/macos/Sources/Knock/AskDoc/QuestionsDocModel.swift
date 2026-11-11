@@ -376,6 +376,10 @@ struct QuestionsDocModel: Equatable {
         /// A question whose points are all answered.
         let isDone: Bool
         let isSend: Bool
+        /// What the step bar shows (C2): the step number, or "Send".
+        var number: String { isSend ? "Send" : "\(index + 1)" }
+        /// The tooltip: the step's full title, and the group it belongs to; "Review and send" for the last pill.
+        var help: String = ""
     }
 
     /// One pill per question and a last "Send" pill.
@@ -383,10 +387,20 @@ struct QuestionsDocModel: Equatable {
         let done = progress
         var pills = questions.enumerated().map { index, question in
             StepPill(
-                index: index, title: Self.shortTitle(question.title), isCurrent: step == index, isDone: done[index], isSend: false)
+                index: index, title: Self.shortTitle(question.title), isCurrent: step == index, isDone: done[index], isSend: false,
+                help: Self.stepHelp(question, index: index))
         }
-        pills.append(StepPill(index: questions.count, title: "Send", isCurrent: isReview, isDone: false, isSend: true))
+        pills.append(StepPill(
+            index: questions.count, title: "Send", isCurrent: isReview, isDone: false, isSend: true, help: "Review and send"))
         return pills
+    }
+
+    /// "2. How do we show the options once?" and, on a second line, the group title (C2: the group label over
+    /// the question moved here).
+    static func stepHelp(_ question: Question, index: Int) -> String {
+        let title = "\(index + 1). \(AgentMarkdown.singleLine(question.title))"
+        guard let group = question.groupTitle.map(AgentMarkdown.singleLine), !group.isEmpty else { return title }
+        return "\(title)\n\(group)"
     }
 
     /// The first words of a question title, for a pill.

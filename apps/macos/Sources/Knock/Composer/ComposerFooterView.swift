@@ -34,60 +34,54 @@ struct ComposerFooterView: View {
     /// review` from the case pane, or an option that reads as a change
     /// request, should land the friend straight in this field).
     @State private var isDraftFocused = false
-    /// Tallest the reply field grows, in lines, before it scrolls inside
-    /// (HAIL-77): 6 in the case pane, 4 in the review workspace's column.
-    var maxReplyLines: Int = PromptBarLogic.paneMaxLines
-    /// False in the case pane: its top banner owns a failed outcome (WAG-258).
-    var showsFailure: Bool = true
+    /// False in the case pane: its context line holds the status line (C10), so the footer draws none.
+    var showsStatus: Bool = true
 
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
             if deliveryState.state == .idle {
                 if composer.isAskingForDetail {
-                    AskForDetailPanelView(
-                        composer: composer,
-                        onSend: { sendFlow.askForMoreDetail() },
-                        onSendFormat: { sendFlow.askForMoreDetail(format: $0) }
-                    )
-                } else {
-                    if let suggestion { suggestedReplyCard(suggestion) }
-                    if showsAskRow {
-                        // The same last row the options list has (WAG-336), not a text button in the field.
-                        AskForDetailRowView(
-                            composer: composer, onSend: { sendFlow.askForMoreDetail() },
+                    // The "Ask for…" panel scrolls inside its cap, so the send row under it stays on screen (C5).
+                    ScrollView {
+                        AskForDetailPanelView(
+                            composer: composer,
+                            onSend: { sendFlow.askForMoreDetail() },
                             onSendFormat: { sendFlow.askForMoreDetail(format: $0) },
-                            onQuickReply: { sendFlow.quickReply($0) }, hasComments: sendFlow.pinnedCommentCount > 0)
+                            onQuickReply: { sendFlow.quickReply($0) },
+                            hasComments: sendFlow.pinnedCommentCount > 0
+                        )
+                        .onGeometryChange(for: CGFloat.self, of: { $0.size.height }) { panelHeight = $0 }
                     }
-                    // One prompt bar (HAIL-77): attach, the growing reply
-                    // field, Ask for more detail, Open review and Send.
-                    PromptBarView(
-                        composer: composer,
-                        draft: composer.draft,
-                        sendFlow: sendFlow,
-                        files: composer.files,
-                        commentCount: commentCount,
-                        placeholder: placeholder,
-                        maxLines: maxReplyLines,
-                        showsDetailButton: !showsAskRow,
-                        onOpenReview: onOpenReview,
-                        isFocused: $isDraftFocused
-                    )
+                    .frame(height: min(max(panelHeight, 1), Self.panelCap(availableHeight: availableHeight)))
+                    .scrollBounceBehavior(.basedOnSize)
+                    Rectangle().fill(Theme.Colors.line).frame(height: 1)
+                } else if let suggestion {
+                    suggestedReplyCard(suggestion)
                 }
-            } else {
-                DeliveryBannerView(
-                    state: deliveryState.state,
-                    replySummary: sendFlow.deliveryReplySummary,
-                    onRetry: { Task { await sendFlow.retryDelivery() } },
-                    showsFailure: showsFailure
+                // One prompt bar (HAIL-77): attach, "Ask for…", the growing reply field, Open review and Send.
+                PromptBarView(
+                    composer: composer,
+                    draft: composer.draft,
+                    sendFlow: sendFlow,
+                    files: composer.files,
+                    commentCount: commentCount,
+                    placeholder: placeholder,
+                    onOpenReview: onOpenReview,
+                    suggestedReply: composer.isAskingForDetail ? nil : suggestion?.text,
+                    isFocused: $isDraftFocused
                 )
-                .padding(14)
+            } else {
+                if showsStatus, let line = RequestStatus.localLine(deliveryState.state, item: composer.knockCase) {
+                    RequestStatusLineView(line: line, onAction: { if $0 == .retry { Task { await sendFlow.retryDelivery() } } })
+                        .padding(14)
+                }
             }
         }
-        // The same dock as the options card: full width, a top line and a soft shadow up (WAG-305).
+        // The same answer area as the options card (mockup `.ans`): full width, one plain 1 pt `line` on top, no shadow.
         .boundedIdealWidth()
-        .background(inputBackground.shadow(Theme.Shadow.dockUp))
+        .background(inputBackground)
         .overlay(
-            Rectangle().fill(showsTopDivider ? Theme.Colors.line2 : .clear).frame(height: 1),
+            Rectangle().fill(showsTopDivider ? Theme.Colors.line : .clear).frame(height: 1),
             alignment: .top
         )
         .background(
@@ -110,8 +104,15 @@ struct ComposerFooterView: View {
         }
     }
 
-    /// A reply-only ask has no options, so "Ask for more detail" is a row here, like the last row of an options list.
-    private var showsAskRow: Bool { !composer.isOptionsCase }
+    @State private var panelHeight: CGFloat = 0
+    /// Height of the column or pane the footer sits in.
+    @Environment(\.answerBoxAvailableHeight) private var availableHeight
+
+    /// The tallest the "Ask for…" panel gets in a footer before it scrolls: 45 % of the column, at least 160 pt.
+    static func panelCap(availableHeight: CGFloat?) -> CGFloat {
+        guard let availableHeight, availableHeight > 0, availableHeight.isFinite else { return 360 }
+        return max((availableHeight * 0.45).rounded(.down), 160)
+    }
 
     /// The agent's suggested reply (WAG-336): shown while the field is empty and only on a reply-only ask.
     private var suggestion: ComposerFooterView.Suggestion? {
@@ -134,7 +135,7 @@ struct ComposerFooterView: View {
     static let suggestedReplyLabel = "SUGGESTED REPLY"
     static let useSuggestedReply = "Use this reply"
 
-    /// Filling the field is the person's act; nothing sends until they press the button (WAG-328).
+    /// The suggestion and why the agent gives it. "Use this reply" is in the send row (spec section 9).
     private func suggestedReplyCard(_ suggestion: Suggestion) -> some View {
         VStack(alignment: .leading, spacing: 8) {
             Text(Self.suggestedReplyLabel)
@@ -144,14 +145,6 @@ struct ComposerFooterView: View {
                 .foregroundColor(Theme.Colors.ink)
                 .frame(maxWidth: .infinity, alignment: .leading)
             if let why = suggestion.why { CalmNoteView(title: "Why I recommend it", text: why) }
-            Button(Self.useSuggestedReply) { composer.draftText = suggestion.text; isDraftFocused = true }
-                .buttonStyle(.plain).pointerCursor()
-                .knockTextStyle(Theme.Typography.buttonSm12_5w500)
-                .foregroundColor(Theme.Colors.ink)
-                .padding(EdgeInsets(top: 6, leading: 12, bottom: 6, trailing: 12))
-                .background(Theme.Colors.honeySoft)
-                .clipShape(RoundedRectangle(cornerRadius: Theme.Radius.buttonSmall))
-                .overlay(RoundedRectangle(cornerRadius: Theme.Radius.buttonSmall).stroke(Theme.Colors.honey500.opacity(0.6), lineWidth: 1))
         }
         .padding(EdgeInsets(top: 12, leading: 14, bottom: 12, trailing: 14))
         .frame(maxWidth: .infinity, alignment: .leading)

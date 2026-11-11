@@ -90,7 +90,10 @@ struct CommentRow: Identifiable, Equatable {
 /// The rows of the one comment list: the comments with a pin first, then "On other views".
 struct CommentListModel: Equatable {
     static let otherViewsTitle = "On other views"
-    static let emptyLine = "No comments yet. In full size, press C, then click the page or select text."
+    /// True in the pane and in full size: both put a Comment switch on the artifact (C key in full size).
+    static let emptyLine = "No comments yet. Choose Comment on the artifact, then click the page or select text."
+    /// A request with no artifact: its own words are what you can comment on (WAG-357).
+    static let textAskEmptyLine = "No comments yet. Select words in the request to comment on them."
 
     let onView: [CommentRow]
     let otherViews: [CommentRow]

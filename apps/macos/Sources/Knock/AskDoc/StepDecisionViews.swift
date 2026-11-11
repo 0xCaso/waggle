@@ -1,45 +1,51 @@
 import SwiftUI
 
-/// The step bar under the crumb (WAG-287): a pill per question and a last "Send" pill. The current pill is
-/// ink, a question with all its points answered shows a check.
+/// The step bar at the top of the decision (WAG-287, C2): numbers only, 1 · 2 · 3 · Send. The tooltip gives each
+/// step's full title; the title of the current step is the question right under the bar. A finished step shows a
+/// check, the current one is ink. A click jumps to the step.
 struct StepBarView: View {
     @Binding var doc: QuestionsDocModel
 
     var body: some View {
-        ChipFlowLayout(spacing: 6) {
+        HStack(spacing: 6) {
             ForEach(doc.stepPills, id: \.index) { pill in
                 Button { doc.jump(to: pill.index) } label: { label(pill) }
                     .buttonStyle(.plain).pointerCursor()
-                    .accessibilityLabel(pill.isSend ? "Review and send" : "Decision \(pill.index + 1): \(pill.title)")
+                    .help(pill.help)
+                    .accessibilityLabel(pill.isSend ? "Review and send" : "Decision \(pill.index + 1): \(pill.help)")
                     .accessibilityAddTraits(pill.isCurrent ? .isSelected : [])
             }
         }
+        .fixedSize()
     }
 
+    @ViewBuilder
     private func label(_ pill: QuestionsDocModel.StepPill) -> some View {
         let showsCheck = pill.isDone && !pill.isCurrent
-        return HStack(spacing: 6) {
-            ZStack {
-                Circle().fill(showsCheck ? Theme.Colors.ok : Theme.Colors.win).frame(width: 18, height: 18)
-                if showsCheck {
-                    Image(systemName: "checkmark").font(.system(size: 9, weight: .bold)).foregroundColor(Theme.Colors.onFill)
-                } else if pill.isSend {
-                    Image(systemName: "arrow.up").font(.system(size: 9, weight: .bold)).foregroundColor(pill.isCurrent ? Theme.Colors.ink : Theme.Colors.ink2)
-                } else {
-                    Text("\(pill.index + 1)")
-                        .knockTextStyle(Theme.AskDoc.Typography.countPill11_5w700)
-                        .foregroundColor(Theme.Colors.ink)
-                }
-            }
-            Text(pill.title)
+        if pill.isSend {
+            Text(pill.number)
                 .knockTextStyle(Theme.AskDoc.Typography.chip12_5)
                 .foregroundColor(pill.isCurrent ? Theme.Colors.onFill : Theme.Colors.ink2)
-                .lineLimit(1)
+                .padding(.horizontal, 10)
+                .frame(height: 24)
+                .background(pill.isCurrent ? Theme.Colors.ink : Theme.Colors.side)
+                .clipShape(Capsule())
+                .contentShape(Capsule())
+        } else {
+            ZStack {
+                RoundedRectangle(cornerRadius: 6)
+                    .fill(pill.isCurrent ? Theme.Colors.ink : (showsCheck ? Theme.Colors.okSoft : Theme.Colors.side))
+                if showsCheck {
+                    Image(systemName: "checkmark").font(.system(size: 10, weight: .bold)).foregroundColor(Theme.Colors.ok)
+                } else {
+                    Text(pill.number)
+                        .knockTextStyle(Theme.AskDoc.Typography.countPill11_5w700)
+                        .foregroundColor(pill.isCurrent ? Theme.Colors.onFill : Theme.Colors.ink2)
+                }
+            }
+            .frame(width: 24, height: 24)
+            .contentShape(Rectangle())
         }
-        .padding(EdgeInsets(top: 4, leading: 5, bottom: 4, trailing: 10))
-        .background(pill.isCurrent ? Theme.Colors.ink : Theme.Colors.side)
-        .clipShape(Capsule())
-        .contentShape(Capsule())
     }
 }
 

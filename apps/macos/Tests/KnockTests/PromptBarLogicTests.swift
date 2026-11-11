@@ -3,58 +3,11 @@ import Testing
 @testable import Knock
 
 /// HAIL-77: the prompt bar's growth, layout switch, Return key and Send rules.
+@MainActor
 struct PromptBarLogicTests {
     private let controls = PromptBarLogic.controlsWidth(quietLabels: ["Ask for more detail"], sendPillLabel: nil)
 
-    private func layout(_ text: String, width: CGFloat = 480, maxLines: Int = 6) -> PromptBarLogic.Layout {
-        PromptBarLogic.layout(text: text, barWidth: width, controlsWidth: controls, maxLines: maxLines)
-    }
-
-    private func lines(_ n: Int) -> String {
-        (1...n).map { "line \($0)" }.joined(separator: "\n")
-    }
-
-    // MARK: growth
-
-    @Test func emptyAndShortTextIsOneLine28Tall() {
-        for text in ["", "Yes, go ahead"] {
-            let l = layout(text)
-            #expect(l.totalLines == 1)
-            #expect(l.visibleLines == 1)
-            #expect(l.fieldHeight == 28)
-            #expect(!l.isMultiline)
-            #expect(!l.scrolls)
-        }
-    }
-
-    @Test func threeLinesGrowOneLineAtATime() {
-        #expect(layout(lines(2)).fieldHeight == 46)
-        let l = layout(lines(3))
-        #expect(l.totalLines == 3)
-        #expect(l.visibleLines == 3)
-        #expect(l.fieldHeight == 64)
-        #expect(!l.scrolls)
-    }
-
-    @Test func paneCapsAtSixLinesThenScrolls() {
-        let six = layout(lines(6))
-        #expect(six.visibleLines == 6)
-        #expect(six.fieldHeight == 118)
-        #expect(!six.scrolls)
-        let ten = layout(lines(10))
-        #expect(ten.totalLines == 10)
-        #expect(ten.visibleLines == 6)
-        #expect(ten.fieldHeight == 118)
-        #expect(ten.scrolls)
-    }
-
-    @Test func workspaceCapsAtFourLines() {
-        let l = layout(lines(9), maxLines: PromptBarLogic.workspaceMaxLines)
-        #expect(l.visibleLines == 4)
-        #expect(l.fieldHeight == 82)
-        #expect(l.scrolls)
-        #expect(!layout(lines(4), maxLines: 4).scrolls)
-    }
+    // MARK: growth (the measured height itself is in PromptBarFieldSizingTests)
 
     @Test func aTrailingNewlineCountsAsALine() {
         #expect(PromptBarLogic.lineCount(text: "a\n", textWidth: 300) == 2)
@@ -69,72 +22,45 @@ struct PromptBarLogicTests {
 
     // MARK: layout switch
 
+    private func ownRow(_ text: String, width: CGFloat = 480, controlsWidth: CGFloat? = nil) -> Bool {
+        PromptBarLogic.fieldTakesOwnRow(
+            text: text, naturalTextWidth: PromptBarFieldProbe.naturalWidth(text), barWidth: width,
+            controlsWidth: controlsWidth ?? controls)
+    }
+
     @Test func aNewlineSwitchesToTheStackedLayout() {
-        #expect(!layout("one line").isMultiline)
-        #expect(layout("one\ntwo").isMultiline)
-        #expect(layout("one\n").isMultiline)
+        #expect(!ownRow("one line"))
+        #expect(ownRow("one\ntwo"))
+        #expect(ownRow("one\n"))
     }
 
     @Test func wrappingOnTheSharedRowSwitchesToTheStackedLayout() {
         let text = String(repeating: "word ", count: 12)
-        #expect(layout(text, width: 480).isMultiline)
-        // The stacked row is wider, so the same text can be one line there.
-        #expect(layout(text, width: 480).totalLines >= 1)
-        #expect(!layout(text, width: 1400).isMultiline)
+        #expect(ownRow(text, width: 480))
+        #expect(!ownRow(text, width: 1400))
     }
 
     @Test func aNarrowerBarWrapsSooner() {
         let text = "Republish it, but keep the intro short"
-        #expect(!layout(text, width: 700).isMultiline)
-        #expect(layout(text, width: 330).isMultiline)
+        #expect(!ownRow(text, width: 700))
+        #expect(ownRow(text, width: 330))
     }
 
     @Test func commentsWidenTheControlsAndShrinkTheSharedRow() {
         let pill = PromptBarLogic.controlsWidth(quietLabels: ["Ask for more detail"], sendPillLabel: "Send + 2 comments")
         #expect(pill > controls + 60)
-        let text = "Republish it, but keep the intro short"
-        let plain = PromptBarLogic.layout(text: text, barWidth: 520, controlsWidth: controls, maxLines: 6)
-        let withPill = PromptBarLogic.layout(text: text, barWidth: 520, controlsWidth: pill, maxLines: 6)
-        #expect(withPill.singleRowFieldWidth! < plain.singleRowFieldWidth!)
+        #expect(PromptBarLogic.sharedRowFieldWidth(barWidth: 520, controlsWidth: pill)
+            < PromptBarLogic.sharedRowFieldWidth(barWidth: 520, controlsWidth: controls))
     }
 
-    // MARK: placeholder
+    // MARK: placeholder (WAG-305: an empty field keeps the shared row; the placeholder wraps there)
 
-    private let panePlaceholder = "Add a note, or reply in your own words…"
-    private let workspacePlaceholder = "Reply, or click an artifact to comment on it…"
-
-    private func emptyLayout(width: CGFloat, placeholder: String, quiet: [String] = ["Ask for more detail", "Open review"]) -> PromptBarLogic.Layout {
-        PromptBarLogic.layout(
-            text: "", placeholder: placeholder, barWidth: width,
-            controlsWidth: PromptBarLogic.controlsWidth(quietLabels: quiet, sendPillLabel: nil),
-            maxLines: 6
-        )
-    }
-
-    @Test func emptyPaneBarStacksWhenThePlaceholderIsCutOffAt1000() {
-        // A narrow case pane (Inter Tight sets the placeholder narrower than Inter did, so 480, not 540).
-        let l = emptyLayout(width: 480, placeholder: panePlaceholder)
-        #expect(l.isMultiline)
-        #expect(l.fieldHeight == 28)
-    }
-
-    @Test func emptyPaneBarKeepsOneRowWhenThePlaceholderFitsAt1400() {
-        let l = emptyLayout(width: 1000, placeholder: panePlaceholder)
-        #expect(!l.isMultiline)
-    }
-
-    @Test func emptyWorkspaceComposerStacksInTheNarrowColumn() {
-        let l = emptyLayout(width: 360, placeholder: workspacePlaceholder, quiet: ["Ask for more detail"])
-        #expect(l.isMultiline)
-        #expect(l.fieldHeight == 28)
-    }
-
-    @Test func placeholderIsIgnoredOnceThereIsText() {
-        let l = PromptBarLogic.layout(
-            text: "ok", placeholder: panePlaceholder, barWidth: 600,
-            controlsWidth: controls, maxLines: 6
-        )
-        #expect(!l.isMultiline)
+    @Test func anEmptyFieldKeepsTheSharedRow() {
+        // While it keeps 140 pt there (C6); a narrower bar leaves it under 140 pt beside these controls, so it moves.
+        #expect(!PromptBarLogic.fieldTakesOwnRow(text: "", naturalTextWidth: 0, barWidth: 400, controlsWidth: controls))
+        #expect(PromptBarLogic.fieldTakesOwnRow(text: "", naturalTextWidth: 0, barWidth: 360, controlsWidth: controls)
+            == (PromptBarLogic.sharedRowFieldWidth(barWidth: 360, controlsWidth: controls) < PromptBarLogic.minSharedFieldWidth))
+        #expect(!PromptBarLogic.fieldTakesOwnRow(text: "", naturalTextWidth: nil, barWidth: 1000, controlsWidth: controls))
     }
 
     // MARK: Return key
@@ -255,7 +181,7 @@ struct PromptBarLogicTests {
                         let forms = PromptBarLogic.sendPillLabels(
                             commentCount: comments, pickCount: picks, planLabel: kind.plan, shortPlanLabel: kind.short)
                         let plan = PromptBarLogic.controlsPlan(rowWidth: row, quietLabels: kind.quiet, pillLabels: forms)
-                        let used = plan.width + PromptBarLogic.controlSize + PromptBarLogic.controlGap
+                        let used = plan.width + PromptBarLogic.attachWidth + PromptBarLogic.controlGap
                         #expect(used <= row, "\(kind.plan ?? "send") \(comments)c \(picks)p at \(row): \(plan)")
                         // The menu takes the leftmost buttons; every button stays reachable.
                         #expect(plan.overflowLabels + plan.quietLabels == kind.quiet)
@@ -273,8 +199,7 @@ struct PromptBarLogicTests {
 
     @Test func controlsWithNoRoomForTheFieldTakeTheirOwnRow() {
         let wide = PromptBarLogic.controlsWidth(quietLabels: designQuiet, sendPillLabel: "Approve section + 12 comments")
-        let l = PromptBarLogic.layout(text: "ok", barWidth: wide + 60, controlsWidth: wide, maxLines: 6)
-        #expect(l.isMultiline)
+        #expect(PromptBarLogic.fieldTakesOwnRow(text: "ok", naturalTextWidth: 12, barWidth: wide + 60, controlsWidth: wide))
     }
 
     @Test func commandDStillSendsTheRecommendedChoice() {

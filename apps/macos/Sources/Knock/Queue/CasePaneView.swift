@@ -65,6 +65,8 @@ struct CasePaneDetailView: View {
     @StateObject private var liveArtifact: LiveArtifactModel
     /// WAG-410: "Continue in a new session" for a case whose agent session ended. Starts only on a click.
     @StateObject private var continueSession = ContinueEvidence.makeModel()
+    /// Failures hidden on the status line (C10).
+    @ObservedObject private var hiddenStatus = HiddenStatusStore.shared
     @Environment(\.openWindow) private var openWindow
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     /// Identifies this pane's unsent-work check in `AppModel` (HAIL-118).
@@ -76,23 +78,26 @@ struct CasePaneDetailView: View {
     /// Gates the Dismiss confirmation (HAIL-32); non-nil only while that
     /// dialog is on screen.
     @State private var showDismissConfirmation = false
-    /// The pane's own width, for the split's collapse (HAIL-71). Starts wide so
-    /// the first frame does not flash the toggle.
-    @State private var paneWidth: CGFloat = 1200
     /// The decision column's own width, for the plan page's two columns (WAG-290).
     @State private var decisionHeight: CGFloat = 800
     @State private var decisionWidth: CGFloat = 1200
-    /// Whether the conversation column is open (WAG-299). It starts closed for every case: the
-    /// pane is keyed by case id, so moving to another case closes it again. A narrow pane slides
-    /// it over the decision; a wide pane puts it beside.
-    @State private var isConversationOpen: Bool
+    /// The decision column's tab (C8). Every case opens on Decision: the pane is keyed by case id.
+    @State private var columnTab: ReviewColumnTab
+    /// Team comments unread when the case opened (opening clears the queue's mark), for the Comments tab's dot.
+    @State private var unreadAtOpen: Int
+    /// The Comments tab was opened on this case, so its dot is gone.
+    @State private var commentsTabSeen = false
     let isBothFolded: Bool
     let onToggleBothFolded: (() -> Void)?
 
     private var isOffline: Bool { model.connectionState != .connected }
-    /// The ask's thread, once you have replied; the split pane applies only then (HAIL-71).
+    /// The ask's thread, once you have replied (HAIL-71).
     private var thread: ThreadModel? {
         isOffline ? nil : detail.threadModel(artifactKind: model.artifactKindByCaseId[detail.case.id])
+    }
+    /// The Conversation tab's messages: the thread, or the ask alone before a reply.
+    private var conversation: ThreadModel {
+        detail.conversationModel(artifactKind: model.artifactKindByCaseId[detail.case.id])
     }
     private var lockState: ReplyLockState { detail.case.replyLockState }
     init(
@@ -154,8 +159,11 @@ struct CasePaneDetailView: View {
         // hook for the pane's own Send action (the selected option plus
         // whatever is typed) - distinct from `KNOCK_PANE_SEND_RECOMMENDATION`
         // below, which always sends the recommendation regardless of any
-        // selection or typed text. Same re-render guard as that hook.
-        if isEvidenceHookTarget, environment["KNOCK_PANE_SEND"] == "1", detail.case.status == .needsYou {
+        // selection or typed text. One shot per run: `init` runs again on every re-render, each time with a new
+        // throwaway `SendFlowController`, and the case stays needs_you until the daemon's update comes back.
+        if isEvidenceHookTarget, environment["KNOCK_PANE_SEND"] == "1", detail.case.status == .needsYou,
+           !Self.evidenceSendFired {
+            Self.evidenceSendFired = true
             sendFlow.send()
         }
         // `KNOCK_PANE_SEND_RECOMMENDATION=1` (Amendments, HAIL-32 evidence):
@@ -168,7 +176,11 @@ struct CasePaneDetailView: View {
         // an option, sending is not a no-op to repeat - without this guard a
         // single case.updated event from the first send retriggers another
         // send, which retriggers another event, forever.
-        if isEvidenceHookTarget, environment["KNOCK_PANE_SEND_RECOMMENDATION"] == "1", detail.case.status == .needsYou {
+        // The status gate alone let it fire once per re-render before the update arrived (4 replies, app check
+        // 2026-11-09), so it is one shot per run too.
+        if isEvidenceHookTarget, environment["KNOCK_PANE_SEND_RECOMMENDATION"] == "1", detail.case.status == .needsYou,
+           !Self.evidenceSendFired {
+            Self.evidenceSendFired = true
             sendFlow.acceptRecommendation()
         }
         // `KNOCK_PANE_CHANGE_ANSWER=1` (Amendments, HAIL-34 evidence): the
@@ -199,9 +211,10 @@ struct CasePaneDetailView: View {
                 sendFlow.askForMoreDetail()
             }
         }
-        // `KNOCK_CONVERSATION_OPEN=1` (WAG-299 evidence): opens the column on the targeted case, since
-        // a capture run cannot click the header icon.
-        _isConversationOpen = State(initialValue: isEvidenceHookTarget && environment["KNOCK_CONVERSATION_OPEN"] == "1")
+        // `KNOCK_PANE_TAB=conversation|comments` or `KNOCK_CONVERSATION_OPEN=1` (evidence): opens that tab on the
+        // targeted case, since a capture run cannot click it.
+        _columnTab = State(initialValue: isEvidenceHookTarget ? ConversationTabRouting.initialTab(environment: environment) : .question)
+        _unreadAtOpen = State(initialValue: model.unreadByCaseId[detail.case.id] ?? 0)
         _sendFlow = StateObject(wrappedValue: sendFlow)
         _sourcesHub = State(initialValue: SourcesHub(book: detail.currentSourceBook, evidenceOpen: EvidenceSources.open))
         _askHub = State(initialValue: AskCommentsHub(store: model.commentsStore(forCase: detail.case.id)))
@@ -213,32 +226,23 @@ struct CasePaneDetailView: View {
 
     /// Re-renders re-run `init`; the evidence send must happen once.
     @MainActor private static var evidenceMoreDetailSent = false
+    /// `KNOCK_PANE_SEND` / `KNOCK_PANE_SEND_RECOMMENDATION` (evidence): sent once per run, never per re-render.
+    @MainActor private static var evidenceSendFired = false
 
     var body: some View {
         EvidenceLayoutLog.bump("body.casePane")
-        let thread = thread
-        let isCollapsed = ConversationSplit.isCollapsed(paneWidth: paneWidth)
         return VStack(spacing: 0) {
-            toolbarRow(thread: thread)
+            toolbarRow
             if isOffline {
+                // The page is dimmed with no answer box; the status line above it says why (C10).
+                statusContextLine
+                    .padding(EdgeInsets(top: 12, leading: 32, bottom: 0, trailing: 32))
                 offlineBody
             } else {
                 AskCommentsHost(hub: askHub, onExplain: { [sendFlow] in sendFlow.explain(selection: $0) }) {
                 SourcesHost(hub: sourcesHub) {
-                    ZStack(alignment: .trailing) {
-                        HStack(spacing: 0) {
-                            decisionColumn(isCollapsed: isCollapsed)
-                            if let thread, isColumnShown, !isCollapsed {
-                                conversationColumn(thread)
-                                    .transition(.move(edge: .trailing))
-                            }
-                        }
-                        if let thread, isColumnShown, isCollapsed {
-                            conversationColumn(thread)
-                                .shadow(color: Theme.Colors.ink.opacity(0.08), radius: 10, x: -2, y: 0)
-                                .transition(.move(edge: .trailing))
-                        }
-                    }
+                    decisionColumn
+                        .environment(\.roundTagInEyebrow, isPageLayout)
                 }
                 }
                 .clipped()
@@ -246,7 +250,6 @@ struct CasePaneDetailView: View {
                 .onChange(of: detail.replies) { _, _ in askHub.sync(detail: detail, canComment: !isAnswerDisplayLocked) }
             }
         }
-        .onGeometryChange(for: CGFloat.self, of: { $0.size.width }) { EvidenceLayoutLog.event("case.paneWidth", "old=\(paneWidth) new=\($0)"); paneWidth = $0 }
         .boundedIdealWidth()
         .frame(maxWidth: .infinity, maxHeight: .infinity)
         // Files dropped on the request attach to the reply (WAG-345), until it is sent.
@@ -305,7 +308,7 @@ struct CasePaneDetailView: View {
         .background(
             Button("Toggle conversation") { toggleConversation() }
                 .keyboardShortcut(SplitFoldShortcuts.ask)
-                .disabled(thread == nil)
+                .disabled(isOffline)
                 .opacity(0)
         )
         .onAppear {
@@ -390,90 +393,163 @@ struct CasePaneDetailView: View {
         }
     }
 
-    /// The plan page's layout at the decision column's width (WAG-290).
-    private var planLayout: AskLayout.Layout {
+    /// The page's one layout at the pane's width (C1): artifact beside the column, folded to the pinned bar, or no artifact.
+    private var pageLayout: AskLayout.Layout {
         AskLayout.layout(width: decisionWidth, hasArtifact: detail.case.hasArtifact)
     }
 
-    /// Two columns: the artifact beside the question. A side panel or a full page keeps the usual stack.
-    private var showsSideBySide: Bool { planLayout == .sideBySide && askDoc.open == nil }
+    /// The artifact beside the column. An artifact opened in the page's own panel or full page takes its place.
+    private var showsArtifactBeside: Bool { pageLayout == .beside && askDoc.open == nil }
 
-    /// The left column: the question and the dock (the whole pane when there is no thread).
-    private func decisionColumn(isCollapsed: Bool) -> some View {
+    /// The column's content edges, as the case map mockup's `.cs` (18 at each side): every tab's scroll keeps inside
+    /// them. The tabs keep 14 (`.tabs`), the answer area 14 (`.ans`).
+    private var columnLeadingInset: CGFloat { Theme.AskDoc.Column.scrollInset.leading }
+    static let columnTrailingInset: CGFloat = Theme.AskDoc.Column.scrollInset.trailing
+    /// The answer area's side edge outside the prompt bar's own padding, so its content sits 14 in (`.ans`).
+    private static let answerSideInset = max(0, Theme.AskDoc.Column.answerSideInset - PromptBarLogic.barPadding)
+
+    /// The pane below the top bar: the artifact and the decision column, or an artifact opened full page.
+    private var decisionColumn: some View {
         VStack(spacing: 0) {
             if let open = askDoc.open, open.placement == .fullPage {
                 ArtifactFullPageView(controller: askDoc, open: open, isLocked: isAnswerDisplayLocked)
-                answerDock
+                answerDock(inColumn: false)
                 footer
-            } else if showsSideBySide {
-                sideBySideBody(contextThread: contextThread(isCollapsed: isCollapsed))
             } else {
-                onlineBody(contextThread: contextThread(isCollapsed: isCollapsed))
-                if detail.case.hasArtifact { pinnedArtifactBar }
-                answerDock
-                footer
+                if showsArtifactBeside {
+                    AskColumnsLayout {
+                        DecisionArtifactView(
+                            model: liveArtifact, composer: sendFlow.composer, caseKind: detail.case.kind, client: model.client,
+                            onOpen: { openReview(.artifactOpenedFull) }, onInteract: { recordPreviewInteraction() },
+                            fillsHeight: true, onOpenWindow: openTabInWindow, onOpenBrowser: openTabInBrowser,
+                            canComment: !isAnswerDisplayLocked, followsComposer: askDoc.doc?.isStepped != true)
+                            .coachMarkAnchor(.artifact)
+                            .padding(Theme.AskDoc.Chrome.artInset)
+                            .frame(maxWidth: .infinity)
+                        // `.col`: a 1 pt line on its left, white.
+                        askColumn
+                            .frame(maxWidth: .infinity)
+                            .background(Theme.Colors.win)
+                            .overlay(alignment: .leading) { Rectangle().fill(Theme.Colors.line).frame(width: 1) }
+                    }
+                } else {
+                    HStack(spacing: 0) {
+                        // The column is the page: centred, at most `AskLayout.pageMaxWidth` wide.
+                        askColumn
+                            .frame(maxWidth: AskLayout.pageMaxWidth)
+                            .frame(maxWidth: .infinity)
+                        if let open = askDoc.open, open.placement == .beside {
+                            ArtifactPanelView(controller: askDoc, open: open, isLocked: isAnswerDisplayLocked)
+                                .onChange(of: askDoc.doc?.step) { _, _ in followStepInPanel() }
+                                .transition(reduceMotion ? .identity : .move(edge: .trailing))
+                        }
+                    }
+                    .clipped()
+                    // The panel slides in over 220 ms, ease-out; with Reduce Motion it just appears.
+                    .animation(
+                        reduceMotion ? nil : .easeOut(duration: Theme.AskDoc.Metrics.panelSlide),
+                        value: askDoc.open?.placement == .beside)
+                }
             }
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
         .onGeometryChange(for: CGFloat.self, of: { $0.size.width }) { EvidenceLayoutLog.event("case.decisionWidth", "old=\(decisionWidth) new=\($0)"); decisionWidth = $0 }
         .onGeometryChange(for: CGFloat.self, of: { $0.size.height }) { EvidenceLayoutLog.event("case.decisionHeight", "old=\(decisionHeight) new=\($0)"); decisionHeight = $0 }
+        // The answer box grows to 40 % of the pane's column (C6).
+        .environment(\.answerBoxAvailableHeight, decisionHeight)
     }
 
-    /// An ask with an artifact on a wide window (WAG-290 for a plan, every ask since WAG-306): the artifact at full height on the left,
-    /// scrolling on its own; the question, its option cards, the note and Decide on the right.
-    private func sideBySideBody(contextThread: ThreadModel?) -> some View {
+    /// The decision column (C1): the pinned artifact bar when the artifact is folded, the latest agent message and
+    /// the tabs (C8), then the tab's scroll (Decision: the question, the need and the options, once), and the answer
+    /// box and send row pinned at the bottom.
+    private var askColumn: some View {
         VStack(spacing: 0) {
-            statusCard
-            if liveCase.sessionClosedBeforeAnswer { SessionClosedNotice(continueSession: continueSession, onContinue: { continueInNewSession() }) }
-            AskColumnsLayout {
-                DecisionArtifactView(
-                    model: liveArtifact, composer: sendFlow.composer, caseKind: detail.case.kind, client: model.client,
-                    onOpen: { openReview(.artifactOpenedFull) }, onInteract: { recordPreviewInteraction() },
-                    fillsHeight: true, onOpenWindow: openTabInWindow, onOpenBrowser: openTabInBrowser,
-                    canComment: !isAnswerDisplayLocked, followsComposer: askDoc.doc?.isStepped != true)
-                    .coachMarkAnchor(.artifact)
-                    .padding(EdgeInsets(top: 20, leading: 24, bottom: 20, trailing: 12))
-                    .frame(maxWidth: .infinity)
-                VStack(spacing: 0) {
-                    scrollBody(contextThread: contextThread, isSideBySide: true)
-                    // The option cards sit in the bottom part with the note and Decide (WAG-291); past the cap
-                    // they scroll inside it and the question above scrolls on its own.
-                    answerDock(optionsCap: DecisionDock.cap(.plan, windowHeight: decisionHeight))
-                    footer
-                }
-                .frame(maxWidth: .infinity)
+            if !showsArtifactBeside, detail.case.hasArtifact { pinnedArtifactBar }
+            // The tabs first (`.tabs`, margin 10 14 0). The context line (C2, C10) is the first thing in the
+            // Decision tab's scroll, as in the mockup; the other tabs keep the status under the tabs.
+            DecisionColumnHeader(
+                thread: thread, caseId: detail.case.id, tab: columnTab, commentCount: commentsStore.model.comments.count,
+                decisionHeadsWithLatest: decisionHeadsWithLatest,
+                commentsDot: CommentsDot.shows(
+                    unreadAtOpen: unreadAtOpen, lateNew: sharing.lateComments.new, seen: commentsTabSeen, tab: columnTab),
+                onSelect: selectTab)
+                .padding(Theme.AskDoc.Column.tabsInset)
+            if columnTab != .question, let line = statusLine {
+                statusLineView(line)
+                    .padding(EdgeInsets(top: 12, leading: columnLeadingInset, bottom: 0, trailing: Self.columnTrailingInset))
             }
+            switch columnTab {
+            case .question:
+                scrollBody
+            case .conversation:
+                conversationTab
+            case .comments:
+                commentsTab
+            }
+            // The scroll gives way first, so the answer box and Send stay on screen at any window height. The box
+            // keeps to the column's content edges, as the option rows above it do.
+            VStack(spacing: 0) {
+                answerDock(inColumn: true)
+                footer
+            }
+            .padding(EdgeInsets(top: 0, leading: Self.answerSideInset, bottom: 0, trailing: Self.answerSideInset))
+            .layoutPriority(1)
         }
     }
 
-    /// Whether the column is on screen: the case has a thread, it is open, and the sides are not
-    /// both folded (WAG-299).
-    private var isColumnShown: Bool {
-        ConversationSplit.isShown(hasThread: thread != nil, isOpen: isConversationOpen, isBothFolded: isBothFolded)
-    }
-
-    /// The header icon, ⌘] and the menu command (WAG-299). The column slides in from the right:
-    /// 220 ms ease-out in, 150 ms out, no motion with Reduce Motion.
+    /// The header icon and ⌘] (C8): open the Conversation tab; a second press goes back to Decision.
     private func toggleConversation() {
-        guard thread != nil else { return }
-        let opening = !isConversationOpen
-        withAnimation(reduceMotion ? nil : .easeOut(duration: opening ? 0.22 : 0.15)) { isConversationOpen.toggle() }
+        guard !isOffline else { return }
+        selectTab(ConversationTabRouting.toggled(columnTab))
     }
 
-    /// The thread steps the context card carries (HAIL-107): all of them while the conversation
-    /// column is out of sight, none while it shows them (the card then keeps the session rows only).
-    private func contextThread(isCollapsed: Bool) -> ThreadModel? {
-        isColumnShown ? nil : thread
+    private func selectTab(_ tab: ReviewColumnTab) {
+        if tab == .comments { commentsTabSeen = true }
+        columnTab = tab
     }
 
-    private func conversationColumn(_ thread: ThreadModel) -> some View {
-        ConversationColumnView(
-            model: thread,
+    /// The Decision tab already heads with the agent's newest message (a progress note or a message-only update),
+    /// so the line above the tabs would repeat it.
+    private var decisionHeadsWithLatest: Bool {
+        detail.case.workingNoteText != nil || detail.case.messageOnlyUpdate != nil
+    }
+
+    /// The Conversation tab (C8): earlier requests on top, then the messages and the turn line.
+    private var conversationTab: some View {
+        let conversation = conversation
+        return ConversationTabView(
+            model: conversation,
             turn: detail.threadTurn(
-                thread, delivery: model.deliveryStatusByCaseId[detail.case.id],
+                conversation, delivery: model.deliveryStatusByCaseId[detail.case.id],
                 settled: AnswerGrouping.settled(
                     detail.case, allCases: model.needsYouCases + model.waitingOnAgentCases, now: model.now)),
-            onSeeInReview: detail.case.hasArtifact ? { openReviewOnPriorRevision() } : nil)
+            earlier: earlierAsks,
+            onOpenCase: { id in Task { await model.open(caseId: id, source: .queue) } },
+            leadingPadding: columnLeadingInset, trailingPadding: Self.columnTrailingInset)
+    }
+
+    /// The Comments tab (C8, task 8): late team comments, "N comments on vN · view vN", and the comment cards.
+    /// Show on a card highlights its pin in the artifact box.
+    private var commentsTab: some View {
+        ScrollView {
+            VStack(alignment: .leading, spacing: 12) {
+                // WAG-401: late team comments on a decided shared case. It shows nothing when there are none.
+                LateCommentsBarView(
+                    sharing: sharing, item: detail.case, onChangeAnswer: sendFlow.beginChangingAnswer,
+                    sendPrompt: LateCommentsSend.toSession(client: model.client, item: detail.case),
+                    showsChangeAnswer: lockState == .queued && !sendFlow.isEditingLockedAnswer)
+                if let arrival = detail.revisionArrival, arrival.priorCommentCount > 0 {
+                    PriorRevisionCommentsLink(arrival: arrival, action: openReviewOnPriorRevision)
+                }
+                ArtifactCommentsSection(
+                    model: liveArtifact, store: commentsStore, sharing: sharing,
+                    onOpenFullSize: { openReview(.artifactOpenedFull, revision: liveArtifact.selectedTab?.revision) })
+            }
+            .padding(EdgeInsets(
+                top: Theme.AskDoc.Column.scrollInset.top, leading: columnLeadingInset, bottom: 20, trailing: Self.columnTrailingInset))
+            .frame(maxWidth: .infinity, alignment: .leading)
+        }
+        .frame(maxHeight: .infinity)
     }
 
     /// Which footer to show, as a pure function of state (docs/stories/
@@ -523,47 +599,19 @@ struct CasePaneDetailView: View {
         )
     }
 
-    /// The question-kind footer once a confirmed outcome exists
-    /// (`AppModel.deliveryStatusByCaseId`): collapses to
-    /// `CaseFooterConfirmedView` instead of the live composer, so this pane
-    /// never shows two disagreeing views of the same delivery (HAIL-32 "One
-    /// state source"). Falls back to the normal composer/in-flight banner
-    /// while no outcome is confirmed yet. Review-kind cases never reach the
-    /// composer/confirmedOutcome/changeAnswerBar cases here - `footerKind`
-    /// routes them to `reviewFooter` instead.
+    /// The answer box of a reply-only ask. Once the answer is sent, the status line (C10) says where it is and
+    /// holds its buttons (Change answer, Open review, Retry), so the bottom of the column stays empty: no second
+    /// banner, no answer box on a done ask.
+    private var showsAnswerBox: Bool {
+        !detail.case.isDone && sendFlow.deliveryState.state == .idle && (footerKind == .composer || lockState == .editable)
+    }
+
     @ViewBuilder
     private var footer: some View {
-        if detail.case.isDone {
-            EmptyView()
-        } else if footerKind == .confirmedOutcome, let confirmed = model.deliveryStatusByCaseId[detail.case.id],
-                  DeliveryBannerSlot.slot(for: confirmed) == .footer {
-            CaseFooterConfirmedView(
-                state: confirmed,
-                onRetry: { Task { await model.retryDelivery(caseId: detail.case.id) } }
-            )
-            .padding(EdgeInsets(top: 14, leading: 24, bottom: 18, trailing: 24))
-            .overlay(
-                Rectangle().fill(Theme.Colors.line).frame(height: 1),
-                alignment: .top
-            )
-        } else {
-            switch footerKind {
-            case .composer, .confirmedOutcome:
-                // An options case already carries its reply field and
-                // toolbar inside `answerDock`'s `ComposerCardView` - showing
-                // `ComposerFooterView` here too would duplicate it. A
-                // free-text case (no options) has no card above, so it still
-                // gets the standalone footer.
-                if AskBarMode.forCase(detail.case) == .reply {
-                    composerFooter
-                }
-            case .changeAnswerBar:
-                changeAnswerBar
-            case .reviewChangeAnswerBar:
-                reviewChangeAnswerBar
-            case .openReviewBar:
-                openReviewBar
-            }
+        // An options case carries its reply field in `answerDock`'s `ComposerCardView`; a free-text case (no
+        // options) has no card above, so it gets the standalone footer.
+        if showsAnswerBox, AskBarMode.forCase(detail.case) == .reply {
+            composerFooter
         }
     }
 
@@ -579,68 +627,7 @@ struct CasePaneDetailView: View {
             // pane itself never offers (Non-goal). A question ask has no
             // workspace to open, so this stays nil for it.
             onOpenReview: detail.case.kind == .review ? { openReview() } : nil,
-            showsFailure: false
-        )
-    }
-
-    // The top status strip is the one "waiting for the agent" line; the bars below no longer repeat it (WAG-336, F17).
-
-    /// "Sent · waiting for the agent to pick it up" plus "Change answer"
-    /// (docs/stories/HAIL-34.md): the queued state's own footer, replacing
-    /// the composer until the operator asks to edit. "Change answer" is an
-    /// outlined secondary button, the same style "Ask for more detail" uses
-    /// (docs/stories/HAIL-36.md amendment 1, operator: "change answer not
-    /// clickable here right?") - it used to read as plain grey text.
-    private var changeAnswerBar: some View {
-        VStack(alignment: .leading, spacing: 10) {
-            PickupFallbackView(item: detail.case)
-            // WAG-401: late team comments on a decided shared case. It shows nothing when there are none.
-            LateCommentsBarView(
-                sharing: sharing, item: detail.case, onChangeAnswer: sendFlow.beginChangingAnswer,
-                sendPrompt: LateCommentsSend.toSession(client: model.client, item: detail.case))
-            // The bar carries its own Change answer.
-            if sharing.lateComments.count == 0 {
-                SecondaryOutlineButtonView(label: "Change answer", action: sendFlow.beginChangingAnswer)
-            }
-        }
-        .padding(EdgeInsets(top: 14, leading: 24, bottom: 18, trailing: 24))
-        .overlay(
-            Rectangle().fill(Theme.Colors.line).frame(height: 1),
-            alignment: .top
-        )
-    }
-
-    /// The review-kind counterpart of `changeAnswerBar` (docs/stories/
-    /// HAIL-34.md fold, gap 1): same Sent line, but "Change answer" now edits
-    /// in the pane itself (HAIL-41: `sendFlow.beginChangingAnswer()`, the
-    /// same call the question kind's `changeAnswerBar` makes) rather than
-    /// opening the review workspace - the pane carries a review ask's
-    /// composer now, same as a question ask's. "Open review" stays
-    /// reachable alongside it as the lighter link to the full workspace
-    /// (pins, Comment mode), reading "View review" once delivered via
-    /// `openReviewLabel` - "Change answer" is the outlined button, same as
-    /// `changeAnswerBar` above.
-    private var reviewChangeAnswerBar: some View {
-        VStack(alignment: .leading, spacing: 10) {
-            PickupFallbackView(item: detail.case)
-            LateCommentsBarView(
-                sharing: sharing, item: detail.case, onChangeAnswer: sendFlow.beginChangingAnswer,
-                sendPrompt: LateCommentsSend.toSession(client: model.client, item: detail.case))
-            HStack(spacing: 18) {
-                if sharing.lateComments.count == 0 {
-                    SecondaryOutlineButtonView(label: "Change answer", action: sendFlow.beginChangingAnswer)
-                }
-                Text(openReviewLabel)
-                    .knockTextStyle(Theme.Typography.buttonSm12_5w500)
-                    .foregroundColor(Theme.Colors.ink3)
-                    .contentShape(Rectangle())
-                    .onTapGesture { openReview() }.pointerCursor()
-            }
-        }
-        .padding(EdgeInsets(top: 14, leading: 24, bottom: 18, trailing: 24))
-        .overlay(
-            Rectangle().fill(Theme.Colors.line).frame(height: 1),
-            alignment: .top
+            showsStatus: false
         )
     }
 
@@ -653,104 +640,75 @@ struct CasePaneDetailView: View {
     }
 
     /// The page header. The conversation icon is part of it (WAG-299), so it spans the whole width.
-    private func toolbarRow(thread: ThreadModel?) -> some View {
-        toolbar(thread: thread)
-            .fixedSize(horizontal: false, vertical: true)
+    private var toolbarRow: some View {
+        toolbar.fixedSize(horizontal: false, vertical: true)
     }
 
     /// "← Home" shows for a case that is not in Needs you (HAIL-119).
     private var showsHomeLink: Bool { HomeLink.isVisible(caseId: detail.case.id, needsYou: model.needsYouCases) }
 
-    /// The crumbs line. The project name opens the project page (WAG-260).
+    /// The crumbs line. The project name opens the project page (WAG-260); the session title gives way first.
     private var breadcrumb: some View {
-        let task = detail.task
-        return HStack(spacing: 0) {
-            Button { model.openProjectPage(task.project) } label: {
-                Text(AskCrumbs.projectName(task))
-                    .knockTextStyle(Theme.Typography.monoMeta12w400)
-                    .foregroundColor(Theme.Colors.ink3)
-                    .lineLimit(1)
-                    .contentShape(Rectangle())
-            }
-            .buttonStyle(.plain).pointerCursor()
-            .help("Open the project page")
-            if let rest = AskCrumbs.titlePart(task: task, sessionTitle: model.sessionTitle(for: detail.case)) {
-                Text("  /  \(rest)")
-                    .knockTextStyle(Theme.Typography.monoMeta12w400)
-                    .foregroundColor(Theme.Colors.ink3)
-                    .lineLimit(1)
-                    .help(AskCrumbs.folderHelp(task))
-            }
-        }
+        TopBarCrumb(
+            task: detail.task, sessionTitle: model.sessionTitle(for: detail.case),
+            onOpenProject: { model.openProjectPage(detail.task.project) })
     }
 
     /// The case's sharing state (WAG-387).
     private var sharing: SharingModel { SharingModels.model(for: detail.case.id, client: model.client) }
 
-    private func toolbar(thread: ThreadModel?) -> some View {
-        HStack(spacing: 14) {
+    /// Mockup B: with no artifact the page has no top bar line and no crumb; the crumb and the times move into the
+    /// eyebrow over the title (`PageEyebrow`). With an artifact the bar is the case map's `.top`.
+    private var isPageLayout: Bool { pageLayout == .page }
+
+    /// The header meta split for the bar (case map `.top`): "arrived 15:24" in the line, "Waiting 7m" as the pill.
+    private var topBarMeta: TopBarMeta { TopBarMeta(detail.headerMetaLabel(now: model.now)) }
+
+    private var toolbar: some View {
+        HStack(spacing: Theme.AskDoc.Chrome.topBarGap) {
             if showsHomeLink {
                 HStack(spacing: 6) { HomeLinkButton(action: model.goHome) }
             }
-            breadcrumb
-            // "Arrived 21:14 · answered 21:30 · took 16m" (docs/stories/
-            // HAIL-34.md 21:38): the opened ask's own header meta, ticking
-            // every minute off `model.now` while still pending.
-            Text(detail.headerMetaLabel(now: model.now))
-                .knockTextStyle(Theme.Typography.monoMeta12w400)
-                .foregroundColor(Theme.Colors.ink3)
-                .lineLimit(1)
-                .layoutPriority(1)
+            if !isPageLayout {
+                // "Waggle / Request page UI cleanup · arrived 15:24" (`.top`, mono 11.5, the project in ink).
+                HStack(spacing: 0) {
+                    breadcrumb
+                    // "Arrived 21:14 · answered 21:30 · took 16m" (docs/stories/HAIL-34.md 21:38): the opened ask's
+                    // own header meta, ticking every minute off `model.now` while still pending.
+                    Text(" · \(topBarMeta.line)")
+                        .knockTextStyle(Theme.AskDoc.Chrome.crumb)
+                        .foregroundColor(Theme.Colors.ink3)
+                        .lineLimit(1)
+                        .layoutPriority(1)
+                }
+            }
             Spacer(minLength: 0)
-            ShareCaseButton(
-                model: sharing,
-                onViewComments: AppModel.canOpenReview(kind: detail.case.kind, hasArtifact: detail.case.hasArtifact)
-                    ? { model.openReviewOnComments(caseId: detail.case.id) } : nil)
-            Menu {
-                Button("Dismiss", role: .destructive, action: requestDismiss)
-            } label: {
-                Image(systemName: "ellipsis.circle")
-                    .font(.system(size: 13))
-                    .foregroundColor(Theme.Colors.ink2)
+            HStack(spacing: Theme.AskDoc.Chrome.rightGap) {
+                if let waiting = topBarMeta.waiting { TopBarPill(text: waiting) }
+                ShareCaseButton(
+                    model: sharing,
+                    onViewComments: AppModel.canOpenReview(kind: detail.case.kind, hasArtifact: detail.case.hasArtifact)
+                        ? { model.openReviewOnComments(caseId: detail.case.id) } : nil)
+                FoldIconButton(
+                    symbol: BothFoldedCopy.symbol(isBothFolded: isBothFolded), isActive: isBothFolded,
+                    help: BothFoldedCopy.help(isBothFolded: isBothFolded), action: { onToggleBothFolded?() })
+                // Share, fold both, then ⋯ last (C2).
+                Menu {
+                    Button("Dismiss", role: .destructive, action: requestDismiss)
+                } label: {
+                    Image(systemName: "ellipsis.circle")
+                        .font(.system(size: Theme.AskDoc.Chrome.iconSize - 1))
+                        .foregroundColor(Theme.Colors.ink3)
+                }
+                .menuStyle(.borderlessButton)
+                .fixedSize()
             }
-            .menuStyle(.borderlessButton)
-            .fixedSize()
-            if let thread, ConversationSplit.hasColumn(thread: thread) {
-                ConversationIconButton(
-                    roundCount: thread.roundCount, isOpen: isColumnShown, action: toggleConversation)
-            }
-            FoldIconButton(
-                symbol: BothFoldedCopy.symbol(isBothFolded: isBothFolded), isActive: isBothFolded,
-                help: BothFoldedCopy.help(isBothFolded: isBothFolded), action: { onToggleBothFolded?() })
         }
-        .padding(EdgeInsets(top: 12, leading: 24, bottom: 12, trailing: 24))
+        .padding(.horizontal, Theme.AskDoc.Chrome.topBarSide)
+        .frame(height: isPageLayout ? Theme.AskDoc.Chrome.pageTopBarHeight : Theme.AskDoc.Chrome.topBarHeight)
         .opacity(isOffline ? 0.55 : 1)
-        .overlay(
-            Rectangle().fill(Theme.Colors.line).frame(height: 1),
-            alignment: .bottom
-        )
-    }
-
-    /// The Delivered/Failed outcome once `reply.state_changed` confirms it
-    /// (docs/design/mvp-values.md §M8 panels 2/4, Amendment 2 KNOCK-13 fold):
-    /// the review workspace has already closed for this case by the time
-    /// the event arrives, so `AppModel.deliveryStatusByCaseId` is the only
-    /// place left to show it.
-    private func deliveryOutcome(status: DeliveryState) -> some View {
-        VStack(alignment: .leading, spacing: 8) {
-            DeliveryOutcomeBanner(
-                state: status, onRetry: { Task { await model.retryDelivery(caseId: detail.case.id) } },
-                copyLine: DeliveryOutcomeBanner.copyLine(for: liveCase), caseId: liveCase.id,
-                continueSession: liveCase.sessionState == .ended ? continueSession : nil,
-                onContinue: { continueInNewSession() })
-            // "After Delivered, the pane says what happens next"
-            // (docs/stories/HAIL-34.md): a reply is one-way, so this is the
-            // only forward-looking line the pane ever shows for it.
-            if case .delivered = status {
-                Text("The agent has your answer. If it needs more from you, it will ask again.")
-                    .knockTextStyle(Theme.Typography.body13w400)
-                    .foregroundColor(Theme.Colors.ink2)
-            }
+        .overlay(alignment: .bottom) {
+            if !isPageLayout { Rectangle().fill(Theme.Colors.line).frame(height: 1) }
         }
     }
 
@@ -771,76 +729,68 @@ struct CasePaneDetailView: View {
     /// The case with the session fields the lists keep fresh (WAG-258).
     private var liveCase: Case { model.listedCase(id: detail.case.id) ?? detail.case }
 
-    private func onlineBody(contextThread: ThreadModel?) -> some View {
-        VStack(spacing: 0) {
-            statusCard
-            if liveCase.sessionClosedBeforeAnswer { SessionClosedNotice(continueSession: continueSession, onContinue: { continueInNewSession() }) }
-            HStack(spacing: 0) {
-                scrollBody(contextThread: contextThread)
-                if let open = askDoc.open, open.placement == .beside {
-                    ArtifactPanelView(controller: askDoc, open: open, isLocked: isAnswerDisplayLocked)
-                        .onChange(of: askDoc.doc?.step) { _, _ in followStepInPanel() }
-                        .transition(reduceMotion ? .identity : .move(edge: .trailing))
-                }
-            }
-            .clipped()
-            // The panel slides in over 220 ms, ease-out; with Reduce Motion it just appears.
-            .animation(
-                reduceMotion ? nil : .easeOut(duration: Theme.AskDoc.Metrics.panelSlide),
-                value: askDoc.open?.placement == .beside)
-        }
+    /// The status line (C10, spec section 8): one line in the context line, with a button only when there is
+    /// something to do. It replaces the done strip, the agent status strip, the session-closed notice and the
+    /// delivery banners; each button calls what the old one did.
+    private var statusLine: RequestStatus.Line? {
+        let delivery = model.deliveryStatusByCaseId[detail.case.id]
+        let agent = AgentStatus.forCase(liveCase, deliveryStatus: delivery)
+        let line = RequestStatus.line(RequestStatus.Input(
+            item: liveCase, isOffline: isOffline, confirmed: delivery, local: sendFlow.deliveryState.state,
+            isEditingLockedAnswer: sendFlow.isEditingLockedAnswer,
+            settled: AnswerGrouping.settled(
+                detail.case, allCases: model.needsYouCases + model.waitingOnAgentCases,
+                deliveredAt: Self.readAt(delivery), now: model.now),
+            pickup: PickupFallback.kind(for: liveCase, now: model.now),
+            since: AgentStatus.timerStart(detail.case, status: agent, deliveryStatus: delivery),
+            readAt: Self.readAt(delivery) ?? detail.case.latestReplyDeliveredAtDate,
+            wokeAfterNudge: Nudge.wokeUp(item: liveCase, record: model.nudgeRecords[detail.case.id])))
+        guard let line else { return nil }
+        if line.canHide, hiddenStatus.isHidden(HiddenStatusStore.key(caseId: detail.case.id, line: line)) { return nil }
+        return line
     }
 
-    /// The status strip while the open ask waits on the agent (HAIL-62).
-    @ViewBuilder
-    private var statusCard: some View {
-        if detail.case.isDone {
-            doneCard
-        } else if detail.case.status == .waitingOnAgent {
-            let delivery = model.deliveryStatusByCaseId[detail.case.id]
-            let status = AgentStatus.forCase(liveCase, deliveryStatus: delivery)
-            AgentStatusStrip(
-                status: status,
-                runtime: detail.case.runtimeLabel,
-                since: AgentStatus.timerStart(detail.case, status: status, deliveryStatus: delivery),
-                readAt: Self.readAt(delivery) ?? detail.case.latestReplyDeliveredAtDate,
-                item: liveCase,
-                settled: AnswerGrouping.settled(
-                    detail.case, allCases: model.needsYouCases + model.waitingOnAgentCases,
-                    deliveredAt: Self.readAt(delivery), now: model.now),
-                onOpenCase: { id in Task { await model.open(caseId: id, source: .queue) } }
-            )
-        }
+    /// The context line with the status in it.
+    private var statusContextLine: some View {
+        let line = statusLine
+        return RequestContextLine(
+            item: detail.case, client: model.client, planRounds: detail.planRounds ?? [],
+            status: line?.text,
+            statusView: line.map { AnyView(statusLineView($0)) },
+            onOpenCase: { id in Task { await model.open(caseId: id, source: .queue) } })
     }
 
-    /// The strip of a done case (HAIL-152): the agent finished and needs no answer. Got it closes
-    /// the ask and sends nothing to the agent.
-    private var doneCard: some View {
-        HStack(spacing: 10) {
-            Image(systemName: "checkmark.circle.fill")
-                .font(.system(size: 13))
-                .foregroundColor(Theme.Colors.ok)
-            Text("Done · \(detail.case.runtimeLabel) finished and needs no answer")
-                .knockTextStyle(Theme.Typography.buttonSm12_5w600)
-                .foregroundColor(Theme.Colors.ok)
-                .lineLimit(1)
-            Spacer(minLength: 8)
-            Button { Task { await model.dismiss(caseId: detail.case.id) } } label: {
-                Text("Got it")
-                    .knockTextStyle(Theme.Typography.buttonSm12_5w500)
-                    .foregroundColor(Theme.Colors.ink)
-                    .padding(EdgeInsets(top: 5, leading: 12, bottom: 5, trailing: 12))
-                    .background(Theme.Colors.win)
-                    .cornerRadius(Theme.Radius.buttonSmall)
-                    .overlay(
-                        RoundedRectangle(cornerRadius: Theme.Radius.buttonSmall).stroke(Theme.Colors.line2, lineWidth: 1))
+    private func statusLineView(_ line: RequestStatus.Line) -> some View {
+        RequestStatusLineView(
+            line: line, item: liveCase, continueSession: continueSession,
+            onAction: { performStatus($0) },
+            onHide: { hiddenStatus.hide(HiddenStatusStore.key(caseId: detail.case.id, line: line)) })
+    }
+
+    /// A status line button: the same call the old banner, strip or bar made.
+    private func performStatus(_ action: RequestStatus.Action) {
+        switch action {
+        case .retry:
+            hiddenStatus.showAgain(caseId: detail.case.id)
+            switch sendFlow.deliveryState.state {
+            case .offline, .refused, .failed:
+                Task { await sendFlow.retryDelivery() }
+            default:
+                Task { await model.retryDelivery(caseId: detail.case.id) }
             }
-            .buttonStyle(.plain).pointerCursor()
-            .accessibilityLabel("Got it")
+        case .copyAnswer:
+            ClaudeCheck.copyReply(for: liveCase)
+        case .viewReview, .openReview:
+            openReview()
+        case .changeAnswer:
+            sendFlow.beginChangingAnswer()
+        case .continueInNewSession:
+            continueInNewSession()
+        case .gotIt:
+            Task { await model.dismiss(caseId: detail.case.id) }
+        case .openFollowUp(let id):
+            Task { await model.open(caseId: id, source: .queue) }
         }
-        .padding(EdgeInsets(top: 9, leading: 24, bottom: 9, trailing: 24))
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .background(Theme.Colors.okSoft)
     }
 
     private static func readAt(_ delivery: DeliveryState?) -> Date? {
@@ -848,88 +798,28 @@ struct CasePaneDetailView: View {
         return nil
     }
 
-    private func scrollBody(contextThread: ThreadModel?, isSideBySide: Bool = false) -> some View {
+    private var scrollBody: some View {
         ScrollView {
-            VStack(alignment: .leading, spacing: 14) {
-                // Inside the scroll, not pinned above it (operator, 29 Sep:
-                // "why there's this weird empty box there?"): pinned, the
-                // content scrolled under it and the RECOMMENDED block's
-                // clipped edge read as an empty box. The footer still shows
-                // the delivery state.
-                // Delivered is already said by the orb status card above and
-                // the footer, so only a failure (with its Retry) shows here.
-                if detail.case.status == .waitingOnAgent, let status = model.deliveryStatusByCaseId[detail.case.id],
-                   DeliveryBannerSlot.slot(for: status) == .paneTop {
-                    deliveryOutcome(status: status)
+            VStack(alignment: .leading, spacing: 0) {
+                // Mockup B `.ctx`: "SAMPLE BLOG · IMAGE HOSTING · ROUND 2 · 15:00", 10 over the title, when there is
+                // no artifact and so no crumb in the top bar.
+                if isPageLayout {
+                    PageEyebrow(
+                        task: detail.task, sessionTitle: model.sessionTitle(for: detail.case),
+                        meta: topBarMeta.eyebrowTimes,
+                        onOpenProject: { model.openProjectPage(detail.task.project) })
+                        .padding(.bottom, Theme.AskDoc.Chrome.eyebrowGap)
                 }
-                // WAG-410: the failed reply went to a new session. A calm line, no failure.
-                if liveCase.latestReplyState == .handedOver {
-                    HStack(alignment: .top, spacing: 8) {
-                        Image(systemName: "arrow.uturn.forward.circle")
-                            .font(.system(size: 12))
-                            .foregroundColor(Theme.Colors.ink3)
-                        Text(ReplyApplyCopy.handedOver)
-                            .knockTextStyle(Theme.Typography.caption11_5w400)
-                            .foregroundColor(Theme.Colors.ink2)
-                            .fixedSize(horizontal: false, vertical: true)
-                    }
-                    .accessibilityElement(children: .combine)
-                }
-                if let followsCaseId = detail.case.followsCaseId {
-                    FollowUpHeaderView(
-                        followsCaseId: followsCaseId, client: model.client,
-                        onOpen: { id in Task { await model.open(caseId: id, source: .queue) } }
-                    )
-                }
-                if let replacesCaseId = detail.case.replacesCaseId {
-                    ReplacesHeaderView(replacesCaseId: replacesCaseId, client: model.client)
-                }
-                // A plan ask with no artifact stays on this page (HAIL-151): its stage track and the
-                // folded answers sit above the title.
-                if let plan = detail.case.plan {
-                    PlanColumnHeaderView(plan: plan, rounds: detail.planRounds ?? [])
-                }
-                crumbsLine
-                // A done note heads the page in full size; the old decision folds under it (WAG-333).
-                if let note = DoneNote.message(for: detail.case) {
-                    AskTitleView(heading: nil, title: note, width: headerWidth)
-                    EarlierDecisionFold { pageDecision }
-                } else if let note = detail.case.workingNoteText {
-                    // A progress note heads the page; the round it follows folds (WAG-377).
-                    WorkingNoteLine(note: note)
-                    EarlierDecisionFold(title: "Earlier round") { pageDecision }
-                } else if let update = detail.case.messageOnlyUpdate?.fullText(from: detail.messages, after: detail.case.latestReplyAtDate) {
-                    LatestMessageNote(note: update, width: headerWidth)
-                    if update.staysLive {
-                        // A talk reply or a question keeps the round live: the message sits above it (WAG-393).
-                        pageDecision
-                    } else {
-                        // A message-only update heads the page; the round it answers folds (WAG-337).
-                        EarlierDecisionFold(title: "Earlier round") { pageDecision }
-                    }
-                } else {
-                    pageDecision
-                    // WAG-343: new options replaced the questions; the questions fold as the earlier round.
-                    if detail.case.questionsReplacedByLaterRound {
-                        EarlierDecisionFold(title: "Earlier round") { earlierQuestions }
-                    }
-                }
-                // The team's comments come after the question and its page (WAG-389).
-                SharedCommentsSection(model: sharing)
-                // Options no longer sit here at the end of the scroll: they
-                // live in `answerDock`, fixed above the composer (operator,
-                // 29 Sep: "this part should be sticky visible at the bottom,
-                // not at the end of the scroll"). A typed answer with no
-                // options still shows here, where the options would be.
-                if detail.case.options.isEmpty, isAnswerDisplayLocked,
-                   !(detail.case.latestReplyMessage ?? "").isEmpty || !sentFiles.isEmpty {
-                    answerMessageCard(detail.case.latestReplyMessage ?? "")
-                }
+                // The mockup's order: the latest agent message (`.latest`), the follow-up line (`.fu`), the status,
+                // the plan track (`.track`); each keeps its own gap under it.
+                DecisionLatestMessage(
+                    thread: thread, tab: columnTab, decisionHeadsWithLatest: decisionHeadsWithLatest,
+                    onOpen: { selectTab(.conversation) })
+                statusContextLine
+                scrollSections
             }
-            .padding(isSideBySide
-                ? EdgeInsets(top: 24, leading: 12, bottom: 20, trailing: 28)
-                : EdgeInsets(top: 30, leading: 44, bottom: 24, trailing: 44))
-            .frame(maxWidth: isSideBySide ? .infinity : Theme.AskDoc.Metrics.pageMaxWidth + 88, alignment: .leading)
+            .padding(EdgeInsets(
+                top: Theme.AskDoc.Column.scrollInset.top, leading: columnLeadingInset, bottom: 20, trailing: Self.columnTrailingInset))
             .frame(maxWidth: .infinity, alignment: .leading)
         }
         .coordinateSpace(name: StickyHeader.space)
@@ -943,32 +833,84 @@ struct CasePaneDetailView: View {
         .frame(maxHeight: .infinity)
     }
 
+    /// The Decision tab under the context lines: the title, the need (14 under it, `.need`), the options.
+    private var scrollSections: some View {
+            VStack(alignment: .leading, spacing: Theme.AskDoc.Column.needGap) {
+                // A done note heads the page in full size; the old decision folds under it (WAG-333).
+                // A folded earlier round keeps its pick card: its options are not offered again in the column.
+                if let note = DoneNote.message(for: detail.case) {
+                    AskTitleView(heading: nil, title: note, width: headerWidth)
+                    EarlierDecisionFold(title: PreviousAnswer.foldTitle(detail.case, fallback: "Earlier decision")) {
+                        pageDecision(showsPick: true)
+                    }
+                } else if let note = detail.case.workingNoteText {
+                    // A progress note heads the page; the round it follows folds (WAG-377).
+                    WorkingNoteLine(note: note)
+                    EarlierDecisionFold(title: PreviousAnswer.foldTitle(detail.case, fallback: "Earlier round")) {
+                        pageDecision(showsPick: true)
+                    }
+                } else if let update = detail.case.messageOnlyUpdate?.fullText(from: detail.messages, after: detail.case.latestReplyAtDate) {
+                    LatestMessageNote(note: update, width: headerWidth)
+                    if update.staysLive {
+                        // A talk reply or a question keeps the round live: the message sits above it (WAG-393).
+                        pageDecision(showsPick: false)
+                    } else {
+                        // A message-only update heads the page; the round it answers folds (WAG-337).
+                        EarlierDecisionFold(title: PreviousAnswer.foldTitle(detail.case, fallback: "Earlier round")) {
+                            pageDecision(showsPick: true)
+                        }
+                    }
+                } else {
+                    pageDecision(showsPick: false)
+                    // WAG-343: new options replaced the questions; the questions fold as the earlier round.
+                    if detail.case.questionsReplacedByLaterRound {
+                        EarlierDecisionFold(title: "Earlier round") { earlierQuestions }
+                    }
+                }
+                // The options, once, in the column above the answer box (C1, C3): they scroll with the page, so
+                // the pinned bottom holds only the answer box and the send row.
+                if showsOptionsInColumn { optionsInColumn }
+                // The team's comments are in the Comments tab; one line here opens it (WAG-397, as full size).
+                TeamCountLine(model: sharing) { selectTab(.comments) }
+                // A typed answer with no options shows here, where the options would be.
+                if detail.case.options.isEmpty, isAnswerDisplayLocked,
+                   !(detail.case.latestReplyMessage ?? "").isEmpty || !sentFiles.isEmpty {
+                    answerMessageCard(detail.case.latestReplyMessage ?? "")
+                }
+            }
+    }
+
+    /// `showsPick`: the pick card of a simple decision, for a round folded under a note, whose options the column
+    /// does not list again. A live round lists its options once, in the column (C1), and shows no card.
     @ViewBuilder
-    private var pageDecision: some View {
+    private func pageDecision(showsPick: Bool) -> some View {
         if let doc = askDoc.doc, doc.isStepped {
             steppedBody(doc)
         } else {
-            documentBody
+            documentBody(showsPick: showsPick)
         }
     }
 
     /// The ask as one page: its title, the need and, for an ask with questions, a section per question.
     @ViewBuilder
-    private var documentBody: some View {
-        AskTitleView(heading: detail.case.roundHeading, title: detail.case.title, width: headerWidth)
-            .coachMarkAnchor(.round)
+    private func documentBody(showsPick: Bool) -> some View {
+        // `h1`: 10 under the title.
+        VStack(alignment: .leading, spacing: Theme.AskDoc.Column.titleGap) {
+            AskTitleView(heading: detail.case.roundHeading, title: detail.case.title, width: headerWidth)
+                .coachMarkAnchor(.round)
 
-        // The stage label sits in the track, so the honey box keeps its own label (WAG-290).
-        NeedCalloutView(
-            need: detail.case.displayNeed(planRounds: detail.planRounds),
-            why: detail.case.currentWhy,
-            labelAbove: detail.case.plan.map { PlanText.progressLabel($0.stage) })
+            // The stage sits in the context line; a "Section n of N:" the stage says is dropped from the need (WAG-294).
+            NeedCalloutView(
+                need: detail.case.displayNeed(planRounds: detail.planRounds),
+                why: detail.case.currentWhy,
+                labelAbove: detail.case.plan.map { PlanText.progressLabel($0.stage) })
+        }
 
-        // The pick (or the recommendation) of a simple decision, under the need box (WAG-293).
-        if askDoc.doc == nil, AskBarMode.forCase(detail.case) == .decide {
+        // The pick of a folded earlier round, under the need box (WAG-293).
+        if showsPick, askDoc.doc == nil, AskBarMode.forCase(detail.case) == .decide {
             DecisionPickBlockView(
                 composer: sendFlow.composer, isLocked: isAnswerDisplayLocked,
-                yourAnswerOptionId: detail.case.latestReplyChoice, columns: planLayout != .sideBySide)
+                yourAnswerOptionId: detail.case.latestReplyChoice, columns: !showsArtifactBeside)
         }
 
         // Between the recommended block and the option rows (WAG-356). A round with no sources adds nothing.
@@ -978,13 +920,11 @@ struct CasePaneDetailView: View {
             RoundInstructionView(text: instruction)
         }
 
-        // An ask with questions: a section per question. The options of a simple ask sit in the
-        // bottom bar only (`AskDocRules.optionsPlaces`), so no Decision card shows here.
+        // An ask with questions: a section per question. The options of a simple ask follow the page in the
+        // column (`optionsInColumn`), once.
         if let doc = askDoc.doc {
             questionSections(doc)
         }
-        // A plan question or a simple ask: its answers are the calm cards in the dock below, shown once
-        // (WAG-281). The artifact sits in the box above or beside the page (WAG-306).
     }
 
     /// A decision with several questions, one step at a time (WAG-287): the step bar, then the usual page
@@ -992,18 +932,26 @@ struct CasePaneDetailView: View {
     @ViewBuilder
     private func steppedBody(_ doc: QuestionsDocModel) -> some View {
         let binding = Binding(get: { askDoc.doc ?? doc }, set: { askDoc.doc = $0 })
-        VStack(alignment: .leading, spacing: 14) {
+        VStack(alignment: .leading, spacing: Theme.AskDoc.Column.needGap) {
+            // `.steps`: 8 under the step bar; `h1`: 10 under the title.
             StepBarView(doc: binding)
+                .padding(.bottom, 8 - Theme.AskDoc.Column.needGap)
             if let question = doc.currentQuestion {
-                GroupHeadingView(title: question.groupTitle)
-                SourcedText(
-                    text: question.title, style: headerWidth.titleStyle, color: Theme.Colors.ink,
-                    target: AskCommentTarget(.question, itemId: question.id), weight: .semibold)
-                    .textSelection(.enabled)
-                // Every step shows the need of the request with its own step label (WAG-334), so a later
-                // step is never an empty page. Its pick or recommendation card follows in `questionStep`.
-                NeedCalloutView(need: detail.case.need, why: detail.case.why, labelAbove: doc.sectionLabel(of: question))
+                VStack(alignment: .leading, spacing: Theme.AskDoc.Column.titleGap) {
+                    // The group title is in the step's tooltip (C2); the step title is the question, once.
+                    SourcedText(
+                        text: question.title, style: headerWidth.titleStyle, color: Theme.Colors.ink,
+                        target: AskCommentTarget(.question, itemId: question.id), weight: .semibold)
+                        .textSelection(.enabled)
+                    // Every step shows the need of the request with its own step label (WAG-334), so a later
+                    // step is never an empty page. Its pick or recommendation card follows in `questionStep`.
+                    NeedCalloutView(need: detail.case.need, why: detail.case.why, labelAbove: doc.sectionLabel(of: question))
+                }
                 questionStep(question, doc: binding)
+                // The step's points in the column, above the answer box (C1); the bar keeps Back, Next and Send.
+                StepPointsInColumn(
+                    question: question, doc: binding, sendFlow: sendFlow, composer: sendFlow.composer,
+                    deliveryState: sendFlow.deliveryState, isLocked: isAnswerDisplayLocked)
                 SourcesButtonSlot()
             } else {
                 Text("Send your \(doc.questions.count) decisions?")
@@ -1028,7 +976,7 @@ struct CasePaneDetailView: View {
             showsHeader: false, showsPoints: !DecisionDock.optionsInDock(.step), showsPicks: true)
     }
 
-    /// The ask's artifact on a stacked page: a bar above the answers that stays on screen (decision 2026-11-05).
+    /// The folded artifact: a bar at the top of the column that stays on screen (C1).
     private var pinnedArtifactBar: some View {
         PinnedArtifactBar(
             model: liveArtifact, composer: sendFlow.composer, followsComposer: askDoc.doc?.isStepped != true,
@@ -1041,26 +989,14 @@ struct CasePaneDetailView: View {
             caseId: detail.case.id, artifactKind: model.artifactKindByCaseId[detail.case.id])
     }
 
-    /// The title size follows the column: a side-by-side page is a narrow column (WAG-302).
-    private var headerWidth: AskHeaderWidth { showsSideBySide ? .narrow : .wide }
+    /// The title is the decision column's `h1` in every layout: the page with no artifact is the same column, only
+    /// wider (decision 2026-11-10: the case map mockup sets the sizes).
+    /// Mockup B: the page with no artifact has the large title (600 28/1.15) under the eyebrow.
+    private var headerWidth: AskHeaderWidth { isPageLayout ? .wide : .narrow }
 
-    private var crumbsLine: some View {
-        let earlier = EarlierAsksModel.make(
-            item: detail.case, cases: model.needsYouCases + model.waitingOnAgentCases, now: model.now)
-        return AskCrumbLine(
-            crumb: AskCrumbs.screenLine(
-                task: detail.task, sessionTitle: model.sessionTitle(for: detail.case), runtime: detail.case.runtimeLabel,
-                askNumber: model.sessionContext(for: detail.case).askNumber, doc: askDoc.doc),
-            help: AskCrumbs.folderHelp(detail.task),
-            earlierAsks: earlier,
-            onOpenCase: { id in Task { await model.open(caseId: id, source: .queue) } },
-            onOpenHistory: openHistory)
-    }
-
-    /// "Open the history ›": shows the conversation column.
-    private func openHistory() {
-        guard !isConversationOpen else { return }
-        toggleConversation()
+    /// "N earlier requests ▾" at the top of the Conversation tab (C8).
+    private var earlierAsks: EarlierAsksModel {
+        EarlierAsksModel.make(item: detail.case, cases: model.needsYouCases + model.waitingOnAgentCases, now: model.now)
     }
 
     /// The questions of round 0 after a later round replaced them: read-only, no answers bar.
@@ -1147,54 +1083,75 @@ struct CasePaneDetailView: View {
         detail.replies.last { $0.itemAnswers?.isEmpty == false && $0.outcome != .talk }?.itemAnswers ?? []
     }
 
-    /// The unified composer card (docs/stories/HAIL-54.md), fixed above the
-    /// footer (Pen "Ask pane · sticky answer dock", approved 29 Sep): only
-    /// the question, the why and the preview scroll; the choice is always in
-    /// view. The card's own options section is capped at `maxOptionsHeight`,
-    /// past which only the options scroll inside it and the reply field and
-    /// toolbar stay put. Absent for an ask without options.
-    private var answerDock: some View { answerDock(optionsCap: Self.maxOptionsHeight) }
+    /// Whether the column lists the options of a simple decision. A done note's closed decision does not offer
+    /// them again (WAG-333).
+    private var showsOptionsInColumn: Bool {
+        AskBarMode.forCase(detail.case) == .decide && DoneNote.message(for: detail.case) == nil
+    }
 
+    /// The options of a simple decision, once, in the column's scroll (C1, C3): the same rows, keys and headers as
+    /// the old dock, which now holds only the answer box and the send row (`answerDock`).
+    private var optionsInColumn: some View {
+        composerCard(part: .optionsOnly, optionsCap: nil)
+            .coachMarkAnchor(.options)
+    }
+
+    /// The pinned bottom of the column: the answer box and the send row. `inColumn` false is the artifact's own
+    /// full page, which has no column: its bar keeps the options too, capped, as before.
     @ViewBuilder
-    private func answerDock(optionsCap: CGFloat?) -> some View {
+    private func answerDock(inColumn: Bool) -> some View {
         switch AskBarMode.forCase(detail.case) {
         case .reply:
             EmptyView()
         case .answers:
-            // Hidden once the answers are sent and settled; the footer then says where they are.
-            if askDoc.doc != nil, !isAnswerDisplayLocked || sendFlow.deliveryState.state != .idle {
+            // Hidden once the answers are sent: the status line (C10) then says where they are.
+            if askDoc.doc != nil, !isAnswerDisplayLocked, sendFlow.deliveryState.state == .idle {
                 AnswersBarView(
                     doc: Binding(get: { askDoc.doc ?? QuestionsDocModel(request: detail.case, itemAnswers: Self.sentItemAnswers(detail)) }, set: { askDoc.doc = $0 }),
                     sendFlow: sendFlow, deliveryState: sendFlow.deliveryState, isChanging: sendFlow.isEditingLockedAnswer,
-                    maxPointsHeight: DecisionDock.cap(.step, windowHeight: decisionHeight) ?? DecisionDock.minCap)
+                    maxPointsHeight: DecisionDock.cap(.step, windowHeight: decisionHeight) ?? DecisionDock.minCap,
+                    pointsInColumn: inColumn)
             }
         case .decide where DoneNote.message(for: detail.case) != nil:
             // The done note heads the page; the closed decision's rows are not offered again (WAG-333).
             EmptyView()
         case .decide:
-            ComposerCardView(
-                composer: sendFlow.composer,
-                sendFlow: sendFlow,
-                deliveryState: sendFlow.deliveryState,
-                recommendationId: detail.case.recommendation,
-                commentCount: commentsStore.model.comments.count,
-                placeholder: PromptBarLogic.placeholder(for: .decide, hasRevision: detail.revisionArrival != nil),
-                isLocked: isAnswerDisplayLocked,
-                yourAnswerOptionId: detail.case.latestReplyChoice,
-                yourAnswerOptionIds: Set(detail.case.latestReplyChoices),
-                lockedMessage: detail.case.latestReplyMessage,
-                lockedAttachments: sentFiles,
-                onOpenReview: detail.case.kind == .review ? { openReview() } : nil,
-                maxOptionsHeight: optionsCap,
-                showsFullOptions: true,
-                fullLabelOnlyWhenSelected: detail.case.plan != nil,
-                showsFailure: false
-            )
-            .coachMarkAnchor(.options)
+            if inColumn {
+                // Once sent, the status line holds what the answer box showed (C10); a done ask has none.
+                if showsAnswerBox { composerCard(part: .replyOnly, optionsCap: nil) }
+            } else {
+                composerCard(part: .whole, optionsCap: Self.maxOptionsHeight)
+                    .coachMarkAnchor(.options)
+            }
         }
     }
 
-    /// The open calm card plus two one-line rows; more scroll inside the dock.
+    /// The unified composer card (docs/stories/HAIL-54.md). The column uses it twice: its option rows in the
+    /// scroll (`.optionsOnly`) and its answer box and send row pinned at the bottom (`.replyOnly`).
+    private func composerCard(part: ComposerCardView.Part, optionsCap: CGFloat?) -> some View {
+        ComposerCardView(
+            composer: sendFlow.composer,
+            sendFlow: sendFlow,
+            deliveryState: sendFlow.deliveryState,
+            recommendationId: detail.case.recommendation,
+            commentCount: commentsStore.model.comments.count,
+            placeholder: PromptBarLogic.placeholder(for: .decide, hasRevision: detail.revisionArrival != nil),
+            isLocked: isAnswerDisplayLocked,
+            yourAnswerOptionId: detail.case.latestReplyChoice,
+            yourAnswerOptionIds: Set(detail.case.latestReplyChoices),
+            lockedMessage: detail.case.latestReplyMessage,
+            lockedAttachments: sentFiles,
+            onOpenReview: detail.case.kind == .review ? { openReview() } : nil,
+            maxOptionsHeight: optionsCap,
+            showsFullOptions: true,
+            fullLabelOnlyWhenSelected: detail.case.plan != nil,
+            showsStatus: false,
+            part: part
+        )
+    }
+
+    /// The artifact's full page keeps the options in its bar: the open calm card plus two one-line rows; more
+    /// scroll inside it.
     static let maxOptionsHeight: CGFloat = 420
 
     /// Whether this ask's options/answer read as locked (docs/stories/
@@ -1275,36 +1232,5 @@ struct CasePaneDetailView: View {
             .padding(EdgeInsets(top: 3, leading: 8, bottom: 3, trailing: 8))
             .background(Theme.Colors.side)
             .cornerRadius(Theme.Radius.chip)
-    }
-
-    /// "View review" once the reply has been delivered (docs/stories/
-    /// HAIL-34.md operator report 21:37): there is nothing left to compose,
-    /// only the read-only recap the review workspace's own locked column
-    /// shows. Still "Open review" while queued - the workspace opens
-    /// straight into the "Change answer" flow from there if wanted.
-    private var openReviewLabel: String {
-        lockState == .delivered ? "View review" : "Open review"
-    }
-
-    private var openReviewBar: some View {
-        HStack(spacing: 8) {
-            Text(openReviewLabel)
-                .knockTextStyle(Theme.Typography.button13_5w600)
-                .foregroundColor(Theme.Colors.win)
-            Text("↵")
-                .knockTextStyle(Theme.Typography.keyHint12_5w400)
-                .foregroundColor(Theme.Colors.win.opacity(0.7))
-        }
-        .padding(EdgeInsets(top: 10, leading: 16, bottom: 10, trailing: 16))
-        .background(Theme.Colors.ink)
-        .cornerRadius(Theme.Radius.buttonPrimary)
-        .contentShape(Rectangle())
-        .onTapGesture { openReview() }.pointerCursor()
-        .padding(EdgeInsets(top: 14, leading: 32, bottom: 18, trailing: 32))
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .overlay(
-            Rectangle().fill(Theme.Colors.line).frame(height: 1),
-            alignment: .top
-        )
     }
 }

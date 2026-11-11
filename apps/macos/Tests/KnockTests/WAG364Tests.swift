@@ -57,6 +57,8 @@ struct WAG364Tests {
         #expect(doc.stepPills.map(\.title).last == "Send" && doc.stepPills.count == 4)
         #expect(doc.stepPills.dropLast().map(\.title) == ["Open on Meet your…", "Show State reveal…", "Show the level-up…"])
         #expect(doc.stepCrumb == "Decision 1 of 3")
+        // C2: the group label over the question moved into each step's tooltip.
+        #expect(doc.stepPills[0].help.hasSuffix("\n\(doc.questions[0].groupTitle ?? "")") && doc.questions[0].groupTitle != nil)
     }
 
     @Test func mixedGroupedAndUngroupedItemsKeepOneStepEach() {

@@ -24,13 +24,18 @@ struct CommentsColumnView: View {
     /// WAG-307: what the stage shows, so a comment whose page state is gone lands under "On other views".
     var context = CommentViewContext.unknown
     var onShow: (Comment) -> Void = { _ in }
+    /// For the latest-message line and the Conversation dot over the tabs (C8).
+    var thread: ThreadModel? = nil
+    var caseId: String = ""
 
     var body: some View {
         VStack(spacing: 0) {
             ScrollViewReader { scrollProxy in
                 ScrollView {
                     VStack(alignment: .leading, spacing: 12) {
-                        ReviewColumnTabsView(tab: tab, commentCount: store.model.comments.count, onSelect: onSelectTab)
+                        DecisionColumnHeader(
+                            thread: thread, caseId: caseId, tab: tab, commentCount: store.model.comments.count,
+                            onSelect: onSelectTab)
                             .padding(.bottom, 8)
                         CommentListView(store: store, context: context, onShow: onShow, sharing: shared)
                     }
@@ -59,7 +64,7 @@ struct CommentsColumnView: View {
                 agentComposer
             }
         }
-        .frame(minWidth: 340, idealWidth: 430, maxWidth: 430)
+        .frame(minWidth: AskLayout.fullSizeMinColumnWidth, idealWidth: AskLayout.columnWidth, maxWidth: AskLayout.columnWidth)
         .frame(maxHeight: .infinity)
         .background(Theme.Colors.win)
     }
@@ -77,10 +82,11 @@ struct CommentsColumnView: View {
                 // commentCount"), not just the capture currently shown.
                 commentCount: store.model.comments.count,
                 placeholder: shared.canWriteOnPage ? MergedComments.placeholder(.agent) : PromptBarLogic.placeholder(.revision),
-                inputBackground: Theme.Colors.list,
-                maxReplyLines: PromptBarLogic.workspaceMaxLines
+                inputBackground: Theme.Colors.list
             )
         }
+        // The answer box keeps to the column's content edges, as the comment cards above it do.
+        .padding(.horizontal, 24)
     }
 }
 

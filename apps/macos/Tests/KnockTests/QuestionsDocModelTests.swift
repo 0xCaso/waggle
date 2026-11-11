@@ -296,8 +296,8 @@ extension QuestionsDocModelTests {
         let plain = QuestionPoint(id: "s", text: "Badge?", options: ["Yes", "No"])
         // One row per choice, in order, for both kinds; a string row has no counts.
         #expect(rich.choices.map(\.label) == ["Cards", "Table"] && plain.choices.map(\.label) == ["Yes", "No"])
-        #expect(CalmOption.chipCounts(pros: plain.choices[0].pros, cons: plain.choices[0].cons) == (0, 0))
-        #expect(CalmOption.chipCounts(pros: rich.choices[0].pros, cons: rich.choices[0].cons) == (1, 1))
+        #expect(CalmOption.teaser(pros: plain.choices[0].pros, cons: plain.choices[0].cons) == nil)
+        #expect(CalmOption.teaser(pros: rich.choices[0].pros, cons: rich.choices[0].cons) == CalmOption.Teaser(pro: "Scans well", con: "Takes room", more: 0))
     }
 
     @Test func eachPointHasItsOwnPickBlockAndNoRecommendationBeforeAPick() {
@@ -370,6 +370,9 @@ extension QuestionsDocModelTests {
         #expect(pills.count == 4 && pills[0].isDone && pills[1].isCurrent && !pills[0].isCurrent)
         #expect(pills[3].isSend && pills[3].title == "Send" && !pills[0].isSend)
         #expect(pills[0].title == "Who can open the…" && pills[1].title == "Comments")
+        // C2: the bar shows the numbers; the full title is in the tooltip.
+        #expect(pills.map(\.number) == ["1", "2", "3", "Send"])
+        #expect(pills[0].help.hasPrefix("1. Who can open the") && !pills[0].help.contains("…") && pills[3].help == "Review and send")
         model.jump(to: 3)
         #expect(model.stepPills[3].isCurrent)
     }

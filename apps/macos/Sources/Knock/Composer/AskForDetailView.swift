@@ -1,6 +1,6 @@
 import SwiftUI
 
-/// The quick replies of the chip row (WAG-411): one click sends the words as the reply.
+/// The quick replies (WAG-411), at the top of the "Ask for…" panel (C5): one click sends the words as the reply.
 enum QuickReply: CaseIterable, Identifiable {
     case letsDiscuss, lookAtMyComments, showMeMore
 
@@ -48,115 +48,85 @@ enum QuickReply: CaseIterable, Identifiable {
     }
 }
 
-/// The chip row right above the input (WAG-411, was the "Ask for" row of HAIL-111 and WAG-367): the quick
-/// replies, a divider, one chip for each quick ask, then "…". A chip sends on one click. "…" opens the full
-/// panel. Every chip is in the row. When they do not fit, the row scrolls sideways, with a fade on the side
-/// that has more. `onQuickReply` is nil where a plain reply makes no sense: then the row has no quick replies.
-struct AskForDetailRowView: View {
-    @ObservedObject var composer: ComposerViewModel
-    let onSend: () -> Void
-    let onSendFormat: (ReplyFormat) -> Void
-    var onQuickReply: ((QuickReply) -> Void)? = nil
-    /// True when comments are pinned: then "Look at my comments" shows.
-    var hasComments = false
-
-    @State private var offset: CGFloat = 0
-    @State private var contentWidth: CGFloat = 0
-    @State private var containerWidth: CGFloat = 0
-
-    private static let dots = "…"
-    private static let space = "chipRow"
-
-    var body: some View {
-        let fades = ChipRowEdges.fades(offset: offset, content: contentWidth, container: containerWidth)
-        ScrollView(.horizontal, showsIndicators: false) {
-            HStack(spacing: 6) {
-                if let onQuickReply {
-                    ForEach(QuickReply.visible(hasComments: hasComments || ProcessInfo.processInfo.environment["KNOCK_EVIDENCE_QUICK_COMMENTS"] == "1")) { reply in
-                        Button(reply.label) { onQuickReply(reply) }
-                            .buttonStyle(DetailPillStyle(isQuick: true))
-                            .accessibilityLabel(reply.label)
-                    }
-                    Rectangle().fill(Theme.Colors.line).frame(width: 1, height: 16).padding(.horizontal, 2)
-                }
-                ForEach(DetailPill.all) { pill in
-                    Button(pill.label) { send(pill) }
-                        .buttonStyle(DetailPillStyle())
-                        .accessibilityLabel("Ask for \(pill.label)")
-                }
-                Button(Self.dots) { composer.beginAskingForDetail(fromDots: true) }
-                    .buttonStyle(DetailPillStyle())
-                    .accessibilityLabel("More ways to ask")
-                    .help("More ways to ask")
-            }
-            .padding(.horizontal, 14)
-            .fixedSize()
-            .background(
-                GeometryReader { proxy in
-                    Color.clear.preference(key: ChipRowMetrics.self, value: ChipRowMetrics.Value(
-                        offset: -proxy.frame(in: .named(Self.space)).minX, content: proxy.size.width))
-                })
-        }
-        .coordinateSpace(name: Self.space)
-        .onPreferenceChange(ChipRowMetrics.self) { metrics in
-            if offset != metrics.offset { offset = metrics.offset }
-            if contentWidth != metrics.content { contentWidth = metrics.content }
-        }
-        .onGeometryChange(for: CGFloat.self, of: { $0.size.width }) { if containerWidth != $0 { containerWidth = $0 } }
-        .mask(
-            HStack(spacing: 0) {
-                edge(leading: true, fades: fades.leading)
-                Rectangle()
-                edge(leading: false, fades: fades.trailing)
-            })
-        .animation(.easeOut(duration: 0.15), value: fades.leading)
-        .animation(.easeOut(duration: 0.15), value: fades.trailing)
-        .frame(height: 28)
-        .padding(.vertical, 4)
-        .frame(maxWidth: .infinity, alignment: .leading)
+/// What the "Ask for…" panel lists (C5), with the key of each row. The chip row it replaces is gone; every chip
+/// of it is a row here: the five quick asks, "Show me screenshots", the three formats ("a diagram" is one) and
+/// "Something else". The quick replies sit above the rows, with no key, as in the old row.
+@MainActor
+enum AskForPanel {
+    enum Entry: Equatable {
+        /// A request sent as it is: its text and its word in the usage log.
+        case ask(text: String, usage: String)
+        case format(ReplyFormat)
+        case somethingElse
     }
 
-    /// One end of the mask: a soft edge (clear at the border) when the row has more that way, else solid.
-    private func edge(leading: Bool, fades: Bool) -> some View {
-        LinearGradient(
-            colors: [.black.opacity(fades ? 0 : 1), .black], startPoint: leading ? .leading : .trailing,
-            endPoint: leading ? .trailing : .leading)
-            .frame(width: 28)
+    static var entries: [Entry] {
+        let quick = zip(ComposerViewModel.detailChips, ComposerViewModel.detailChipUsageNames).map { Entry.ask(text: $0, usage: $1) }
+        // The asks only the old row had (today "Show me screenshots").
+        let rowOnly = DetailPill.all.compactMap { pill -> Entry? in
+            if case .ask(let text, let usage) = pill.pick { return .ask(text: text, usage: usage) }
+            return nil
+        }
+        return quick + rowOnly + ReplyFormat.allCases.map(Entry.format) + [.somethingElse]
     }
 
-    private func send(_ pill: DetailPill) {
+    /// The key of the row at `index`: 1 to 9, then 0. Past ten rows, none.
+    static func key(at index: Int) -> String? {
+        switch index {
+        case 0..<9: return "\(index + 1)"
+        case 9: return "0"
+        default: return nil
+        }
+    }
+
+    /// Whether the old row's pill is a row of the panel: nothing of the row is lost.
+    static func lists(_ pill: DetailPill) -> Bool {
         switch pill.pick {
-        case .quick(let index):
-            composer.fillDetailChip(ComposerViewModel.detailChips[index])
-            DetailPill.report(format: "none", pick: ComposerViewModel.detailChipUsageNames[index], fromRow: true)
-            onSend()
-        case .ask(let text, let usage):
-            composer.fillDetailChip(text)
-            DetailPill.report(format: "none", pick: usage, fromRow: true)
-            onSend()
-        case .format(let format):
-            DetailPill.report(format: format.rawValue, pick: nil, fromRow: true)
-            onSendFormat(format)
+        case .quick(let index): return entries.contains(.ask(text: ComposerViewModel.detailChips[index], usage: ComposerViewModel.detailChipUsageNames[index]))
+        case .ask(let text, let usage): return entries.contains(.ask(text: text, usage: usage))
+        case .format(let format): return entries.contains(.format(format))
         }
     }
 }
 
-/// Where the chip row has more to show (WAG-411): a fade on that side only.
-enum ChipRowEdges {
-    static func fades(offset: CGFloat, content: CGFloat, container: CGFloat) -> (leading: Bool, trailing: Bool) {
-        guard container > 0, content > container + 1 else { return (false, false) }
-        return (offset > 2, offset + container < content - 2)
+/// The panel in the decision column (C5): a card of its own, as the options it replaces sit in the page.
+struct AskForPanelCard: ViewModifier {
+    let isCard: Bool
+
+    func body(content: Content) -> some View {
+        if isCard {
+            content
+                .background(Theme.Colors.win)
+                .clipShape(RoundedRectangle(cornerRadius: CalmOption.rowRadius))
+                .overlay(RoundedRectangle(cornerRadius: CalmOption.rowRadius).stroke(Theme.Colors.line, lineWidth: 1))
+                .background(ScrollIntoViewOnAppear())
+        } else {
+            content
+        }
     }
 }
 
-/// The scroll offset and the content width of the chip row, read from its content.
-struct ChipRowMetrics: PreferenceKey {
-    struct Value: Equatable { var offset: CGFloat = 0; var content: CGFloat = 0 }
-    static let defaultValue = Value()
-    static func reduce(value: inout Value, nextValue: () -> Value) { value = nextValue() }
+/// Scrolls the view it backs into sight once it appears: the panel opens from the send row, and may sit
+/// below the fold of the column.
+private struct ScrollIntoViewOnAppear: NSViewRepresentable {
+    func makeNSView(context: Context) -> Anchor { Anchor() }
+    func updateNSView(_ view: Anchor, context: Context) {}
+
+    final class Anchor: NSView {
+        override func hitTest(_ point: NSPoint) -> NSView? { nil }
+        override func viewDidMoveToWindow() {
+            super.viewDidMoveToWindow()
+            guard window != nil else { return }
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.05) { [weak self] in
+                guard let self, self.window != nil else { return }
+                self.scrollToVisible(self.bounds)
+            }
+        }
+    }
 }
 
-/// One pill of the "Ask for" row (WAG-367): the words name what comes back.
+/// One pill of the old "Ask for" row (WAG-367): the words name what comes back. The row is gone (C5); each pill
+/// is a row of the "Ask for…" panel (`AskForPanel.lists`).
 struct DetailPill: Identifiable {
     enum Pick: Equatable {
         /// The index of the quick ask in `ComposerViewModel.detailChips`.
@@ -228,30 +198,37 @@ struct DetailPillStyle: ButtonStyle {
     }
 }
 
-/// The detail request, in place of the options (HAIL-111, prototype #E1 state A): four quick asks
-/// that send on one tap or key, three format rows (HAIL-139) that send the same ask in one format,
-/// and "Something else…" that turns into an inline field.
+/// The detail request, in place of the options (HAIL-111, prototype #E1 state A), opened by "Ask for…" in the send
+/// row or "?" (C5): the quick replies (where the host offers them), the quick asks that send on one tap or key,
+/// the three format rows (HAIL-139) that send the same ask in one format, and "Something else…" that turns into
+/// an inline field. Keys 1 to 9 and 0 (`AskForPanel.key`), Esc back to the options, Cmd-Return asks.
 struct AskForDetailPanelView: View {
     @ObservedObject var composer: ComposerViewModel
     let onSend: () -> Void
     let onSendFormat: (ReplyFormat) -> Void
+    /// Nil where a plain reply makes no sense (a step of several questions): then the panel has no quick replies.
+    var onQuickReply: ((QuickReply) -> Void)? = nil
+    /// True when comments are pinned: then "Look at my comments" shows.
+    var hasComments = false
 
     /// `KNOCK_EVIDENCE_DETAIL_ELSE=<text>` opens "Something else…" with that text (evidence only);
     /// `\n` in the value becomes a newline.
     @State private var isTypingElse: Bool
     @State private var isElseFocused = false
-    @State private var fieldWidth: CGFloat = 300
-
-    static let maxFieldLines = 6
+    /// Height of the column or pane: the field grows to 40 % of it, as the answer box does (C6).
+    @Environment(\.answerBoxAvailableHeight) private var availableHeight
 
     init(
         composer: ComposerViewModel, onSend: @escaping () -> Void,
         onSendFormat: @escaping (ReplyFormat) -> Void = { _ in },
+        onQuickReply: ((QuickReply) -> Void)? = nil, hasComments: Bool = false,
         environment: [String: String] = ProcessInfo.processInfo.environment
     ) {
         self.composer = composer
         self.onSend = onSend
         self.onSendFormat = onSendFormat
+        self.onQuickReply = onQuickReply
+        self.hasComments = hasComments
         _isTypingElse = State(initialValue: environment["KNOCK_EVIDENCE_DETAIL_ELSE"] != nil)
     }
 
@@ -261,21 +238,25 @@ struct AskForDetailPanelView: View {
         composer.detailQuestionText = text.replacingOccurrences(of: "\\n", with: "\n")
     }
 
+    private var entries: [AskForPanel.Entry] { AskForPanel.entries }
+    private var firstFormat: Int { entries.firstIndex { if case .format = $0 { return true } else { return false } } ?? entries.count }
+
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
             header
-            ForEach(Array(ComposerViewModel.detailChips.enumerated()), id: \.offset) { index, text in
+            if let onQuickReply { quickReplies(onQuickReply) }
+            ForEach(Array(entries.enumerated()), id: \.offset) { index, entry in
+                if index == firstFormat {
+                    Rectangle().fill(Theme.Colors.line).frame(height: 1)
+                    formatLabel
+                }
                 Rectangle().fill(Theme.Colors.line).frame(height: 1)
-                row(position: index + 1, text: text)
+                switch entry {
+                case .ask(let text, let usage): row(key: AskForPanel.key(at: index), text: text, usage: usage)
+                case .format(let format): formatRow(key: AskForPanel.key(at: index), format: format)
+                case .somethingElse: elseRow(key: AskForPanel.key(at: index))
+                }
             }
-            Rectangle().fill(Theme.Colors.line).frame(height: 1)
-            formatLabel
-            ForEach(Array(ReplyFormat.allCases.enumerated()), id: \.element) { index, format in
-                Rectangle().fill(Theme.Colors.line).frame(height: 1)
-                formatRow(position: index + ComposerViewModel.detailChips.count + 1, format: format)
-            }
-            Rectangle().fill(Theme.Colors.line).frame(height: 1)
-            elseRow
             Text("One tap asks. The options come back with the agent's answer.")
                 .knockTextStyle(Theme.Typography.caption11_5w400)
                 .foregroundColor(Theme.Colors.ink3)
@@ -296,8 +277,28 @@ struct AskForDetailPanelView: View {
                 .knockTextStyle(Theme.Typography.caption11_5w400)
                 .foregroundColor(Theme.Colors.ink2)
                 .underline()
+                .help("Back to options (Esc)")
         }
         .padding(EdgeInsets(top: 9, leading: 14, bottom: 9, trailing: 14))
+    }
+
+    /// The quick replies (WAG-411): one click sends the words as the reply. They wrap, never cut.
+    private func quickReplies(_ send: @escaping (QuickReply) -> Void) -> some View {
+        let visible = QuickReply.visible(hasComments: hasComments || ProcessInfo.processInfo.environment["KNOCK_EVIDENCE_QUICK_COMMENTS"] == "1")
+        return HStack(spacing: 6) {
+            Text("Reply")
+                .knockTextStyle(Theme.Typography.statusCaption11w400)
+                .foregroundColor(Theme.Colors.ink3)
+                .fixedSize()
+            ForEach(visible) { reply in
+                Button(reply.label) { send(reply) }
+                    .buttonStyle(DetailPillStyle(isQuick: true))
+                    .fixedSize()
+                    .accessibilityLabel(reply.label)
+            }
+            Spacer(minLength: 0)
+        }
+        .padding(EdgeInsets(top: 0, leading: 14, bottom: 10, trailing: 14))
     }
 
     /// "Or the same explanation, in another format" (HAIL-139 amendment 2): a
@@ -311,40 +312,42 @@ struct AskForDetailPanelView: View {
             .frame(maxWidth: .infinity, alignment: .leading)
     }
 
-    private func key(_ label: String) -> some View {
-        Text(label)
+    @ViewBuilder
+    private func key(_ label: String?) -> some View {
+        Text(label ?? "")
             .knockTextStyle(Theme.Typography.keyBadge12w600)
             .foregroundColor(Theme.Colors.ink)
             .frame(width: 22, height: 22)
             .overlay(
                 RoundedRectangle(cornerRadius: Theme.Radius.chip)
                     .stroke(Theme.Stroke.card.color, lineWidth: Theme.Stroke.card.width)
+                    .opacity(label == nil ? 0 : 1)
             )
     }
 
-    private func row(position: Int, text: String) -> some View {
+    private func row(key label: String?, text: String, usage: String) -> some View {
         HStack(spacing: 10) {
-            key("\(position)")
+            key(label)
             Text(text)
                 .knockTextStyle(Theme.Typography.optionLabel13w500)
                 .foregroundColor(Theme.Colors.ink)
+                .fixedSize(horizontal: false, vertical: true)
             Spacer(minLength: 0)
         }
         .padding(EdgeInsets(top: 10, leading: 14, bottom: 10, trailing: 14))
         .frame(maxWidth: .infinity, alignment: .leading)
         .contentShape(Rectangle())
-        .onTapGesture { sendQuick(text) }.pointerCursor()
+        .onTapGesture { sendAsk(text, usage: usage) }.pointerCursor()
         .accessibilityElement(children: .ignore)
         .accessibilityLabel(text)
         .accessibilityAddTraits(.isButton)
     }
 
-    /// One of the three format rows (keys 5-7, HAIL-139): the same recipe as
-    /// the quick-ask rows, plus a small lucide icon between the key and the
-    /// label. One tap sends the detail request in that format.
-    private func formatRow(position: Int, format: ReplyFormat) -> some View {
+    /// One of the three format rows (HAIL-139): the same recipe as the quick-ask rows, plus a small lucide icon
+    /// between the key and the label. One tap sends the detail request in that format.
+    private func formatRow(key label: String?, format: ReplyFormat) -> some View {
         HStack(spacing: 10) {
-            key("\(position)")
+            key(label)
             Image(systemName: format.icon)
                 .font(.system(size: 15))
                 .foregroundColor(Theme.Colors.ink2)
@@ -364,9 +367,9 @@ struct AskForDetailPanelView: View {
         .accessibilityAddTraits(.isButton)
     }
 
-    private var elseRow: some View {
+    private func elseRow(key label: String?) -> some View {
         HStack(alignment: .top, spacing: 10) {
-            key("\(ComposerViewModel.detailChips.count + ReplyFormat.allCases.count + 1)").padding(.top, isTypingElse ? 3 : 0)
+            key(label).padding(.top, isTypingElse ? 3 : 0)
             if isTypingElse {
                 elseField
             } else {
@@ -382,17 +385,20 @@ struct AskForDetailPanelView: View {
         .onTapGesture { if !isTypingElse { openElse() } }.pointerCursor()
     }
 
-    /// The row's own field: grows with the text to a few lines, then scrolls. Enter sends,
-    /// Shift+Enter starts a new line (the same rule as the reply field).
+    /// The row's own field, sized by the answer box's rule (C6): its own text view's layout at the width
+    /// it is given, up to 40 % of the column (at least six lines), then it scrolls with a visible scroller.
+    /// Enter sends, Shift+Enter starts a new line (the same rule as the reply field).
     private var elseField: some View {
-        let lines = PromptBarLogic.lineCount(text: composer.detailQuestionText, textWidth: max(fieldWidth - PromptBarLogic.textInset.width * 2, 1))
-        return ZStack(alignment: .topLeading) {
+        ZStack(alignment: .topLeading) {
             if composer.detailQuestionText.isEmpty {
                 Text("What would help you decide?")
-                    .knockTextStyle(Theme.Typography.body13_5w400)
+                    .font(Theme.Typography.body13_5w400.font)
                     .foregroundColor(Theme.Colors.ink3)
-                    .padding(.leading, PromptBarLogic.textInset.width)
-                    .padding(.top, PromptBarLogic.textInset.height)
+                    .fixedSize(horizontal: false, vertical: true)
+                    .frame(maxWidth: .infinity, alignment: .topLeading)
+                    .padding(EdgeInsets(
+                        top: PromptBarLogic.textInset.height, leading: PromptBarLogic.textInset.width,
+                        bottom: PromptBarLogic.textInset.height, trailing: PromptBarLogic.textInset.width))
                     .allowsHitTesting(false)
             }
             PromptTextView(
@@ -401,11 +407,10 @@ struct AskForDetailPanelView: View {
                 onSend: {
                     reportPick(format: "none", pick: "something_else")
                     onSend()
-                })
+                },
+                maxHeight: PromptBarLogic.maxFieldHeight(availableHeight: availableHeight))
         }
-        .frame(height: PromptBarLogic.fieldHeight(totalLines: lines, maxLines: Self.maxFieldLines))
         .frame(maxWidth: .infinity)
-        .onGeometryChange(for: CGFloat.self, of: { $0.size.width }) { fieldWidth = $0 }
     }
 
     private func openElse() {
@@ -414,11 +419,9 @@ struct AskForDetailPanelView: View {
         isElseFocused = true
     }
 
-    private func sendQuick(_ text: String) {
+    private func sendAsk(_ text: String, usage: String) {
         composer.fillDetailChip(text)
-        if let index = ComposerViewModel.detailChips.firstIndex(of: text) {
-            reportPick(format: "none", pick: ComposerViewModel.detailChipUsageNames[index])
-        }
+        reportPick(format: "none", pick: usage)
         onSend()
     }
 
@@ -431,19 +434,22 @@ struct AskForDetailPanelView: View {
         DetailPill.report(format: format, pick: pick)
     }
 
-    /// Keys 1 to 8 and Esc, not while the inline field has the caret.
+    /// The row keys (1 to 9, then 0) and Esc, not while the inline field has the caret; Cmd-Return asks.
     private var shortcuts: some View {
         HStack {
-            ForEach(Array(ComposerViewModel.detailChips.enumerated()), id: \.offset) { index, text in
-                Button("Ask \(text)") { if !isElseFocused { sendQuick(text) } }
-                    .keyboardShortcut(KeyEquivalent(Character("\(index + 1)")), modifiers: [])
+            ForEach(Array(entries.enumerated()), id: \.offset) { index, entry in
+                if let key = AskForPanel.key(at: index) {
+                    Button(Self.shortcutTitle(entry)) {
+                        guard !isElseFocused else { return }
+                        switch entry {
+                        case .ask(let text, let usage): sendAsk(text, usage: usage)
+                        case .format(let format): sendFormat(format)
+                        case .somethingElse: if !isTypingElse { openElse() }
+                        }
+                    }
+                    .keyboardShortcut(KeyEquivalent(Character(key)), modifiers: [])
+                }
             }
-            ForEach(Array(ReplyFormat.allCases.enumerated()), id: \.element) { index, format in
-                Button("Ask in \(format.rowLabel)") { if !isElseFocused { sendFormat(format) } }
-                    .keyboardShortcut(KeyEquivalent(Character("\(index + ComposerViewModel.detailChips.count + 1)")), modifiers: [])
-            }
-            Button("Something else") { if !isElseFocused, !isTypingElse { openElse() } }
-                .keyboardShortcut(KeyEquivalent(Character("\(ComposerViewModel.detailChips.count + ReplyFormat.allCases.count + 1)")), modifiers: [])
             Button("Back to options", action: composer.cancelAskingForDetail)
                 .keyboardShortcut(.escape, modifiers: [])
             Button("Ask") {
@@ -453,5 +459,13 @@ struct AskForDetailPanelView: View {
                 .keyboardShortcut(.return, modifiers: .command)
         }
         .opacity(0)
+    }
+
+    private static func shortcutTitle(_ entry: AskForPanel.Entry) -> String {
+        switch entry {
+        case .ask(let text, _): "Ask \(text)"
+        case .format(let format): "Ask in \(format.rowLabel)"
+        case .somethingElse: "Something else"
+        }
     }
 }

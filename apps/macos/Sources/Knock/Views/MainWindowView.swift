@@ -55,8 +55,7 @@ struct MainWindowView: View {
                     // The review workspace, where comments work: opened from "Comment" or Open review.
                     reviewWorkspace(detail: detail)
                 } else {
-                    // The decision doc and the empty states (HAIL-89): the same queue fold, and the
-                    // conversation column folds too.
+                    // The decision doc and the empty states (HAIL-89): the same queue fold.
                     HStack(spacing: 0) {
                         if !queueFolded {
                             QueueListView(model: model, onFold: queueFoldAction(fold.toggleQueueFold), firstRun: firstRun)

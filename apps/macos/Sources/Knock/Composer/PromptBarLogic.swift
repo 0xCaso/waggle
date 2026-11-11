@@ -10,26 +10,64 @@ enum PromptBarLogic {
     /// Field padding around the text: 5 pt top and bottom, 4 pt left and right
     /// (prototype `padding:5px 4px`). One line is therefore 28 pt tall.
     static let textInset = CGSize(width: 4, height: 5)
+    /// One line of the field's own text view: 18 + 2 × 5 (the bordered box around it is 36, see `fieldBoxPadding`).
     static let controlSize: CGFloat = 28
-    static let barPadding: CGFloat = 10
-    static let controlGap: CGFloat = 6
-    static let rowGap: CGFloat = 6
+    /// The answer area's side padding (mockup `.ans` padding `10px 14px 12px`).
+    static let barPadding: CGFloat = 14
+    static let barTopPadding: CGFloat = 10
+    static let barBottomPadding: CGFloat = 12
+    /// The tools row's gap (mockup `.ans .tools` gap 14), also between the last quiet button and Send.
+    static let controlGap: CGFloat = 14
+    /// Field to tools row (mockup `.ans .tools` margin-top 8).
+    static let rowGap: CGFloat = 8
+    /// The bordered box around the text view: with the text view's own `textInset` (4 / 5) and the 1 pt border,
+    /// the text sits 12 from the box's sides and 9 from its top, as the mockup's `.note` (border 1, padding 8 / 11).
+    static let fieldBoxPadding = CGSize(width: 8, height: 4)
+    static let fieldRadius: CGFloat = 9
+    /// The answer box's text (mockup `.note` 12.5). Other fields built on the same text view keep `font` (13.5).
+    static let answerFontSize: CGFloat = 12.5
+    /// Send: 12.5 / 600 on a CSS line box of 1.45 plus 8 pt padding top and bottom (mockup `.send`) = 34.
+    static let sendHeight: CGFloat = 34
+    static let sendHorizontalPadding: CGFloat = 12
+    /// The "+" attach glyph's box: quiet, no fill, as tall as the row.
+    static let attachWidth: CGFloat = 16
+    /// The "⋯" menu that holds the tools a narrow row cannot fit.
+    static let overflowWidth: CGFloat = 20
     static let minSingleRowFieldWidth: CGFloat = 40
     /// The field keeps about this width on the shared row; under it the controls move to a second row (WAG-336).
+    /// This sets the buttons' plan (which label form, which quiet buttons in More), not where the field goes.
     static let minFieldWidth: CGFloat = 200
+    /// The field stays on the buttons' row while it keeps at least this width there and its text fits on one line
+    /// (C6, app check 2026-11-09): an empty field's placeholder wraps in it (never "…"), so a wide Send label
+    /// ("Send comments") no longer pushes an empty field onto its own row. Under it, the field moves.
+    static let minSharedFieldWidth: CGFloat = 140
+    /// Six lines: the least the answer box grows to before it scrolls, and the reply items' cap.
     static let paneMaxLines = 6
-    static let workspaceMaxLines = 4
+
+    /// The bundled Inter Tight face for `weight`, by PostScript name: 400 Regular, 500 Medium, 600 SemiBold,
+    /// 700 Bold. Each weight snaps down to the nearest bundled face, so `.semibold` is SemiBold 600 (as the
+    /// mockups' CSS draws it), not the bold trait (Bold 700), and `.medium` keeps its 500.
+    static func sansFaceName(for weight: NSFont.Weight) -> String {
+        switch weight.rawValue {
+        case NSFont.Weight.bold.rawValue...: "InterTight-Bold"
+        case NSFont.Weight.semibold.rawValue...: "InterTight-SemiBold"
+        case NSFont.Weight.medium.rawValue...: "InterTight-Medium"
+        default: "InterTight-Regular"
+        }
+    }
 
     static func sansFont(size: CGFloat, weight: NSFont.Weight = .regular) -> NSFont {
         guard FontRegistration.didRegisterBundledFonts, let base = NSFont(name: Theme.FontFamily.sans, size: size) else {
             return NSFont.systemFont(ofSize: size, weight: weight)
         }
+        if let face = NSFont(name: sansFaceName(for: weight), size: size) { return face }
         return weight.rawValue >= NSFont.Weight.semibold.rawValue
             ? NSFontManager.shared.convert(base, toHaveTrait: .boldFontMask)
             : base
     }
 
     static var font: NSFont { sansFont(size: 13.5) }
+    static var answerFont: NSFont { sansFont(size: answerFontSize) }
 
     static var paragraphStyle: NSParagraphStyle {
         let style = NSMutableParagraphStyle()
@@ -38,10 +76,11 @@ enum PromptBarLogic {
         return style
     }
 
-    // MARK: - Growth
+    // MARK: - Growth (request page C6)
 
-    /// Lines the text occupies when laid out in `textWidth` points. Counts the
-    /// empty last line after a trailing newline. Always at least 1.
+    /// Lines another field (a reply item, a note) occupies when laid out in `textWidth` points. The answer box
+    /// does not use it: its height comes from its own text view (`PromptNSTextView.measure`). Counts the empty
+    /// last line after a trailing newline. Always at least 1.
     static func lineCount(
         text: String, textWidth: CGFloat, font: NSFont = PromptBarLogic.font, paragraphStyle: NSParagraphStyle = PromptBarLogic.paragraphStyle
     ) -> Int {
@@ -74,95 +113,128 @@ enum PromptBarLogic {
 
     static func scrolls(totalLines: Int, maxLines: Int) -> Bool { totalLines > maxLines }
 
-    /// The controls share the field's row only while the text is one line
-    /// tall at that row's width and has no newline.
-    static func isMultiline(singleRowLines: Int, text: String) -> Bool {
-        singleRowLines > 1 || text.contains("\n")
+    /// The answer box grows to this share of the column or pane it sits in (C6)...
+    static let capShare: CGFloat = 0.4
+    /// ...but always to at least this many lines.
+    static let minCapLines = paneMaxLines
+
+    /// The field's height for the text height its own layout manager reports: never under one line.
+    static func contentHeight(usedTextHeight: CGFloat) -> CGFloat {
+        max(ceil(usedTextHeight), lineHeight) + textInset.height * 2
     }
 
-    struct Layout: Equatable {
-        var isMultiline: Bool
-        var totalLines: Int
-        var visibleLines: Int
-        var fieldHeight: CGFloat
-        var scrolls: Bool
-        /// Width of the field in single-row mode; `nil` before the bar is measured.
-        var singleRowFieldWidth: CGFloat?
+    /// Tallest the answer box grows before it scrolls: 40 % of `availableHeight`, at least six lines.
+    /// `nil` or 0 (a host that does not say) gives the six lines.
+    static func maxFieldHeight(availableHeight: CGFloat?) -> CGFloat {
+        let floor = fieldHeight(totalLines: minCapLines, maxLines: minCapLines)
+        guard let availableHeight, availableHeight > 0, availableHeight.isFinite else { return floor }
+        return max((availableHeight * capShare).rounded(.down), floor)
     }
 
-    /// The layout for `text` in a bar `barWidth` wide whose right-hand controls
-    /// together take `controlsWidth`. The mode is decided from the single-row
-    /// width every time, not remembered, so it never flips back and forth on
-    /// its own: text that wraps on the shared row moves to the full-width row.
-    ///
-    /// While the field is empty, `placeholder` counts like text: if it does not
-    /// fit on the shared row, the field takes its own row so it is never cut off.
-    static func layout(
-        text: String, placeholder: String? = nil, barWidth: CGFloat, controlsWidth: CGFloat, maxLines: Int,
-        forcesOwnRow: Bool = false
-    ) -> Layout {
-        let measured = barWidth > 0
-        let singleWidth = barWidth - barPadding * 2 - controlSize - controlGap * 2 - controlsWidth
-        let singleLines = measured
-            ? lineCount(text: text, textWidth: singleWidth - textInset.width * 2)
-            : max(text.components(separatedBy: "\n").count, 1)
-        let placeholderCutOff = measured && text.isEmpty && placeholder.map {
-            placeholderWidth($0) > singleWidth - textInset.width * 2
-        } == true
-        // Controls that leave the field under its 40 pt floor move it to its own row, so the
-        // field never pushes the controls past the bar's edge.
-        let noRoom = measured && singleWidth < minSingleRowFieldWidth
-        let multiline = isMultiline(singleRowLines: singleLines, text: text) || placeholderCutOff || noRoom || forcesOwnRow
-        let total: Int
-        if multiline {
-            total = measured
-                ? lineCount(text: text, textWidth: barWidth - barPadding * 2 - textInset.width * 2)
-                : singleLines
-        } else {
-            total = 1
-        }
-        return Layout(
-            isMultiline: multiline,
-            totalLines: total,
-            visibleLines: visibleLines(totalLines: total, maxLines: maxLines),
-            fieldHeight: fieldHeight(totalLines: total, maxLines: maxLines),
-            scrolls: scrolls(totalLines: total, maxLines: maxLines),
-            singleRowFieldWidth: measured ? max(singleWidth, minSingleRowFieldWidth) : nil
-        )
+    static func fieldHeight(contentHeight: CGFloat, maxHeight: CGFloat) -> CGFloat { min(contentHeight, maxHeight) }
+
+    /// Past the cap the field scrolls, and its scroller stays on screen.
+    static func scrolls(contentHeight: CGFloat, maxHeight: CGFloat) -> Bool { contentHeight > maxHeight + 0.5 }
+
+    /// What the answer box's own text view reports after an edit or a width change.
+    struct FieldMetrics: Equatable {
+        /// Height of the text plus the insets, laid out at `width`.
+        var contentHeight: CGFloat
+        /// Width of the widest paragraph on one line, without the insets.
+        var naturalWidth: CGFloat
+        /// The text view's width when it measured.
+        var width: CGFloat
     }
 
-    // MARK: - Widths (estimates for the layout switch)
-
-    /// Width of the placeholder on one line, in the field's font.
-    static func placeholderWidth(_ placeholder: String) -> CGFloat {
-        ceil((placeholder as NSString).size(withAttributes: [.font: font]).width)
+    /// Width the field gets on the row it shares with the controls.
+    /// `leadingWidth` is what sits left of the field: the "+" alone, or "+" and "Ask for…" (C5).
+    static func sharedRowFieldWidth(barWidth: CGFloat, controlsWidth: CGFloat, leadingWidth: CGFloat = controlSize) -> CGFloat {
+        barWidth - barPadding * 2 - leadingWidth - controlGap * 2 - controlsWidth
     }
+
+    /// The left of the send row: the "+" and, where the host offers it, the "Ask for…" button after a gap (C5).
+    static func leadingWidth(askForLabelWidth: CGFloat?) -> CGFloat {
+        guard let askForLabelWidth else { return attachWidth }
+        return attachWidth + controlGap + quietButtonWidth(labelWidth: askForLabelWidth)
+    }
+
+    /// The button at the left of the send row that opens the ask-for-detail panel (C5).
+    static let askForLabel = "Ask for…"
+
+    /// The field leaves the controls' row for its own full-width row above them when the text needs more
+    /// width than the shared row gives (it would wrap there), has a line break, or the controls leave it under
+    /// `minSharedFieldWidth` (C6: only when the text needs the width). The rule reads the text's one-line width,
+    /// never the row the field is on now, so it cannot flip back and forth. Before the bar is measured only a line
+    /// break, or controls already on their own row, move the field. An empty field stays on the shared row while it
+    /// keeps `minSharedFieldWidth` (WAG-305); its placeholder wraps there.
+    static func fieldTakesOwnRow(
+        text: String, naturalTextWidth: CGFloat?, barWidth: CGFloat, controlsWidth: CGFloat, controlsOwnRow: Bool = false,
+        leadingWidth: CGFloat = controlSize
+    ) -> Bool {
+        if text.contains(where: \.isNewline) { return true }
+        guard barWidth > 0 else { return controlsOwnRow }
+        let shared = sharedRowFieldWidth(barWidth: barWidth, controlsWidth: controlsWidth, leadingWidth: leadingWidth)
+        if shared < minSharedFieldWidth { return true }
+        guard !text.isEmpty, let naturalTextWidth else { return false }
+        return naturalTextWidth > shared - textInset.width * 2
+    }
+
+    // MARK: - Widths of the controls
 
     private static func textWidth(_ text: String, size: CGFloat, weight: NSFont.Weight) -> CGFloat {
         let font = sansFont(size: size, weight: weight)
         return ceil((text as NSString).size(withAttributes: [.font: font]).width)
     }
 
-    /// Width of a quiet text button ("Ask for more detail"): 8 pt padding each side.
+    /// Width of a quiet text button ("Let's discuss", "Open review") for a label `labelWidth` wide: plain text,
+    /// no padding (mockup `.ans .tools span`).
+    static func quietButtonWidth(labelWidth: CGFloat) -> CGFloat { ceil(labelWidth) }
+
+    /// Width of the Send button for a label `labelWidth` wide: 12 pt padding each side, and room for the arrow
+    /// (6 pt gap, 12 pt) that shows beside the label when comments or an edit go with the reply.
+    static func sendPillWidth(labelWidth: CGFloat) -> CGFloat { ceil(labelWidth) + 6 + 12 + sendHorizontalPadding * 2 }
+
+    /// Estimate of a quiet button, before the bar has measured its label (12 pt, 400).
     static func quietButtonWidth(_ label: String) -> CGFloat {
-        textWidth(label, size: 12, weight: .medium) + 16
+        quietButtonWidth(labelWidth: textWidth(label, size: 12, weight: .regular))
     }
 
-    /// Width of the Send button: a 28 pt square, or the "Send + N comments"
-    /// pill (label, 6 pt gap, 12 pt arrow, 10 pt padding each side).
+    /// Estimate of the Send button, before the bar has measured its label: a 34 pt square, or the labelled button.
     static func sendButtonWidth(pillLabel: String?) -> CGFloat {
-        guard let pillLabel else { return controlSize }
-        return textWidth(pillLabel, size: 12, weight: .semibold) + 6 + 12 + 20
+        guard let pillLabel else { return sendHeight }
+        return sendPillWidth(labelWidth: textWidth(pillLabel, size: answerFontSize, weight: .semibold))
+    }
+
+    /// The widths the controls plan uses. The bar passes the label widths it measured in the real text
+    /// styles; until then (and in tests) the estimates above.
+    struct ControlWidths {
+        var quiet: (String) -> CGFloat
+        var send: (String?) -> CGFloat
+
+        static var estimated: ControlWidths { ControlWidths(quiet: { quietButtonWidth($0) }, send: { sendButtonWidth(pillLabel: $0) }) }
+
+        /// Measured label widths by label; a label not measured yet falls back to the estimate.
+        static func measured(quiet: [String: CGFloat], pill: [String: CGFloat]) -> ControlWidths {
+            ControlWidths(
+                quiet: { label in quiet[label].map { quietButtonWidth(labelWidth: $0) } ?? quietButtonWidth(label) },
+                send: { label in
+                    guard let label else { return sendHeight }
+                    return pill[label].map { sendPillWidth(labelWidth: $0) } ?? sendButtonWidth(pillLabel: label)
+                })
+        }
     }
 
     /// The right-hand controls together, with the gaps between them and a few
-    /// points of slack so the estimate never makes the field too wide.
+    /// points of slack so the field is never made too wide.
     /// `hasOverflow` adds the 28 pt "More" menu that holds the quiet buttons that do not fit.
-    static func controlsWidth(quietLabels: [String], sendPillLabel: String?, hasOverflow: Bool = false) -> CGFloat {
-        var widths = quietLabels.map(quietButtonWidth)
-        if hasOverflow { widths.append(controlSize) }
-        widths.append(sendButtonWidth(pillLabel: sendPillLabel))
-        return widths.reduce(0, +) + controlGap * CGFloat(widths.count - 1) + 8
+    static func controlsWidth(
+        quietLabels: [String], sendPillLabel: String?, hasOverflow: Bool = false, widths: ControlWidths = .estimated,
+        leadingLabels: [String] = []
+    ) -> CGFloat {
+        var all = (leadingLabels + quietLabels).map(widths.quiet)
+        if hasOverflow { all.append(overflowWidth) }
+        all.append(widths.send(sendPillLabel))
+        return all.reduce(0, +) + controlGap * CGFloat(all.count - 1) + 8
     }
 
     // MARK: - Fitting the controls row
@@ -180,10 +252,16 @@ enum PromptBarLogic {
         var sendPillLabel: String?
         /// The controls leave the field under `minFieldWidth` on the shared row, so they take a second row (WAG-336).
         var ownRow = false
+        /// The tools shown at the left of the row after "+" ("Let's discuss", "Show me more"); the ones that do not
+        /// fit are in `overflowLabels`.
+        var leadingLabels: [String] = []
 
-        var width: CGFloat {
+        var width: CGFloat { width(.estimated) }
+
+        func width(_ widths: ControlWidths) -> CGFloat {
             PromptBarLogic.controlsWidth(
-                quietLabels: quietLabels, sendPillLabel: sendPillLabel, hasOverflow: !overflowLabels.isEmpty)
+                quietLabels: quietLabels, sendPillLabel: sendPillLabel, hasOverflow: !overflowLabels.isEmpty, widths: widths,
+                leadingLabels: leadingLabels)
         }
     }
 
@@ -191,26 +269,59 @@ enum PromptBarLogic {
     /// before it is measured). `pillLabels` are the primary label's forms, longest first (see
     /// `sendPillLabels`). For each form, longest first, quiet buttons move into the menu from
     /// the left ("Ask for more detail" first, a plan round's "Change" last) until the row
-    /// fits. If nothing fits: the shortest form, every quiet button in the menu.
-    static func controlsPlan(rowWidth: CGFloat?, quietLabels: [String], pillLabels: [String?]) -> ControlsPlan {
+    /// fits. If nothing fits: the shortest form, every quiet button in the menu. A quiet button
+    /// is never cut with "…": it is shown whole or it is in the menu (C7).
+    ///
+    /// `fieldOnOwnRow` (the answer box, 2026-11-10): the field never shares the row, so the whole row is the
+    /// controls'. `leadingLabels` are the tools after "+" ("Let's discuss", "Show me more"): they give way into
+    /// the menu first, the last one first, then the quiet buttons; only then does the Send label get shorter.
+    static func controlsPlan(
+        rowWidth: CGFloat?, quietLabels: [String], pillLabels: [String?], widths: ControlWidths = .estimated,
+        leadingWidth: CGFloat = attachWidth, leadingLabels: [String] = [], fieldOnOwnRow: Bool = false
+    ) -> ControlsPlan {
         let forms = pillLabels.isEmpty ? [nil] : pillLabels
-        let full = ControlsPlan(quietLabels: quietLabels, overflowLabels: [], sendPillLabel: forms[0])
+        let full = ControlsPlan(quietLabels: quietLabels, overflowLabels: [], sendPillLabel: forms[0], leadingLabels: leadingLabels)
         guard let rowWidth, rowWidth > 0 else { return full }
-        // The attach button and its gap sit left of the controls.
-        let available = rowWidth - controlSize - controlGap
+        // The attach button (and "Ask for…") and its gap sit left of the controls.
+        let available = rowWidth - leadingWidth - controlGap
+        if fieldOnOwnRow {
+            return ownRowPlan(available: available, leadingLabels: leadingLabels, quietLabels: quietLabels, forms: forms, widths: widths)
+        }
         // First, the longest label that leaves the field its width on the shared row, quiet buttons kept (WAG-336).
         // Then the short forms ("Rule out 3"). Only when none fits do the controls take a second row.
         let shared = available - minFieldWidth - controlGap
         for form in forms {
             let plan = ControlsPlan(quietLabels: quietLabels, overflowLabels: [], sendPillLabel: form)
-            if plan.width <= shared { return plan }
+            if plan.width(widths) <= shared { return plan }
         }
-        var onOwnRow = controlsPlanOwnRow(available: available, quietLabels: quietLabels, forms: forms)
+        var onOwnRow = controlsPlanOwnRow(available: available, quietLabels: quietLabels, forms: forms, widths: widths)
         onOwnRow.ownRow = true
         return onOwnRow
     }
 
-    private static func controlsPlanOwnRow(available: CGFloat, quietLabels: [String], forms: [String?]) -> ControlsPlan {
+    /// The row under a field on its own row: tools give way into the menu (the last tool first, then the quiet
+    /// buttons from the left), for each Send form, longest first.
+    private static func ownRowPlan(
+        available: CGFloat, leadingLabels: [String], quietLabels: [String], forms: [String?], widths: ControlWidths
+    ) -> ControlsPlan {
+        let movable = Array(leadingLabels.reversed()) + quietLabels
+        func plan(_ moved: Int, _ form: String?) -> ControlsPlan {
+            let out = Set(movable.prefix(moved))
+            return ControlsPlan(
+                quietLabels: quietLabels.filter { !out.contains($0) },
+                overflowLabels: (leadingLabels + quietLabels).filter { out.contains($0) },
+                sendPillLabel: form, ownRow: true,
+                leadingLabels: leadingLabels.filter { !out.contains($0) })
+        }
+        for form in forms {
+            for moved in 0...movable.count where plan(moved, form).width(widths) <= available { return plan(moved, form) }
+        }
+        return plan(movable.count, forms[forms.count - 1])
+    }
+
+    private static func controlsPlanOwnRow(
+        available: CGFloat, quietLabels: [String], forms: [String?], widths: ControlWidths
+    ) -> ControlsPlan {
         for form in forms {
             for moved in 0...quietLabels.count {
                 let plan = ControlsPlan(
@@ -218,7 +329,7 @@ enum PromptBarLogic {
                     overflowLabels: Array(quietLabels.prefix(moved)),
                     sendPillLabel: form
                 )
-                if plan.width <= available { return plan }
+                if plan.width(widths) <= available { return plan }
             }
         }
         return ControlsPlan(quietLabels: [], overflowLabels: quietLabels, sendPillLabel: forms[forms.count - 1])
@@ -279,8 +390,13 @@ enum PromptBarLogic {
     static let askForDetailLabel = "Ask for more detail"
     static let openReviewLabel = "Open review"
 
-    static func quietLabels(hasOpenReview: Bool, hasDetail: Bool = true, planSecondary: String? = nil) -> [String] {
+    /// "Use this reply" (a reply-only ask with an empty field, spec section 9) comes last, so it is the last to
+    /// move into "More".
+    static func quietLabels(
+        hasOpenReview: Bool, hasDetail: Bool = true, planSecondary: String? = nil, suggestsReply: Bool = false
+    ) -> [String] {
         (hasDetail ? [askForDetailLabel] : []) + (hasOpenReview ? [openReviewLabel] : []) + (planSecondary.map { [$0] } ?? [])
+            + (suggestsReply ? [ComposerFooterView.useSuggestedReply] : [])
     }
 
     /// "Send + 2 comments" once comments are pending; `nil` for the plain square. With several
@@ -428,6 +544,13 @@ enum PromptBarLogic {
         count > 0 ? "\(label) + \(count) comment\(count == 1 ? "" : "s")" : label
     }
 
+    /// "Send: <title> ↵", then "Send ↵". With comments the arrow beside the label says it sends: "Send: <title> +
+    /// 1 comment", "Send + 1 comment", "Send".
+    static func sendTitleLabels(_ title: String, commentCount: Int) -> [String?] {
+        guard commentCount > 0 else { return ["\(sendLabel): \(title) ↵", "\(sendLabel) ↵"] }
+        return [withComments("\(sendLabel): \(title)", commentCount), withComments(sendLabel, commentCount), sendLabel]
+    }
+
     /// A plan round with options and nothing to send: no stage words on a grey button (WAG-336).
     static func plansBareArrow(isPlanRound: Bool, hasOptions: Bool, canSend: Bool) -> Bool {
         isPlanRound && hasOptions && !canSend
@@ -437,7 +560,7 @@ enum PromptBarLogic {
         commentCount: Int, pickCount: Int = 0, planLabel: String? = nil, shortPlanLabel: String? = nil,
         hasEdit: Bool = false, decideTitle: String? = nil, isFeedback: Bool = false,
         discuss: (full: String, short: String)? = nil, asks: Bool = false, sendsComments: Bool = false,
-        isMany: Bool = false, withChanges: WithChanges.Kind? = nil
+        isMany: Bool = false, withChanges: WithChanges.Kind? = nil, sendTitle: String? = nil
     ) -> [String?] {
         // Ticks on a pick-many ask: "Decide: 2 picked", with the comments count when it fits (WAG-329).
         if isMany, planLabel == nil, pickCount > 0, !hasEdit {
@@ -467,6 +590,11 @@ enum PromptBarLogic {
             let full = commentCount > 0
                 ? "Send feedback + \(commentCount) comment\(commentCount == 1 ? "" : "s")" : feedbackLabel
             return full == feedbackLabel ? [feedbackLabel] : [full, feedbackLabel]
+        }
+        // The plain decision of the request page names the pick: "Send: B · Options in place ↵" (mockups,
+        // 2026-11-10). A narrow row gets "Send ↵"; the title is never cut with "…".
+        if let sendTitle, !sendTitle.isEmpty, planLabel == nil, pickCount == 0, !hasEdit {
+            return sendTitleLabels(sendTitle, commentCount: commentCount)
         }
         // A simple ask with one option chosen reads "Decide" (WAG-257, WAG-301), with the comments count appended.
         if decideTitle != nil, planLabel == nil, pickCount == 0, !hasEdit {

@@ -47,7 +47,7 @@ struct ReviewBeforeSendColumnView: View {
             }
             composer
         }
-        .frame(minWidth: 340, idealWidth: 430, maxWidth: 430)
+        .frame(minWidth: AskLayout.fullSizeMinColumnWidth, idealWidth: AskLayout.columnWidth, maxWidth: AskLayout.columnWidth)
         .frame(maxHeight: .infinity)
         .background(Theme.Colors.win)
     }
@@ -161,11 +161,9 @@ struct ReviewBeforeSendColumnView: View {
                     Spacer(minLength: 0)
                 }
             } else {
-                DeliveryBannerView(
-                    state: deliveryState.state,
-                    replySummary: sendFlow.deliveryReplySummary,
-                    onRetry: { Task { await sendFlow.retryDelivery() } }
-                )
+                if let line = RequestStatus.localLine(deliveryState.state, item: sendFlow.composer.knockCase) {
+                    RequestStatusLineView(line: line, onAction: { if $0 == .retry { Task { await sendFlow.retryDelivery() } } })
+                }
             }
         }
         .padding(EdgeInsets(top: 14, leading: 24, bottom: 18, trailing: 24))

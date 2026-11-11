@@ -18,14 +18,16 @@ struct AskColumnView: View {
     /// is `0` — the summary line never shows either way.
     var captureCount: Int = 0
     /// Non-nil for a case whose latest revision just arrived (docs/design/
-    /// mvp-values.md §M9): swaps the WHY block for the agent's Thread
-    /// message and the prior-revision link, and the composer's placeholder.
+    /// mvp-values.md §M9): adds the agent's Thread message and the
+    /// prior-revision link under the need box, and the composer's placeholder.
     var revisionArrival: RevisionArrival? = nil
     /// `AppModel.now`, for the Thread message's relative timestamp.
     var now: Date = Date()
     /// The ask's thread (HAIL-68), the same one the pane shows. It carries the
     /// agent's update in full, so the M9 Thread message below is left out when it shows.
     var thread: (model: ThreadModel, turn: ThreadTurn)? = nil
+    /// The Conversation tab's messages (C8): the thread, or the ask alone before a reply. nil hides the tab's content.
+    var conversation: (model: ThreadModel, turn: ThreadTurn)? = nil
     var onViewPriorRevision: () -> Void = {}
     /// "See vN" in a plan's answered history (HAIL-156), and the revision shown read-only now.
     var onSeePlanRevision: ((Int) -> Void)? = nil
@@ -47,12 +49,8 @@ struct AskColumnView: View {
     /// The one page's answer area once the answer is sent (HAIL-86): replaces the composer and
     /// the Question | Comments switch, and the question above stays.
     var sentCard: AnyView? = nil
-    /// The menu of earlier asks over the title. The crumb text is in the titlebar (WAG-302).
+    /// The earlier asks of the session, at the top of the Conversation tab (C8).
     var earlierAsks: EarlierAsksModel? = nil
-    /// The crumb text over the title, "Project · session title" (WAG-309). `nil` shows none.
-    var crumb: String? = nil
-    /// The folder path, as a hover tip on the crumb.
-    var crumbHelp: String? = nil
     /// The answers of an ask with questions (WAG-305): the same controller the case pane uses.
     /// `nil` for an ask without questions.
     var askDoc: AskDocController? = nil
@@ -62,13 +60,13 @@ struct AskColumnView: View {
     /// The need, the revision thread, the questions and the pick of the round (folded under a message-only update, WAG-337).
     @ViewBuilder
     private var roundBody: some View {
-        // A returned revision shows the agent's message where Why would be (docs/design/mvp-values.md §M9).
-        VStack(alignment: .leading, spacing: 12) {
+        // "Why you" always closes the need box (C3, spec section 3); a returned revision adds the agent's message under it.
+        VStack(alignment: .leading, spacing: Theme.AskDoc.Column.needGap) {
             // The questions branch shows the need once, on its first step.
             if !hidesNeedForSteps {
                 NeedCalloutView(
                     need: knockCase.displayNeed(planRounds: planRounds),
-                    why: revisionArrival == nil ? knockCase.currentWhy : nil,
+                    why: knockCase.currentWhy,
                     isCompact: true,
                     labelAbove: knockCase.plan.map { PlanText.progressLabel($0.stage) })
             }
@@ -86,9 +84,10 @@ struct AskColumnView: View {
                 RoundInstructionView(text: instruction)
             }
 
-            // The pick, or before a pick the recommendation: the same block as the case pane (WAG-303).
-            if AskPanelLayout.showsPickBlock(knockCase) {
-                DecisionPickBlockView(composer: composer, columns: AskPanelLayout.blockColumns)
+            // The options, once, in the column's scroll (C1, C3, C9): the same rows as the case pane. The pinned
+            // bottom holds only the answer box and the send row.
+            if showsOptionsInColumn {
+                optionsCard(part: .optionsOnly)
             }
             SourcesButtonSlot()
         }
@@ -102,27 +101,54 @@ struct AskColumnView: View {
 
     var body: some View {
         VStack(spacing: 0) {
+            if sentCard == nil {
+                // The latest agent message and the tabs, the same header as the case pane (C8).
+                DecisionColumnHeader(
+                    thread: thread?.model, caseId: knockCase.id, tab: tab, commentCount: commentCount,
+                    decisionHeadsWithLatest: decisionHeadsWithLatest, onSelect: onSelectTab)
+                    .padding(Theme.AskDoc.Column.tabsInset)
+            }
+            if sentCard == nil, tab == .conversation, let conversation {
+                ConversationTabView(
+                    model: conversation.model, turn: conversation.turn, earlier: earlierAsks, onOpenCase: onOpenCase)
+            } else {
+                decisionScroll
+            }
+            if let sentCard {
+                sentCard.padding(EdgeInsets(top: 0, leading: Self.answerSideInset, bottom: 12, trailing: Self.answerSideInset))
+            } else {
+                // The answer area keeps 14 from the column's sides (`.ans`), the prompt bar's own padding included.
+                composerFooter.padding(.horizontal, Self.answerSideInset)
+            }
+        }
+        .frame(minWidth: AskLayout.fullSizeMinColumnWidth, idealWidth: AskLayout.columnWidth, maxWidth: AskLayout.columnWidth)
+        .frame(width: Self.evidenceColumnWidth)
+        .frame(maxHeight: .infinity)
+        .background(Theme.Colors.win)
+        // `.col`: a 1 pt line on its left.
+        .overlay(alignment: .leading) { Rectangle().fill(Theme.Colors.line).frame(width: 1) }
+        .onGeometryChange(for: CGFloat.self, of: { $0.size.height }) { EvidenceLayoutLog.event("ask.columnHeight", "old=\(columnHeight) new=\($0)"); columnHeight = $0 }
+        // The answer box grows to 40 % of the column (C6).
+        .environment(\.answerBoxAvailableHeight, columnHeight)
+        // Files dropped on the request attach to the reply (WAG-345).
+        .attachesDroppedFiles(to: composer.files)
+    }
+
+    /// The Decision tab's scroll: the context line, the title or the agent's note, and the round.
+    private var decisionScroll: some View {
             ScrollView {
-                VStack(alignment: .leading, spacing: 12) {
-                    if sentCard == nil {
-                        ReviewColumnTabsView(tab: tab, commentCount: commentCount, onSelect: onSelectTab)
-                    }
-                    if let followsCaseId = knockCase.followsCaseId, let client {
-                        FollowUpHeaderView(followsCaseId: followsCaseId, client: client, onOpen: onOpenCase)
-                    }
-                    if let replacesCaseId = knockCase.replacesCaseId, let client {
-                        ReplacesHeaderView(replacesCaseId: replacesCaseId, client: client)
-                    }
-                    // A plan ask: the stage track, the progress line and the folded answers (HAIL-151).
-                    if let plan = knockCase.plan {
-                        PlanColumnHeaderView(
-                            plan: plan, rounds: planRounds ?? [], viewingRevision: viewingRevision,
-                            onSeeRevision: onSeePlanRevision)
-                    }
-                    // The same header as the case page (WAG-333): the crumb, then the title, once. A stepped
-                    // ask shows each question as its title.
-                    AskCrumbLine(
-                        crumb: crumb, help: crumbHelp, earlierAsks: earlierAsks, onOpenCase: onOpenCase, onOpenHistory: nil)
+                VStack(alignment: .leading, spacing: 0) {
+                // The mockup's order: the latest agent message, the follow-up line and the plan track with its
+                // "See vN" (C2), each with its own gap under it.
+                DecisionLatestMessage(
+                    thread: thread?.model, tab: tab, decisionHeadsWithLatest: decisionHeadsWithLatest,
+                    onOpen: { onSelectTab(.conversation) })
+                RequestContextLine(
+                    item: knockCase, client: client, planRounds: planRounds ?? [], viewingRevision: viewingRevision,
+                    onSeeRevision: onSeePlanRevision, onOpenCase: onOpenCase)
+                VStack(alignment: .leading, spacing: Theme.AskDoc.Column.titleGap) {
+                    // The title, once (WAG-333). The project crumb is in the top bar (C2), as in the case pane. A
+                    // stepped ask shows each question as its title. `h1`: 10 under it.
                     if let note = knockCase.workingNoteText {
                         WorkingNoteLine(note: note)
                     } else if let update = messageNote {
@@ -136,12 +162,15 @@ struct AskColumnView: View {
                     if let shared { TeamCountLine(model: shared) { onSelectTab(.comments) } }
 
                     if knockCase.workingNoteText != nil || messageNote?.staysLive == false {
-                        EarlierDecisionFold(title: "Earlier round") { roundBody }
+                        EarlierDecisionFold(title: PreviousAnswer.foldTitle(knockCase, fallback: "Earlier round")) { roundBody }
                     } else {
                         roundBody
                     }
                 }
-                .padding(EdgeInsets(top: 16, leading: 16, bottom: 16, trailing: 16))
+                }
+                .padding(EdgeInsets(
+                    top: Theme.AskDoc.Column.scrollInset.top, leading: Theme.AskDoc.Column.scrollInset.leading,
+                    bottom: 16, trailing: Theme.AskDoc.Column.scrollInset.trailing))
                 .frame(maxWidth: .infinity, alignment: .leading)
                 .onGeometryChange(for: CGFloat.self, of: { $0.size.height }) { EvidenceLayoutLog.event("ask.contentHeight", "old=\(scrollContentHeight) new=\($0)"); scrollContentHeight = $0 }
             }
@@ -154,20 +183,13 @@ struct AskColumnView: View {
                         .allowsHitTesting(false)
                 }
             }
-            if let sentCard {
-                sentCard.padding(EdgeInsets(top: 0, leading: 16, bottom: 16, trailing: 16))
-            } else {
-                composerFooter
-            }
-        }
-        .frame(minWidth: 340, idealWidth: 430, maxWidth: 430)
-        .frame(width: Self.evidenceColumnWidth)
-        .frame(maxHeight: .infinity)
-        .background(Theme.Colors.win)
-        .onGeometryChange(for: CGFloat.self, of: { $0.size.height }) { EvidenceLayoutLog.event("ask.columnHeight", "old=\(columnHeight) new=\($0)"); columnHeight = $0 }
-        // Files dropped on the request attach to the reply (WAG-345).
-        .attachesDroppedFiles(to: composer.files)
     }
+
+    /// The Decision tab already heads with the agent's newest message, so the latest-message box would repeat it.
+    private var decisionHeadsWithLatest: Bool { knockCase.workingNoteText != nil || messageNote != nil }
+
+    /// The answer area's side edge outside the prompt bar's own padding, so its content sits 14 in (`.ans`).
+    private static let answerSideInset = max(0, Theme.AskDoc.Column.answerSideInset - PromptBarLogic.barPadding)
 
     /// A stepped ask shows its need on its first step, inside the questions branch.
     private var hidesNeedForSteps: Bool { askDoc?.doc?.isStepped == true && AskPanelLayout.showsQuestions(knockCase) }
@@ -198,23 +220,33 @@ struct AskColumnView: View {
                 sendFlow: sendFlow,
                 deliveryState: sendFlow.deliveryState,
                 commentCount: commentCount,
-                placeholder: PromptBarLogic.placeholder(for: .reply, hasRevision: revisionArrival != nil),
-                maxReplyLines: PromptBarLogic.workspaceMaxLines
+                placeholder: PromptBarLogic.placeholder(for: .reply, hasRevision: revisionArrival != nil)
             )
         } else {
-            ComposerCardView(
-                composer: composer,
-                sendFlow: sendFlow,
-                deliveryState: sendFlow.deliveryState,
-                recommendationId: knockCase.recommendation,
-                commentCount: commentCount,
-                placeholder: PromptBarLogic.placeholder(for: .decide, hasRevision: revisionArrival != nil),
-                maxOptionsHeight: AskPanelLayout.dockCap(columnHeight: columnHeight),
-                maxReplyLines: PromptBarLogic.workspaceMaxLines,
-                showsFullOptions: true,
-                fullLabelOnlyWhenSelected: true
-            )
+            optionsCard(part: .replyOnly)
         }
+    }
+
+    /// An options ask lists its options in the scroll and keeps its answer box pinned, as the case pane does (C9).
+    private var showsOptionsInColumn: Bool {
+        !(askDoc != nil && AskPanelLayout.showsQuestions(knockCase)) && !knockCase.options.isEmpty
+            && !knockCase.earlierRoundIsReadOnly
+    }
+
+    /// The unified composer card, split as in the case pane: `.optionsOnly` in the scroll, `.replyOnly` pinned.
+    private func optionsCard(part: ComposerCardView.Part) -> some View {
+        ComposerCardView(
+            composer: composer,
+            sendFlow: sendFlow,
+            deliveryState: sendFlow.deliveryState,
+            recommendationId: knockCase.recommendation,
+            commentCount: commentCount,
+            placeholder: PromptBarLogic.placeholder(for: .decide, hasRevision: revisionArrival != nil),
+            maxOptionsHeight: nil,
+            showsFullOptions: true,
+            fullLabelOnlyWhenSelected: knockCase.plan != nil,
+            part: part
+        )
     }
 
     /// docs/design/mvp-values.md §M9 `xAVpQ`: the agent's own message from
@@ -262,17 +294,7 @@ struct AskColumnView: View {
     /// §M9 `E0OSB`): switches the artifact viewer to that revision,
     /// read-only.
     private func priorRevisionLink(_ arrival: RevisionArrival) -> some View {
-        HStack(spacing: 6) {
-            Image(systemName: "arrow.up.right.square")
-                .font(.system(size: 12))
-                .foregroundColor(Theme.Colors.ink3)
-            Text("\(arrival.priorCommentCount) comment\(arrival.priorCommentCount == 1 ? "" : "s") on v\(arrival.priorRevision) · view v\(arrival.priorRevision)")
-                .knockTextStyle(Theme.Typography.priorRevisionLink12w500)
-                .foregroundColor(Theme.Colors.ink2)
-        }
-        .padding(.leading, 32)
-        .contentShape(Rectangle())
-        .onTapGesture(perform: onViewPriorRevision).pointerCursor()
+        PriorRevisionCommentsLink(arrival: arrival, action: onViewPriorRevision, leadingPadding: 32)
     }
 
     /// "N comments on M captures · Show" (HAIL-35 contract), only while

@@ -44,13 +44,11 @@ struct WAG336Tests {
         #expect(!PromptBarLogic.plansBareArrow(isPlanRound: false, hasOptions: true, canSend: false))
     }
 
-    @Test func theRecommendedRowGetsASoftMarkOnlyWhileItIsNotTheState() {
-        #expect(CalmOption.showsSoftMark(isRecommended: true, isSelected: false, isLeaning: false, isRuledOut: false, isLocked: false))
-        #expect(!CalmOption.showsSoftMark(isRecommended: false, isSelected: false, isLeaning: false, isRuledOut: false, isLocked: false))
-        #expect(!CalmOption.showsSoftMark(isRecommended: true, isSelected: true, isLeaning: false, isRuledOut: false, isLocked: false))
-        #expect(!CalmOption.showsSoftMark(isRecommended: true, isSelected: false, isLeaning: true, isRuledOut: false, isLocked: false))
-        #expect(!CalmOption.showsSoftMark(isRecommended: true, isSelected: false, isLeaning: false, isRuledOut: true, isLocked: false))
-        #expect(!CalmOption.showsSoftMark(isRecommended: true, isSelected: false, isLeaning: false, isRuledOut: false, isLocked: true))
+    @Test func theRecommendedCardOpensUntilThePersonPicksAnother() {
+        // Decision 2026-11-10: no honey edge on the recommendation; it is the open card until a pick.
+        #expect(CalmOption.openPosition(selected: nil, recommended: 2, isCheckbox: false) == 2)
+        #expect(CalmOption.openPosition(selected: 3, recommended: 2, isCheckbox: false) == 3)
+        #expect(CalmOption.openPosition(selected: nil, recommended: nil, isCheckbox: false) == nil)
     }
 
     // MARK: Reply only
@@ -63,6 +61,14 @@ struct WAG336Tests {
         #expect(ComposerFooterView.suggestion(for: makeCase(options: [], recommendation: "  ", why: ""), draftIsEmpty: true) == nil)
         #expect(ComposerFooterView.suggestion(for: makeCase(options: [], recommendation: "Yes", why: ""), draftIsEmpty: true)?.why == nil)
         #expect(ComposerFooterView.suggestion(for: makeCase(), draftIsEmpty: true) == nil)
+    }
+
+    /// Spec 2026-11-09 section 9: "Use this reply" is a quiet button of the send row, the last to go into More.
+    @Test func useThisReplyIsTheLastQuietButtonOfTheSendRow() {
+        #expect(PromptBarLogic.quietLabels(hasOpenReview: false, hasDetail: false, suggestsReply: true) == ["Use this reply"])
+        #expect(PromptBarLogic.quietLabels(hasOpenReview: true, hasDetail: false, suggestsReply: true)
+            == [PromptBarLogic.openReviewLabel, "Use this reply"])
+        #expect(!PromptBarLogic.quietLabels(hasOpenReview: false, hasDetail: false).contains("Use this reply"))
     }
 
     // MARK: Request changes
@@ -98,22 +104,28 @@ struct WAG336Tests {
         #expect(full.width > short.width)
         let plan = PromptBarLogic.controlsPlan(rowWidth: row, quietLabels: [], pillLabels: pills)
         #expect(plan.sendPillLabel == "Rule out 3" && !plan.ownRow)
-        let layout = PromptBarLogic.layout(text: "", barWidth: row + PromptBarLogic.barPadding * 2, controlsWidth: plan.width, maxLines: 6, forcesOwnRow: plan.ownRow)
-        #expect((layout.singleRowFieldWidth ?? 0) >= PromptBarLogic.minFieldWidth - 1)
+        let shared = PromptBarLogic.sharedRowFieldWidth(barWidth: row + PromptBarLogic.barPadding * 2, controlsWidth: plan.width)
+        #expect(shared >= PromptBarLogic.minFieldWidth - 1)
     }
 
     @Test func whenEvenTheShortLabelLeavesTheFieldUnder200TheControlsTakeASecondRow() {
         let quiet = ["Back"]
         let plan = PromptBarLogic.controlsPlan(rowWidth: 330, quietLabels: quiet, pillLabels: pills)
         #expect(plan.ownRow)
-        let layout = PromptBarLogic.layout(text: "", barWidth: 342, controlsWidth: plan.width, maxLines: 6, forcesOwnRow: plan.ownRow)
-        #expect(layout.isMultiline)
+        #expect(PromptBarLogic.fieldTakesOwnRow(
+            text: "", naturalTextWidth: 0, barWidth: 342, controlsWidth: plan.width, controlsOwnRow: plan.ownRow))
     }
 
     // MARK: Titles and motion
 
-    @Test func rowTitlesWrapToTwoLines() {
-        #expect(CalmOption.rowTitleLines == 2)
+    @Test func cardsMatchTheMockupSizes() {
+        // Case map mockup `.choice`, `.ch`, `.x`, `.tl`, `.key` (decision 2026-11-10).
+        #expect(CalmOption.rowRadius == 10 && CalmOption.rowGap == 6)
+        #expect(OptionCardStyle.openHeaderPadding == 9 && OptionCardStyle.slimHeaderPadding == 7 && OptionCardStyle.sidePadding == 12)
+        #expect(OptionCardStyle.textIndent == OptionCardStyle.sidePadding + OptionCardStyle.markSize + OptionCardStyle.itemGap)
+        #expect(OptionCardStyle.markSize == 16 && OptionCardStyle.dotSize == 8 && OptionCardStyle.boxRadius == 4)
+        #expect(OptionCardStyle.keyHeight == CGFloat(18.5)) // 10.5 + 2 × 3 padding + 2 × 1 border
+        #expect(OptionCardStyle.title.size == 13.5 && OptionCardStyle.body.size == 12 && OptionCardStyle.label.letterSpacing == 0.63)
     }
 
     @Test func theScrollGateRunsTheBodyEitherWay() {
@@ -124,14 +136,65 @@ struct WAG336Tests {
     }
 }
 
-/// WAG-346: the Pen numbers of the prompt bar.
+/// WAG-346, then the request page mockups (2026-11-10, `.ans`, `.note`, `.ans .tools`, `.send`): the numbers of
+/// the prompt bar.
 struct WAG346BarMetricsTests {
-    @Test func aOneLineBarIs48TallWithTheControlsOnOneLine() {
-        #expect(PromptBarLogic.barPadding == 10)
-        #expect(PromptBarLogic.controlGap == 6)
-        let layout = PromptBarLogic.layout(text: "", barWidth: 600, controlsWidth: 28, maxLines: 6)
-        #expect(!layout.isMultiline)
-        #expect(layout.fieldHeight == PromptBarLogic.controlSize)
-        #expect(PromptBarLogic.barPadding * 2 + PromptBarLogic.controlSize == 48)
+    @Test func theAnswerAreaHasTheMockupsNumbers() {
+        // `.ans` padding 10 / 14 / 12; tools gap 14, margin-top 8.
+        #expect(PromptBarLogic.barTopPadding == 10)
+        #expect(PromptBarLogic.barPadding == 14)
+        #expect(PromptBarLogic.barBottomPadding == 12)
+        #expect(PromptBarLogic.controlGap == 14)
+        #expect(PromptBarLogic.rowGap == 8)
+        #expect(!PromptBarLogic.fieldTakesOwnRow(text: "", naturalTextWidth: 0, barWidth: 600, controlsWidth: 28))
+        // `.note`: one line is 18 + 2 × 9 (padding 8 + border 1) = 36 tall; the text view is 28 inside the box.
+        #expect(PromptBarLogic.contentHeight(usedTextHeight: PromptBarLogic.lineHeight) == PromptBarLogic.controlSize)
+        #expect(PromptBarLogic.controlSize + PromptBarLogic.fieldBoxPadding.height * 2 == 36)
+        #expect(PromptBarLogic.textInset.width + PromptBarLogic.fieldBoxPadding.width == 12)
+        #expect(PromptBarLogic.fieldRadius == 9)
+        #expect(PromptBarLogic.answerFontSize == 12.5)
+        // `.send`: 12.5 / 1.45 + 2 × 8 ≈ 34, sides 12.
+        #expect(PromptBarLogic.sendHeight == 34)
+        #expect(PromptBarLogic.sendHorizontalPadding == 12)
+        // The whole area with one line: 10 + 36 + 8 + 34 + 12.
+        #expect(PromptBarLogic.barTopPadding + 36 + PromptBarLogic.rowGap + PromptBarLogic.sendHeight + PromptBarLogic.barBottomPadding == 100)
+    }
+
+    /// The plain decision names the pick: "Send: <option> ↵"; a narrow row gets "Send ↵", never a cut title.
+    @Test func thePlainDecisionNamesThePick() {
+        #expect(PromptBarLogic.sendPillLabels(commentCount: 0, decideTitle: "B", sendTitle: "B · Options in place")
+            == ["Send: B · Options in place ↵", "Send ↵"])
+        #expect(PromptBarLogic.sendPillLabels(commentCount: 2, decideTitle: "B", sendTitle: "B · Options in place")
+            == ["Send: B · Options in place + 2 comments", "Send + 2 comments", "Send"])
+        // An edit, leans, a typed change or a review keep today's words.
+        #expect(PromptBarLogic.sendPillLabels(commentCount: 0, hasEdit: true, decideTitle: "B", sendTitle: "B").first ?? nil != "Send: B ↵")
+        #expect(PromptBarLogic.sendPillLabels(commentCount: 0, decideTitle: "B", withChanges: .decide, sendTitle: "B")
+            == PromptBarLogic.sendPillLabels(commentCount: 0, withChanges: .decide))
+        #expect(PromptBarLogic.sendPillLabels(commentCount: 0, decideTitle: "Approve") == ["Decide"])
+    }
+
+    /// Under a field on its own row the tools give way first ("Show me more", then "Let's discuss"), then the
+    /// quiet buttons, and only then does Send take its short form.
+    @Test func theToolsGiveWayBeforeSendGetsShorter() {
+        let widths = PromptBarLogic.ControlWidths(quiet: { _ in 80 }, send: { $0 == nil ? 34 : ($0!.count > 10 ? 180 : 60) })
+        let tools = ["Let's discuss", "Show me more"]
+        let forms: [String?] = ["Send: B · Options in place ↵", "Send ↵"]
+        func plan(_ row: CGFloat, quiet: [String] = []) -> PromptBarLogic.ControlsPlan {
+            PromptBarLogic.controlsPlan(
+                rowWidth: row, quietLabels: quiet, pillLabels: forms, widths: widths, leadingWidth: 16,
+                leadingLabels: tools, fieldOnOwnRow: true)
+        }
+        // Room for everything: 16 + 14 + (80 + 14 + 80 + 14 + 180 + 8).
+        let all = plan(16 + 14 + 376)
+        #expect(all.leadingLabels == tools && all.overflowLabels.isEmpty && all.sendPillLabel == forms[0])
+        let one = plan(16 + 14 + 375)
+        #expect(one.leadingLabels == ["Let's discuss"] && one.overflowLabels == ["Show me more"] && one.sendPillLabel == forms[0])
+        let none = plan(16 + 14 + 180 + 14 + 20 + 8)
+        #expect(none.leadingLabels.isEmpty && none.overflowLabels == tools && none.sendPillLabel == forms[0])
+        let short = plan(16 + 14 + 150)
+        #expect(short.sendPillLabel == "Send ↵")
+        // A quiet button ("Open review") goes after the tools.
+        let quiet = plan(16 + 14 + 80 + 14 + 180 + 14 + 20 + 8, quiet: ["Open review"])
+        #expect(quiet.quietLabels == ["Open review"] && quiet.overflowLabels == tools)
     }
 }

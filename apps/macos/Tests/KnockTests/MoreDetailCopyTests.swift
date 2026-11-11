@@ -22,13 +22,4 @@ struct MoreDetailCopyTests {
         #expect(MoreDetailCopy.banner(format: nil, message: nil) == "Asked for more detail")
         #expect(MoreDetailCopy.banner(format: nil, message: "  \n ") == "Asked for more detail")
     }
-
-    @Test func bubbleNeverShowsAnEmptyYou() {
-        #expect(DeliveryBubbleCopy.text(for: "") == "You: your reply")
-        #expect(DeliveryBubbleCopy.text(for: "  ") == "You: your reply")
-    }
-
-    @Test func decisionSummaryIsUnchanged() {
-        #expect(DeliveryBubbleCopy.text(for: "Go with A. Two fixes") == "You: Go with A. Two fixes")
-    }
 }

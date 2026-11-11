@@ -66,8 +66,8 @@ final class SplitFoldState: ObservableObject {
         isAskFolded.toggle()
     }
 
-    /// The text page's queue fold (HAIL-89). It ends "both folded" too. The conversation column
-    /// is not a saved fold any more: it starts closed for every case (WAG-299).
+    /// The text page's queue fold (HAIL-89). It ends "both folded" too. The conversation is a tab of the
+    /// decision column (C8), not a fold.
     func toggleQueueFold() { toggleQueue() }
 
     /// Folds both sides, or brings back the folds the operator had before.

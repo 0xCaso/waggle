@@ -134,7 +134,7 @@ struct QueueListView: View {
         }
         .frame(width: Theme.Spacing.listColumnWidth)
         .frame(maxHeight: .infinity, alignment: .top)
-        .background(Theme.Colors.list)
+        .background(Theme.AskDoc.Chrome.sidebarFill)
         .overlay(alignment: .bottomLeading) { sessionsPanel }
         .overlay(
             Rectangle()
@@ -361,18 +361,26 @@ struct QueueListView: View {
                     Spacer(minLength: 0)
                 }
             } else {
-                HStack(spacing: 10) {
-                    WordmarkLockup()
+                HStack(spacing: 8) {
+                    // `.brand`: the mark 16, 7 to the wordmark (500 15, −0.03 em).
+                    HStack(spacing: Theme.AskDoc.Chrome.brandGap) {
+                        KnockMarkView().frame(width: Theme.AskDoc.Chrome.markSize, height: Theme.AskDoc.Chrome.markSize)
+                        Text("waggle")
+                            .knockTextStyle(Theme.AskDoc.Chrome.brand)
+                            .foregroundColor(Theme.Colors.ink)
+                    }
+                    .accessibilityElement(children: .ignore)
+                    .accessibilityLabel("waggle")
                     Spacer(minLength: 0)
+                    // Case map `.needs` and `.count`.
                     Text("Needs you")
-                        .knockTextStyle(Theme.AskDoc.Typography.sidebarHeader15w650)
+                        .knockTextStyle(Theme.AskDoc.Chrome.needsLabel)
                         .foregroundColor(Theme.Colors.ink)
                     // The red count pill (WAG-257).
                     Text("\(model.visibleNeedsYouCases.count)")
-                        .knockTextStyle(Theme.AskDoc.Typography.countPill11_5w700)
+                        .knockTextStyle(Theme.AskDoc.Chrome.countPill)
                         .foregroundColor(model.visibleNeedsYouCases.isEmpty ? Theme.Colors.ink3 : Theme.Colors.onFill)
-                        .padding(.horizontal, 7)
-                        .padding(.vertical, 1)
+                        .padding(Theme.AskDoc.Chrome.countPillInset)
                         // Nothing needs you: the pill goes grey, not red.
                         .background(Capsule().fill(model.visibleNeedsYouCases.isEmpty ? Theme.Colors.side : Theme.Colors.accent))
                         .accessibilityLabel(model.visibleNeedsYouCases.count == 1 ? "1 request needs you" : "\(model.visibleNeedsYouCases.count) requests need you")
@@ -387,7 +395,7 @@ struct QueueListView: View {
             leading: isOffline
                 ? Theme.Spacing.listHeaderLeadingReserve
                 : QueueHeaderLayout.leadingInset(trafficLightsMaxX: trafficLightsMaxX),
-            bottom: 12, trailing: 18))
+            bottom: Theme.AskDoc.Chrome.headBottom, trailing: Theme.AskDoc.Chrome.sideInset))
         .background(TrafficLightsEdgeReader { trafficLightsMaxX = $0 })
     }
 
@@ -404,32 +412,14 @@ struct QueueListView: View {
 
     /// "› ANSWERED · 73 ... SHOW" collapsed, "⌄ ANSWERED · 73 ... HIDE" open. Same caps style as the other headers.
     private func answeredHeader(count: Int) -> some View {
-        Button(action: { model.answeredOpen.toggle() }) {
-            HStack(spacing: 6) {
-                Image(systemName: model.answeredOpen ? "chevron.down" : "chevron.right")
-                    .font(.system(size: 9, weight: .semibold))
-                    .frame(width: 10)
-                Text(SidebarSections.sectionTitle("Answered", count: count))
-                    .knockTextStyle(Theme.Typography.labelCaps10_5w600)
-                Spacer(minLength: 0)
-                Text(model.answeredOpen ? "HIDE" : "SHOW")
-                    .knockTextStyle(Theme.Typography.labelCaps10_5w600)
-            }
-            .foregroundColor(Theme.Colors.ink3)
-            .opacity(0.7)
-            .padding(EdgeInsets(top: 14, leading: 18, bottom: 6, trailing: 18))
-            .contentShape(Rectangle())
-        }
-        .buttonStyle(.plain).pointerCursor()
-        .overlay(Rectangle().fill(Theme.Colors.line).frame(height: 1), alignment: .top)
+        SidebarFoldHeader(label: "Answered", count: count, isOpen: model.answeredOpen) { model.answeredOpen.toggle() }
     }
 
     private func daySectionHeader(_ section: AnswerGrouping.DaySection) -> some View {
-        Text(section.header)
-            .knockTextStyle(Theme.Typography.monoMetaRow10_5w400)
-            .foregroundColor(Theme.Colors.ink3)
+        // B "ANSWERED TODAY · 6": the day sections inside Answered take the `.sec` look.
+        ChromeSectionLabel(text: section.header)
             .frame(maxWidth: .infinity, alignment: .leading)
-            .padding(EdgeInsets(top: 12, leading: 18, bottom: 4, trailing: 18))
+            .padding(Theme.AskDoc.Chrome.sectionInset)
     }
 
     private func answeredRow(for item: Case) -> some View {
@@ -456,7 +446,7 @@ struct QueueListView: View {
                 .knockTextStyle(Theme.Typography.cachedLabel11w600)
                 .foregroundColor(Theme.Colors.ink3)
         }
-        .padding(EdgeInsets(top: 14, leading: 18, bottom: 6, trailing: 18))
+        .padding(Theme.AskDoc.Chrome.sectionInset)
     }
 
     /// The eight examples while there is nothing yet (WAG-338). A filtered or offline queue keeps its one line.
@@ -478,7 +468,7 @@ struct QueueListView: View {
     /// `Settings` scene through SwiftUI's own command, unaffected by this
     /// button.
     private var footer: some View {
-        HStack(spacing: 10) {
+        HStack(spacing: Theme.AskDoc.Chrome.footerGap) {
             QueueFooterSessionStatus(
                 connection: connection, activeCases: model.activeCases, isOffline: isOffline,
                 onToggle: { toggleSessions() },
@@ -486,15 +476,16 @@ struct QueueListView: View {
             Spacer(minLength: 8)
             Button(action: { openSettings() }) {
                 Image(systemName: "gearshape")
-                    .font(.system(size: 15))
-                    .foregroundColor(Theme.Colors.ink2)
-                    .frame(width: 28, height: 28)
+                    .font(.system(size: 13))
+                    .foregroundColor(Theme.Colors.ink3)
+                    .frame(width: 22, height: 22)
                     .contentShape(Rectangle())
             }
             .buttonStyle(.plain).pointerCursor()
             .help("Settings  ⌘,")
         }
-        .padding(EdgeInsets(top: 10, leading: 18, bottom: 10, trailing: 10))
+        // `.side-foot`: padding 12 16; the gear keeps 22 pt, so the row pads 2 less above and below.
+        .padding(EdgeInsets(top: 10, leading: Theme.AskDoc.Chrome.sideInset, bottom: 10, trailing: 10))
         .overlay(Rectangle().fill(Theme.Colors.line).frame(height: 1), alignment: .top)
         .task {
             await connection.start()
@@ -588,7 +579,7 @@ private struct QueueFooterSessionStatus<ButtonBackground: View>: View {
         if isOffline || connection.liveSessions.isEmpty {
             Circle()
                 .fill(isOffline ? Theme.Colors.daemonOfflineDot : Theme.Colors.ok)
-                .frame(width: 6, height: 6)
+                .frame(width: Theme.AskDoc.Chrome.dotSize, height: Theme.AskDoc.Chrome.dotSize)
         } else {
             // One grid for the busiest live session (HAIL-66).
             let busiest = AgentStatus.busiest(statuses)
@@ -597,8 +588,8 @@ private struct QueueFooterSessionStatus<ButtonBackground: View>: View {
         }
         Button(action: onToggle) {
             Text(QueueFooterStatus.label(isOffline: isOffline, sessionCount: QueueFooterStatus.liveCount(connection.sessions)))
-                .knockTextStyle(Theme.Typography.daemonStatus11_5w500)
-                .foregroundColor(Theme.Colors.ink2)
+                .knockTextStyle(Theme.AskDoc.Chrome.footer)
+                .foregroundColor(Theme.Colors.ink3)
                 .lineLimit(1)
                 .contentShape(Rectangle())
         }
@@ -606,8 +597,8 @@ private struct QueueFooterSessionStatus<ButtonBackground: View>: View {
         .disabled(isOffline)
         .background(buttonBackground)
         if !isOffline, workingCount > 0 {
-            Text("\(workingCount) working")
-                .knockTextStyle(Theme.Typography.monoMeta11w400)
+            Text("· \(workingCount) working")
+                .knockTextStyle(Theme.AskDoc.Chrome.footer)
                 .foregroundColor(Theme.Colors.ink3)
                 .lineLimit(1)
         }

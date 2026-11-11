@@ -92,9 +92,9 @@ struct WAG305Tests {
 
     @Test func anEmptyFieldKeepsOneRowWithTheButtonWhateverTheLabel() {
         let controls = PromptBarLogic.controlsWidth(quietLabels: ["Ask for more detail"], sendPillLabel: "Decide")
-        let layout = PromptBarLogic.layout(text: "", barWidth: 430, controlsWidth: controls, maxLines: 4)
-        #expect(!layout.isMultiline)
-        #expect(layout.fieldHeight == 28)
+        // The shared-row rule (the answer box keeps its own row since 2026-11-10; the 14 pt tools gap needs a wider bar).
+        #expect(!PromptBarLogic.fieldTakesOwnRow(text: "", naturalTextWidth: 0, barWidth: 480, controlsWidth: controls))
+        #expect(PromptBarLogic.contentHeight(usedTextHeight: 0) == 28)
     }
 
     @Test func theControlsPlanGivesWayBeforeTheButton() {

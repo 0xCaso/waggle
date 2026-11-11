@@ -69,7 +69,7 @@ struct AppModelAdvanceAfterSendTests {
 
     @Test func clockFadesTwoAndAHalfSecondsAfterDelivery() {
         var clock = SentToastClock()
-        for _ in 0..<40 { clock.advance(by: 0.1, isHovering: false, isDelivered: false) }
+        for _ in 0..<20 { clock.advance(by: 0.1, isHovering: false, isDelivered: false) }
         #expect(!clock.shouldFade)
         for _ in 0..<24 { clock.advance(by: 0.1, isHovering: false, isDelivered: true) }
         #expect(!clock.shouldFade)
@@ -77,12 +77,12 @@ struct AppModelAdvanceAfterSendTests {
         #expect(clock.shouldFade)
     }
 
-    @Test func clockNeverPassesTenSecondsWhileQueued() {
+    @Test func clockNeverPassesFiveSecondsWhileQueued() {
         var clock = SentToastClock()
-        for _ in 0..<97 { clock.advance(by: 0.1, isHovering: false, isDelivered: false) }
+        for _ in 0..<47 { clock.advance(by: 0.1, isHovering: false, isDelivered: false) }
         #expect(!clock.shouldFade)
         clock.advance(by: 0.1, isHovering: false, isDelivered: false)
-        // Fade starts by 9.75 s and lasts 0.25 s: gone by about 10 s.
+        // Fade starts by 4.75 s and lasts 0.25 s: gone by about 5 s.
         #expect(clock.shouldFade)
     }
 

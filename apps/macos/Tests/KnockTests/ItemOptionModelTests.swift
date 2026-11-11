@@ -121,6 +121,15 @@ struct ItemOptionModelTests {
         #expect(doc.pointBlocks(of: doc.questions[0]).count == 1 && doc.pointBlocks(of: doc.questions[1]).isEmpty)
     }
 
+    @Test func thePageLeavesOutThePickCardOfAPickOnePoint() {
+        var doc = legacy(recommendation: "Go with the cards.", why: "They test best.")
+        doc.choose("Yes", question: "a", point: "a1")
+        let page = doc.pageBlocks(question: doc.questions[0], point: doc.questions[0].points[0], pointNumber: 1)
+        #expect(page.map(\.label) == ["RECOMMENDED"])
+        doc.choose("Yes", question: "b", point: "b1")
+        #expect(doc.pageBlocks(question: doc.questions[1], point: doc.questions[1].points[0]).isEmpty)
+    }
+
     @Test func theLegacyWhyStaysAfterAPickOnTheFirstPoint() {
         var doc = legacy(recommendation: "Go with the cards.", why: "They test best.")
         doc.choose("Yes", question: "a", point: "a1")

@@ -39,8 +39,8 @@ struct ReviewTitlebarView: View {
     /// when that column is folded away.
     var showsTitle = false
 
-    /// The one crumb of the workspace (WAG-302): the pane's crumb builder, joined with a dot. It sits in
-    /// the ask column over the title (WAG-309); the titlebar shows the title only.
+    /// The one crumb of the workspace (WAG-302): the pane's crumb builder, joined with a dot. The titlebar
+    /// shows it as `TopBarCrumb` (C2); the ask column no longer repeats it.
     static func crumbText(task: KnockTask, sessionTitle: String?) -> String {
         AskCrumbs.breadcrumb(task: task, sessionTitle: sessionTitle, separator: " · ")
     }
@@ -78,6 +78,8 @@ struct ReviewTitlebarView: View {
 
     private func titleRow(showsTimes: Bool) -> some View {
         HStack(spacing: 14) {
+            // The project crumb, as in the case pane's top bar (C2): the decision column no longer repeats it.
+            TopBarCrumb(task: task, sessionTitle: sessionTitle)
             if showsTitle {
                 Text(knockCase.rowTitle)
                     .knockTextStyle(Theme.Typography.titlebarTitle13w600)

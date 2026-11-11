@@ -1,3 +1,4 @@
+import AppKit
 import SwiftUI
 
 /// The rules of the calm card as plain functions, so a test can check them without hosting a view.
@@ -9,28 +10,23 @@ enum CalmOption {
     static let swapDuration = 0.2
     static let cardRadius: CGFloat = 16
 
-    /// A row in the bottom bar never expands (WAG-293). The pick's details show in the page ("YOUR PICK").
-    static let rowsExpand = false
-    static let rowRadius: CGFloat = 12
+    /// The option cards of the decision column (decision 2026-11-10, mockup `.choice`): radius 10, 6 apart.
+    static let rowRadius: CGFloat = 10
+    static let rowGap: CGFloat = 6
     /// A ruled-out row dims to this (WAG-301).
     static let ruledOutOpacity = 0.55
     static let leanTip = "I lean to this, but I am not sure"
     static let ruleOutTip = "Rule this out"
-    /// The tooltip of a row shows after the pointer rests on the row this long. A chip shows it at once.
+    /// The tooltip of a closed card shows after the pointer rests on the card this long. A chip shows it at once.
     static let tooltipDelay = 0.4
     /// The block in the page swaps its text with a 150 ms fade.
     static let blockFade = 0.15
 
-    /// The counts on the Good and Watch chips. A zero count has no chip.
-    static func chipCounts(pros: [String], cons: [String]) -> (good: Int, watch: Int) { (pros.count, cons.count) }
-    /// The title of the effects list and the tooltip of its count (WAG-360): "1 effect", "3 effects".
+    /// The title of the effects list (WAG-360).
     static let effectsTitle = "If you pick this"
-    static func effectsTip(_ count: Int) -> String { "\(count) \(count == 1 ? "effect" : "effects")" }
     static let recommendedPill = "Recommended"
-    /// A row title wraps to at most this many lines (WAG-336).
-    static let rowTitleLines = 2
-    static let recommendedEdge = Theme.Colors.honey500.opacity(0.4)
-    static let recommendedTint = Theme.Colors.honeySoft.opacity(0.45)
+    /// The label over the option list (mockup `.ol`).
+    static let listLabel = "Your choice"
     /// A locked row and an unticked row at the limit do not react to a click (WAG-379 keeps the rule of WAG-334).
     static func acceptsPick(isLocked: Bool, isLimitDimmed: Bool, isSelected: Bool) -> Bool {
         !isLocked && !(isLimitDimmed && !isSelected)
@@ -41,18 +37,59 @@ enum CalmOption {
         guard let sincePress else { return false }
         return sincePress < pointerFocusWindow
     }
-    static func showsSoftMark(isRecommended: Bool, isSelected: Bool, isLeaning: Bool, isRuledOut: Bool, isLocked: Bool) -> Bool {
-        isRecommended && !isSelected && !isLeaning && !isRuledOut && !isLocked
-    }
-    /// The pill in a tight row (WAG-311): the whole "✦ Recommended" when it fits, else "✦" alone with the word
+    /// The tag in a tight row (WAG-311): the whole "★ Recommended" when it fits, else "★" alone with the word
     /// in its tooltip. It never shows a cut word.
-    static let recommendedMark = "✦"
+    static let recommendedMark = "★"
     static func recommendedPillText(availableWidth: CGFloat, fullWidth: CGFloat) -> String {
         availableWidth >= fullWidth ? "\(recommendedMark) \(recommendedPill)" : recommendedMark
     }
-    /// The tooltips of the two count marks (WAG-303): "3 good points", "2 things to watch".
-    static func goodTip(_ count: Int) -> String { "\(count) good \(count == 1 ? "point" : "points")" }
-    static func watchTip(_ count: Int) -> String { "\(count) \(count == 1 ? "thing" : "things") to watch" }
+
+    /// True when the title on one line and the whole "★ Recommended" tag (`.rec`: 600 10.5, padding 6) fit in `room`.
+    /// Before the first layout (`room` 0) the whole tag shows.
+    static func fitsFullRecommendedTag(title: String, room: CGFloat) -> Bool {
+        guard room > 0 else { return true }
+        let tagFont = PromptBarLogic.sansFont(size: 10.5, weight: .semibold)
+        let tag = ceil(NSAttributedString(string: "\(recommendedMark) \(recommendedPill)", attributes: [.font: tagFont]).size().width) + 12
+        return CSSText.lineWidth(title, size: OptionCardStyle.title.size, semibold: true) + OptionCardStyle.itemGap + tag <= room
+    }
+
+    /// Which card of a list is open (mockup: the picked card opens in place): the pick, else the recommended one.
+    /// A pick-several list opens none (mockup template `multi`). Positions are 1-based; nil opens none.
+    static func openPosition(selected: Int?, recommended: Int?, isCheckbox: Bool) -> Int? {
+        isCheckbox ? nil : selected ?? recommended
+    }
+
+    /// The line under a closed card (mockup `.tl`): the first pro, the first con and "+N" for the rest of the pros,
+    /// cons and effects. Nil when the option has no pros and no cons.
+    struct Teaser: Equatable {
+        let pro: String?
+        let con: String?
+        let more: Int
+    }
+
+    static func teaser(pros: [String], cons: [String], effects: [String] = []) -> Teaser? {
+        guard !pros.isEmpty || !cons.isEmpty else { return nil }
+        let shown = (pros.isEmpty ? 0 : 1) + (cons.isEmpty ? 0 : 1)
+        return Teaser(
+            pro: pros.first.map { AgentMarkdown.singleLine($0) }, con: cons.first.map { AgentMarkdown.singleLine($0) },
+            more: pros.count + cons.count + effects.count - shown)
+    }
+
+    /// Text the card can draw as plain wrapped text (`CSSText`): one paragraph, no markdown, no source markers.
+    static func isPlainLine(_ text: String) -> Bool {
+        !text.contains("\n") && !text.contains("[[s:") && !text.contains(where: { "*`_[".contains($0) })
+    }
+
+    /// "+3", with "3 more" spoken and in the tooltip.
+    static func moreText(_ count: Int) -> String { "+\(count)" }
+    static func moreTip(_ count: Int) -> String { "\(count) more" }
+
+    /// The reason at the end of an open card (mockup `.because`): "Why I recommend it: …" on the recommended
+    /// option, "Why: …" on an option that carries its own why.
+    static func becauseLine(_ note: String, isRecommended: Bool) -> String {
+        "\(CalmNoteView.title(isRecommended: isRecommended)): \(note)"
+    }
+
     /// The block label (WAG-303): the plan round's preselected recommendation is not yet the person's pick.
     static func isPick(selectedId: String?, pickIsDefault: Bool) -> Bool { selectedId != nil && !pickIsDefault }
 
@@ -260,25 +297,158 @@ enum OptionText {
     static let whyLabelColor = Theme.Colors.ink3
 }
 
-/// The number chip of an option: honey when it is the pick.
-struct CalmNumberChip: View {
-    let position: Int
-    let isSelected: Bool
+/// The type and sizes of the option cards, from the case map mockup CSS (decision 2026-11-10; 1 CSS px = 1 pt).
+/// CSS line heights go through `cssLine`, so a line box is `lineHeight × size` as in the browser.
+enum OptionCardStyle {
+    /// The exact Inter Tight face: `Font.custom("Inter Tight").weight(.semibold)` draws heavier than the mockup's 600.
+    static func sans(_ size: CGFloat, _ weight: NSFont.Weight = .regular) -> Font {
+        .custom(PromptBarLogic.sansFaceName(for: weight), size: size)
+    }
+    /// `.ch b`: Inter Tight 600 13.5, line height 1.45 (inherited). Drawn by `CSSText`.
+    static let title = Theme.TextStyle(font: sans(13.5, .semibold), size: 13.5, lineHeight: nil, letterSpacing: nil)
+    /// `.x`, `.tl`: Inter Tight 400 12, line height 1.45.
+    static let body = Theme.TextStyle(font: sans(12), size: 12, lineHeight: nil, letterSpacing: nil)
+    /// `.rec`: Inter Tight 600 10.5, line height 1.
+    static let tag = Theme.TextStyle(font: sans(10.5, .semibold), size: 10.5, lineHeight: nil, letterSpacing: nil)
+    /// `.key`: JetBrains Mono 400 10.5, line height 1.
+    static let key = Theme.TextStyle(font: .custom(Theme.FontFamily.mono, size: 10.5), size: 10.5, lineHeight: nil, letterSpacing: nil)
+    /// `.ol`: Inter Tight 600 10.5, line height 1, letter spacing .06em, upper case.
+    static let label = Theme.TextStyle(font: sans(10.5, .semibold), size: 10.5, lineHeight: nil, letterSpacing: 0.63)
+    /// `.ol u`: Inter Tight 500 12, underlined 2 pt under the text.
+    static let labelLink = Theme.TextStyle(font: sans(12, .medium), size: 12, lineHeight: nil, letterSpacing: nil)
+    static let lineHeight: CGFloat = 1.45
 
-    var body: some View {
-        Text("\(position)")
-            .knockTextStyle(Theme.Typography.keyBadge12w600)
-            .foregroundColor(Theme.Colors.ink)
-            .frame(width: 24, height: 24)
-            .background(isSelected ? Theme.Colors.honey500 : Color.clear)
-            .clipShape(RoundedRectangle(cornerRadius: 7))
-            .overlay(RoundedRectangle(cornerRadius: 7).stroke(isSelected ? Theme.Colors.honey600 : Theme.Colors.line, lineWidth: 1))
+    /// `.radio`, `.box`: 16, border 1.5. The dot of a picked radio is 8; the box tick is "✓" 11.
+    static let markSize: CGFloat = 16
+    static let markBorder: CGFloat = 1.5
+    static let dotSize: CGFloat = 8
+    static let boxRadius: CGFloat = 4
+    /// `.key`, `.rec`: radius 5.
+    static let badgeRadius: CGFloat = 5
+    /// The key badge's height (`.key`: 10.5 + 2 × 3 + 2 × 1). Lean and Rule out take the same height.
+    static let keyHeight: CGFloat = 18.5
+    /// `.choice` border.
+    static let borderWidth: CGFloat = 1
+    /// `.ch` padding 9 / 12, `.ch.slim` 7 / 12, item gap 10; `.x` and `.tl` start under the title (12 + 16 + 10).
+    static let openHeaderPadding: CGFloat = 9
+    static let slimHeaderPadding: CGFloat = 7
+    static let sidePadding: CGFloat = 12
+    static let itemGap: CGFloat = 10
+    static let textIndent: CGFloat = 38
+    /// `.x` bottom 11, `.x .d` margin 6, `.pc` gap 3 / 14, mark margin 5, `.because` margin 7 + padding 6.
+    static let openBottom: CGFloat = 11
+    static let descriptionGap: CGFloat = 6
+    static let gridRowGap: CGFloat = 3
+    static let gridColumnGap: CGFloat = 14
+    static let gridMarkGap: CGFloat = 5
+    static let becauseTop: CGFloat = 7
+    static let becausePadding: CGFloat = 6
+    /// `.tl`: bottom 9, gap 14, mark margin 4.
+    static let teaserBottom: CGFloat = 9
+    static let teaserGap: CGFloat = 14
+    static let teaserMarkGap: CGFloat = 4
+    /// `.ol` margin below 8.
+    static let labelGap: CGFloat = 8
+}
+
+extension OptionCardStyle {
+    /// The height SwiftUI gives one line of the bundled fonts at the card sizes, measured (it rounds each line to
+    /// whole points, so it is not `size × 1.21`): Inter Tight 10.5 → 14, 12 → 15, 13.5 → 17; JetBrains Mono 10.5 → 14.
+    /// Other sizes fall back to the font's own line height, rounded up.
+    static func drawnLineHeight(size: CGFloat, mono: Bool) -> CGFloat {
+        switch (size, mono) {
+        case (10.5, _): 14
+        case (12, false): 15
+        case (13.5, false): 17
+        default: (size * (mono ? Theme.Typography.monoNaturalLineHeight : Theme.Typography.sansNaturalLineHeight)).rounded(.up)
+        }
     }
 }
 
-/// One option row of the bottom bar (WAG-293, WAG-296): number, title, "Good n" and "Watch n" chips, then the
-/// "✦ Recommended" pill. The description lives in the tooltip. It never expands. The pick has the honey stroke and soft fill. A rest of
-/// the pointer on a chip (or on the row for 400 ms), or keyboard focus, opens a tooltip above the bar.
+extension View {
+    /// A CSS `line-height: lineHeight` on text of `size`: the room between lines, and half of the difference to
+    /// the drawn line height above and below (negative under it, as `/1` is in CSS), so a line box is
+    /// `lineHeight × size` as in the mockup.
+    func cssLine(size: CGFloat, lineHeight: CGFloat, mono: Bool = false) -> some View {
+        let extra = size * lineHeight - OptionCardStyle.drawnLineHeight(size: size, mono: mono)
+        return self
+            .lineSpacing(max(0, extra))
+            .padding(.vertical, extra / 2)
+    }
+}
+
+/// The label over an option list (mockup `.ol`): "YOUR CHOICE", or for pick-several the header with its links.
+struct OptionListLabel: View {
+    var text: String = CalmOption.listLabel
+    var color: Color = Theme.AskDoc.Colors.quiet
+
+    var body: some View {
+        Text(text.uppercased())
+            .knockTextStyle(OptionCardStyle.label)
+            .foregroundColor(color)
+            .lineLimit(1)
+            .cssLine(size: 10.5, lineHeight: 1)
+            .accessibilityAddTraits(.isHeader)
+    }
+}
+
+/// The leading mark of a card: a radio (pick one) or a box (pick several), honey when picked.
+struct OptionMark: View {
+    let isCheckbox: Bool
+    let isOn: Bool
+
+    var body: some View {
+        let border = isOn ? Theme.Colors.honey600 : Theme.Colors.line2
+        Group {
+            if isCheckbox {
+                RoundedRectangle(cornerRadius: OptionCardStyle.boxRadius)
+                    .fill(isOn ? Theme.Colors.honey600 : Color.clear)
+                    .overlay(RoundedRectangle(cornerRadius: OptionCardStyle.boxRadius).strokeBorder(border, lineWidth: OptionCardStyle.markBorder))
+                    .overlay {
+                        if isOn {
+                            // Inter Tight's own ✓, as the mockup draws it.
+                            Text("✓").font(OptionCardStyle.sans(11)).foregroundColor(Theme.Colors.onFill)
+                        }
+                    }
+            } else {
+                Circle()
+                    .strokeBorder(border, lineWidth: OptionCardStyle.markBorder)
+                    .overlay {
+                        if isOn { Circle().fill(Theme.Colors.honey600).frame(width: OptionCardStyle.dotSize, height: OptionCardStyle.dotSize) }
+                    }
+            }
+        }
+        .frame(width: OptionCardStyle.markSize, height: OptionCardStyle.markSize)
+        .accessibilityHidden(true)
+    }
+}
+
+/// The key badge at the right end of a card (mockup `.key`): the option's number key.
+struct OptionKeyBadge: View {
+    let position: Int
+
+    var body: some View {
+        Text("\(position)")
+            .knockTextStyle(OptionCardStyle.key)
+            .foregroundColor(Theme.AskDoc.Colors.quiet)
+            .lineLimit(1)
+            .fixedSize()
+            .cssLine(size: 10.5, lineHeight: 1, mono: true)
+            .padding(EdgeInsets(top: 3, leading: 5, bottom: 3, trailing: 5))
+            .padding(1)
+            .overlay(RoundedRectangle(cornerRadius: OptionCardStyle.badgeRadius).strokeBorder(Theme.Colors.line2, lineWidth: 1))
+            .help("Press \(position)")
+            .accessibilityLabel("Key \(position)")
+    }
+}
+
+/// One option card of the decision column (decision 2026-11-10, mockup `.choice`): radio or box, the title,
+/// "★ Recommended" right after it, then Lean ◐, Rule out × and the key badge at the right end. The open card (the
+/// pick, else the recommendation) is variant `gist` of the option text mockup (task 11b): its fact chips, the
+/// description on one line, the gists in two plain columns under quiet PROS / CONS labels with hanging + / –, the
+/// reason under a dashed line, and "Show the full points" for every full point, effect, description and reason. A
+/// closed card shows its fact chips (or the first words of its first pro and con) and "+N –N", and its details in a
+/// tooltip.
 struct CompactOptionRow: View {
     let position: Int
     let title: String
@@ -287,32 +457,50 @@ struct CompactOptionRow: View {
     var cons: [String] = []
     var effects: [String] = []
     var note: String? = nil
+    /// Task 11b: the option's facts, and its points with their gists. `nil` points read `pros` / `cons` as full points.
+    var facts: [String] = []
+    var proPoints: [OptionPoint]? = nil
+    var conPoints: [OptionPoint]? = nil
     let isSelected: Bool
     var isRecommended = false
     var isLocked = false
+    /// The card shows its details in place (`CalmOption.openPosition`).
+    var isOpen = false
     /// Lean and rule out (WAG-301). The two icons show when `onLean` and `onRuleOut` are set and the row is not locked.
     var isLeaning = false
     var isRuledOut = false
     var onLean: (() -> Void)? = nil
     var onRuleOut: (() -> Void)? = nil
-    /// A pick-many row (WAG-329): a check box in front of the number, and the tick is the state. Same row, same
-    /// pill, same counts and tooltip as a single ask. `isLimitDimmed` is an unticked row once the ticks reach `max`.
+    /// A pick-many row (WAG-329): a box in place of the radio, and the tick is the state. Same card, same tag,
+    /// same tooltip as a single ask. `isLimitDimmed` is an unticked row once the ticks reach `max`.
     var isCheckbox = false
     var isLimitDimmed = false
     let onSelect: () -> Void
 
-    @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @State private var showsTip = false
     @State private var hoverTask: Task<Void, Never>?
     /// The press state is read in no body, so it lives in a class: a write does not draw the row again.
     @State private var press = PressState()
     @FocusState private var isFocused: Bool
+    /// "Show the full points" is open.
+    /// Evidence only: `KNOCK_EVIDENCE_FULL_POINTS=1` opens it on every card, for the renders.
+    @State private var showsFull = ProcessInfo.processInfo.environment["KNOCK_EVIDENCE_FULL_POINTS"] == "1"
+    /// The width of the text under the title, for the cuts at a whole word. 0 before the first layout: nothing is cut.
+    @State private var textWidth: CGFloat = 0
+    /// The room for the title and its tag, between the mark and the icons.
+    @State private var titleRoom: CGFloat = 0
 
-    /// The recommended row, not picked, ruled out or leaned to: the Recommended pill plus a light honey edge and tint.
-    /// It is not a selection: no check, no filled radio (WAG-336).
-    private var softMark: Bool { CalmOption.showsSoftMark(isRecommended: isRecommended, isSelected: isSelected, isLeaning: isLeaning, isRuledOut: isRuledOut, isLocked: isLocked) }
-    private var counts: (good: Int, watch: Int) { CalmOption.chipCounts(pros: pros, cons: cons) }
-    private var hasTip: Bool { Self.hasTip(description: description, pros: pros, cons: cons, effects: effects, note: note) }
+    private var proList: [OptionPoint] { proPoints ?? pros.map { OptionPoint(detail: $0) } }
+    private var conList: [OptionPoint] { conPoints ?? cons.map { OptionPoint(detail: $0) } }
+    private var proDetails: [String] { proList.map(\.detail) }
+    private var conDetails: [String] { conList.map(\.detail) }
+    private var hasTip: Bool {
+        !isOpen && Self.hasTip(description: description, pros: proDetails, cons: conDetails, effects: effects, note: note)
+    }
+    private var hasDiscuss: Bool { !isLocked && onLean != nil && onRuleOut != nil }
+    private var rowFill: Color {
+        isSelected ? Theme.Colors.pickedFill : isLeaning ? Theme.Colors.dsSoft : Theme.Colors.win
+    }
 
     /// The tooltip opens for a row with a description, a list (Good, Watch out or effects) or a note.
     static func hasTip(description: String?, pros: [String], cons: [String], effects: [String] = [], note: String?) -> Bool {
@@ -330,51 +518,20 @@ struct CompactOptionRow: View {
         let _ = RunLoopTurnProbe.startIfLogging()
         let _ = isSelected && EvidenceLayoutLog.enabled ? { RunLoopTurnProbe.wantsDrawn = true }() : ()
         let _ = isSelected ? EvidenceLayoutLog.event("opt.sel", "t=\(Self.stamp()) pos=\(position) tip=\(showsTip)") : ()
-        HStack(spacing: 10) {
-            if isCheckbox { CheckBoxMark(isTicked: isSelected) }
-            CalmNumberChip(position: position, isSelected: isSelected && !isCheckbox)
-            Text(OptionLabelFormatting.cutAtWord(title, limit: OptionLabelFormatting.maxRowTitleLength))
-                .knockTextStyle(Theme.Typography.value13_5w600)
-                .foregroundColor(Theme.Colors.ink)
-                .strikethrough(isRuledOut, color: Theme.Colors.ink)
-                // A long title wraps to two lines, never an ellipsis beside the counts and icons (WAG-336).
-                .lineLimit(CalmOption.rowTitleLines)
-                .fixedSize(horizontal: false, vertical: true)
-                .layoutPriority(2)
-            Spacer(minLength: 6)
-            if counts.good > 0 { countMark("checkmark.circle", counts.good, Theme.Colors.ok, CalmOption.goodTip(counts.good)) }
-            if counts.watch > 0 { countMark("exclamationmark.triangle", counts.watch, Theme.AskDoc.Colors.watch, CalmOption.watchTip(counts.watch)) }
-            if !effects.isEmpty { countMark("arrow.right", effects.count, Theme.Colors.ink3, CalmOption.effectsTip(effects.count)) }
-            if isLocked && isSelected {
-                tag("checkmark", "Your answer", Theme.Colors.ink2)
-            } else if isRecommended {
-                // The pill gives way before the title does: the word goes first, then only the mark is left.
-                ViewThatFits(in: .horizontal) {
-                    chip("\(CalmOption.recommendedMark) \(CalmOption.recommendedPill)", Theme.Colors.recommendedTagText, Theme.Colors.honeySoft)
-                        .fixedSize()
-                    chip(CalmOption.recommendedMark, Theme.Colors.recommendedTagText, Theme.Colors.honeySoft)
-                        .fixedSize()
-                        .help(CalmOption.recommendedPill)
-                }
-                .layoutPriority(0)
-            }
-            if !isLocked, let onLean, let onRuleOut {
-                HStack(spacing: 2) {
-                    DiscussIconButton(kind: .lean, isOn: isLeaning, optionTitle: title, action: onLean)
-                    DiscussIconButton(kind: .ruleOut, isOn: isRuledOut, optionTitle: title, action: onRuleOut)
-                }
+        VStack(alignment: .leading, spacing: 0) {
+            header
+            if isOpen {
+                openBody
+            } else {
+                closedLine
             }
         }
-        .padding(EdgeInsets(top: 8, leading: 12, bottom: 8, trailing: 12))
+        // The 1 pt border sits outside the padding, as in CSS (`border-box`): the content starts 1 pt in.
+        .padding(OptionCardStyle.borderWidth)
         .frame(maxWidth: .infinity, alignment: .leading)
-        .background(isSelected ? Theme.Colors.honeySoft : isLeaning ? Theme.Colors.dsSoft : softMark ? CalmOption.recommendedTint : Theme.Colors.win)
+        .background(rowFill)
         .clipShape(RoundedRectangle(cornerRadius: CalmOption.rowRadius))
-        .overlay(
-            RoundedRectangle(cornerRadius: CalmOption.rowRadius)
-                .stroke(
-                    isSelected ? Theme.Colors.honey500 : isLeaning ? Theme.Colors.ds
-                        : softMark ? CalmOption.recommendedEdge : Theme.Colors.line,
-                    lineWidth: isSelected || isLeaning ? 1.5 : 1))
+        .overlay(border)
         .opacity(
             isLimitDimmed && !isSelected ? OptionChipView.limitDimmedOpacity
                 : isLocked && !isSelected ? 0.45 : isRuledOut ? CalmOption.ruledOutOpacity : 1
@@ -384,8 +541,7 @@ struct CompactOptionRow: View {
         // open or about to open never holds it back. A tooltip window can take the release of a click that opened
         // it, so a tap gesture there could wait for the tooltip, or never fire.
         .gesture(DragGesture(minimumDistance: 0).onChanged { _ in pressRow() }.onEnded { _ in press.isPressing = false })
-        .pointerCursor()
-        .allowsHitTesting(!isLocked)
+        .modifier(PickCursor(isOn: !isLocked))
         .focusable(hasTip).focused($isFocused).focusEffectDisabled()
         .onChange(of: showsTip) { _, shown in EvidenceLayoutLog.event("opt.tipOn", "t=\(Self.stamp()) shown=\(shown) focus=\(isFocused)") }
         .onChange(of: isFocused) { _, focused in
@@ -394,6 +550,7 @@ struct CompactOptionRow: View {
                 showsTip = hasTip && !CalmOption.isPointerFocus(press.at.map { $0.duration(to: .now) })
             } else { hideTip() }
         }
+        .onChange(of: isOpen) { _, open in if open { hideTip() } }
         .onHover { inside in
             hoverTask?.cancel()
             if inside, hasTip {
@@ -406,14 +563,14 @@ struct CompactOptionRow: View {
             }
         }
         .background(
-            OptionTipPresenter(isPresented: showsTip, onDismiss: { showsTip = false }) {
-                OptionTooltipView(description: description, pros: pros, cons: cons, effects: effects, note: note, isRecommended: isRecommended)
+            OptionTipPresenter(isPresented: showsTip && hasTip, onDismiss: { showsTip = false }) {
+                OptionTooltipView(description: description, pros: proDetails, cons: conDetails, effects: effects, note: note, isRecommended: isRecommended, facts: facts)
             })
         .overlay(alignment: .top) {
             // Evidence only: a popover is its own window, which the window snapshot cannot see, so
             // `KNOCK_EVIDENCE_OPTION_TIP=<position>` draws the same tooltip content above that row.
             if hasTip, ProcessInfo.processInfo.environment["KNOCK_EVIDENCE_OPTION_TIP"] == String(position) {
-                OptionTooltipView(description: description, pros: pros, cons: cons, effects: effects, note: note, isRecommended: isRecommended)
+                OptionTooltipView(description: description, pros: proDetails, cons: conDetails, effects: effects, note: note, isRecommended: isRecommended, facts: facts)
                     .fixedSize(horizontal: false, vertical: true)
                     .background(Theme.Colors.win)
                     .clipShape(RoundedRectangle(cornerRadius: 10))
@@ -434,6 +591,297 @@ struct CompactOptionRow: View {
                 + (isLeaning ? "leaning" : isRuledOut ? "ruled out" : ""))
     }
 
+    /// `.choice`: 1 pt `line` inside the card; picked `.choice.on`: 1 pt `honey500` plus a 1 pt ring outside it.
+    /// Leaning (no mockup) keeps its blue 1.5 pt edge.
+    @ViewBuilder
+    private var border: some View {
+        let shape = RoundedRectangle(cornerRadius: CalmOption.rowRadius)
+        if isSelected {
+            shape.stroke(Theme.Colors.honey500, lineWidth: 2)
+        } else if isLeaning {
+            shape.strokeBorder(Theme.Colors.ds, lineWidth: 1.5)
+        } else {
+            shape.strokeBorder(Theme.Colors.line, lineWidth: 1)
+        }
+    }
+
+    private var displayedTitle: String {
+        AgentMarkdown.singleLine(OptionLabelFormatting.cutAtWord(title, limit: OptionLabelFormatting.maxRowTitleLength))
+    }
+
+    private var titleText: some View {
+        CSSText(
+            runs: [.init(text: displayedTitle, semibold: true, color: Theme.Colors.ink, strikethrough: isRuledOut)],
+            size: OptionCardStyle.title.size)
+            .accessibilityHidden(true)
+    }
+
+    /// `.ch`: the mark, the title and its tag, then Lean, Rule out and the key at the right end.
+    private var header: some View {
+        HStack(spacing: OptionCardStyle.itemGap) {
+            OptionMark(isCheckbox: isCheckbox, isOn: isSelected)
+            // The title and its tag take the room left of the icons. The tag gives way before the title does: the word
+            // goes first, then only the star is left. The choice is measured, so the whole tag shows whenever it fits.
+            HStack(spacing: OptionCardStyle.itemGap) {
+                titleText.layoutPriority(1)
+                if isLocked && isSelected {
+                    tag("✓ Your answer", Theme.Colors.ink2, Theme.Colors.side).fixedSize()
+                } else if isRecommended {
+                    if CalmOption.fitsFullRecommendedTag(title: displayedTitle, room: titleRoom) {
+                        tag("\(CalmOption.recommendedMark) \(CalmOption.recommendedPill)", Theme.Colors.recommendedTagText, Theme.Colors.honeySoft)
+                            .fixedSize()
+                    } else {
+                        tag(CalmOption.recommendedMark, Theme.Colors.recommendedTagText, Theme.Colors.honeySoft)
+                            .fixedSize()
+                            .help(CalmOption.recommendedPill)
+                    }
+                }
+            }
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .onGeometryChange(for: CGFloat.self, of: { $0.size.width }) { titleRoom = $0 }
+            HStack(spacing: 4) {
+                // Lean and Rule out (no mockup) sit right before the key, at its height, on every card.
+                if hasDiscuss { discussMarks }
+                OptionKeyBadge(position: position)
+            }
+            .fixedSize()
+        }
+        .padding(.vertical, isOpen ? OptionCardStyle.openHeaderPadding : OptionCardStyle.slimHeaderPadding)
+        .padding(.horizontal, OptionCardStyle.sidePadding)
+    }
+
+    // MARK: Open card (variant `gist`)
+
+    private typealias Gist = GistCardStyle
+
+    /// The one-line description and reason are cut at a whole word only once the width is known.
+    private func fits(_ text: String, extra: CGFloat = 0) -> Bool {
+        textWidth <= 0 || CSSText.lineWidth(text) + extra <= textWidth
+    }
+
+    private var descriptionLine: String? { description.map(OptionGist.flatLine) }
+    private var descriptionCut: (text: String, isCut: Bool)? {
+        descriptionLine.map { OptionGist.cutAtWord($0, fits: { fits($0) }) }
+    }
+    private var reasonLead: String { "\(CalmNoteView.title(isRecommended: isRecommended)):" }
+    private var reasonCut: (text: String, isCut: Bool)? {
+        let leadWidth = CSSText.lineWidth(reasonLead + " ", semibold: true)
+        return note.map { OptionGist.cutAtWord(OptionGist.flatLine($0), fits: { fits($0, extra: leadWidth) }) }
+    }
+    private var hasHiddenDetail: Bool {
+        OptionGist.hasHiddenDetail(
+            pros: proList, cons: conList, effects: effects, facts: facts,
+            descriptionCut: descriptionCut?.isCut ?? false, reasonCut: reasonCut?.isCut ?? false)
+    }
+
+    /// `.x`: the fact chips, the description on one line, the gists in two columns, the reason under a dashed line and
+    /// "Show the full points". Open, the full points replace the gists and the full description and reason show.
+    private var openBody: some View {
+        let shownFacts = OptionGist.shownFacts(facts)
+        let hasPoints = !proList.isEmpty || !conList.isEmpty
+        return VStack(alignment: .leading, spacing: 0) {
+            if !shownFacts.isEmpty { FactChips(facts: shownFacts) }
+            if let description, let cut = descriptionCut {
+                Group {
+                    if showsFull {
+                        fullText(description, color: Theme.Colors.ink2, lineHeight: Gist.descriptionLineHeight)
+                    } else {
+                        CSSText(runs: CSSText.inlineRuns(cut.text, color: Theme.Colors.ink2), lineHeight: Gist.descriptionLineHeight)
+                            .frame(height: 12 * Gist.descriptionLineHeight, alignment: .topLeading)
+                            .clipped()
+                            .accessibilityLabel(AgentMarkdown.singleLine(description))
+                    }
+                }
+                .padding(.top, shownFacts.isEmpty ? 0 : Gist.descriptionTop)
+                .padding(.bottom, hasPoints ? Gist.descriptionBottom : 0)
+            }
+            if hasPoints {
+                Group {
+                    if showsFull { fullPoints } else { gistColumns }
+                }
+                .padding(.top, (description == nil && !shownFacts.isEmpty ? Gist.gridAfterFacts : 0) + Gist.gridTop)
+            }
+            if showsFull { fullExtras }
+            if let note, let cut = reasonCut {
+                becauseLine(note: note, cut: cut)
+                    .padding(.top, description == nil && !hasPoints && shownFacts.isEmpty ? 0 : Gist.becauseTop)
+            }
+            if hasHiddenDetail || showsFull {
+                Button { showsFull.toggle() } label: {
+                    Text(showsFull ? OptionGist.hideFull : OptionGist.showFull)
+                        .font(OptionCardStyle.sans(12))
+                        .foregroundColor(Theme.Colors.ink3)
+                        .underline()
+                        .cssLine(size: 12, lineHeight: OptionCardStyle.lineHeight)
+                }
+                .buttonStyle(.plain).pointerCursor()
+                .padding(.top, Gist.footTop)
+                .accessibilityLabel(showsFull ? "Hide the full points of \(title)" : "Show the full points of \(title)")
+            }
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .onGeometryChange(for: CGFloat.self, of: { $0.size.width }) { textWidth = $0 }
+        .padding(EdgeInsets(
+            top: 0, leading: OptionCardStyle.textIndent, bottom: OptionCardStyle.openBottom, trailing: OptionCardStyle.sidePadding))
+    }
+
+    /// Agent text in full: plain wrapped text (code as chips), or markdown and source pills through the shared view.
+    @ViewBuilder
+    private func fullText(_ text: String, color: Color, lineHeight: CGFloat = OptionCardStyle.lineHeight) -> some View {
+        if OptionGist.isFlatLine(text) {
+            CSSText(runs: CSSText.inlineRuns(text, color: color), lineHeight: lineHeight)
+        } else {
+            AgentMarkdownText(text: text, style: OptionCardStyle.body, color: color, showsSources: true)
+                .cssLine(size: 12, lineHeight: lineHeight)
+        }
+    }
+
+    /// `.pcg`: PROS and CONS, each a list of gists (the full point when there is no gist) with a hanging sign.
+    private var gistColumns: some View {
+        HStack(alignment: .top, spacing: Gist.columnGap) {
+            pointColumn(OptionGist.prosLabel, proList, mark: "+", color: Theme.AskDoc.Colors.pro, word: "Pro", full: false)
+            pointColumn(OptionGist.consLabel, conList, mark: "–", color: Theme.AskDoc.Colors.watch, word: "Con", full: false)
+        }
+    }
+
+    /// The full points, one list under the other (long sentences read better at the card's width).
+    private var fullPoints: some View {
+        VStack(alignment: .leading, spacing: 10) {
+            if !proList.isEmpty {
+                pointColumn(OptionGist.prosLabel, proList, mark: "+", color: Theme.AskDoc.Colors.pro, word: "Pro", full: true)
+            }
+            if !conList.isEmpty {
+                pointColumn(OptionGist.consLabel, conList, mark: "–", color: Theme.AskDoc.Colors.watch, word: "Con", full: true)
+            }
+        }
+    }
+
+    @ViewBuilder
+    private func pointColumn(_ label: String, _ points: [OptionPoint], mark: String, color: Color, word: String, full: Bool) -> some View {
+        VStack(alignment: .leading, spacing: 0) {
+            if !points.isEmpty {
+                GistHeadLabel(text: label).padding(.bottom, Gist.headLabelGap)
+                VStack(alignment: .leading, spacing: Gist.pointGap) {
+                    ForEach(Array(points.enumerated()), id: \.offset) { _, point in
+                        HangingLine(
+                            mark: mark, color: color, text: full ? point.detail : point.shown,
+                            lineHeight: full ? OptionCardStyle.lineHeight : Gist.pointLineHeight)
+                            .accessibilityLabel(OptionGist.spokenPoint(point, word: word))
+                    }
+                }
+            }
+        }
+        .frame(maxWidth: .infinity, alignment: .topLeading)
+    }
+
+    /// Under the full points: "If you pick this" with the effects, and any fact past the third.
+    @ViewBuilder
+    private var fullExtras: some View {
+        if !effects.isEmpty {
+            VStack(alignment: .leading, spacing: 0) {
+                GistHeadLabel(text: CalmOption.effectsTitle).padding(.bottom, Gist.headLabelGap)
+                VStack(alignment: .leading, spacing: Gist.pointGap) {
+                    ForEach(Array(effects.enumerated()), id: \.offset) { _, line in
+                        HangingLine(mark: "→", color: Theme.AskDoc.Colors.quiet, text: line, lineHeight: OptionCardStyle.lineHeight)
+                            .accessibilityLabel("\(CalmOption.effectsTitle): \(AgentMarkdown.singleLine(line))")
+                    }
+                }
+            }
+            .padding(.top, 10)
+        }
+        let extra = OptionGist.extraFacts(facts)
+        if !extra.isEmpty { FactChips(facts: extra).padding(.top, 10) }
+    }
+
+    /// `.x .because`: "Why I recommend it:" in 600 ink2, the reason in ink3, on one line cut at a whole word; in full
+    /// once "Show the full points" is open.
+    private func becauseLine(note: String, cut: (text: String, isCut: Bool)) -> some View {
+        let lead = CSSText.Run(text: reasonLead + " ", semibold: true, color: Theme.Colors.ink2)
+        return Group {
+            if showsFull || !cut.isCut, !OptionGist.isFlatLine(note) {
+                SourcedText(text: CalmOption.becauseLine(note, isRecommended: isRecommended), style: OptionCardStyle.body, color: Theme.Colors.ink3)
+                    .cssLine(size: 12, lineHeight: OptionCardStyle.lineHeight)
+            } else if showsFull {
+                CSSText(runs: [lead] + CSSText.inlineRuns(OptionGist.flatLine(note), color: Theme.Colors.ink3))
+            } else {
+                CSSText(runs: [lead] + CSSText.inlineRuns(cut.text, color: Theme.Colors.ink3))
+                    .frame(height: 12 * OptionCardStyle.lineHeight, alignment: .topLeading)
+                    .clipped()
+            }
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .accessibilityElement(children: .ignore)
+        .accessibilityLabel(CalmOption.becauseLine(AgentMarkdown.singleLine(note), isRecommended: isRecommended))
+        // The 1 pt dashed border, then its 6 pt padding.
+        .padding(.top, 1 + OptionCardStyle.becausePadding)
+        .overlay(alignment: .top) { DashedRule() }
+    }
+
+    // MARK: Closed card
+
+    /// `.cl`: the fact chips and "+N –N" at the right. An option with no facts shows the first words of its first pro
+    /// and first con instead of the chips, cut at a whole word.
+    @ViewBuilder
+    private var closedLine: some View {
+        let tally = OptionGist.tally(pros: proList, cons: conList)
+        let shown = OptionGist.shownFacts(facts)
+        if !shown.isEmpty || tally != nil {
+            HStack(alignment: .center, spacing: Gist.closedGap) {
+                if !shown.isEmpty {
+                    FactChips(facts: shown).layoutPriority(1)
+                } else {
+                    // The teaser never sets the card's width: it takes the room the column gives and clips, so the
+                    // width measured below is the column's, and the cut fits it on the next pass.
+                    closedTeaser(tally: tally)
+                        .frame(minWidth: 0, maxWidth: .infinity, alignment: .leading)
+                        .clipped()
+                }
+                Spacer(minLength: 0)
+                if let tally { TallyView(tally: tally).onHover { inside in if inside, hasTip { hoverTask?.cancel(); showsTip = true } } }
+            }
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .onGeometryChange(for: CGFloat.self, of: { $0.size.width }) { textWidth = $0 }
+            .accessibilityElement(children: .contain)
+            .padding(EdgeInsets(
+                top: 0, leading: OptionCardStyle.textIndent, bottom: OptionCardStyle.teaserBottom, trailing: OptionCardStyle.sidePadding))
+        }
+    }
+
+    private func closedTeaser(tally: OptionGist.Tally?) -> some View {
+        let markRoom = 12 + OptionCardStyle.teaserMarkGap
+        let room = textWidth <= 0 ? CGFloat.greatestFiniteMagnitude : textWidth - (tally.map(TallyView.width) ?? 0) - Gist.closedGap
+        let teaser = OptionGist.closedTeaser(
+            pro: proList.first, con: conList.first, width: room, gap: OptionCardStyle.teaserGap,
+            measure: { CSSText.lineWidth($0) + markRoom })
+        return HStack(spacing: OptionCardStyle.teaserGap) {
+            if let pro = teaser.pro, let point = proList.first {
+                teaserPart("+", Theme.AskDoc.Colors.pro, pro).accessibilityLabel(OptionGist.spokenPoint(point, word: "Pro"))
+            }
+            if let con = teaser.con, let point = conList.first {
+                teaserPart("–", Theme.AskDoc.Colors.watch, con).accessibilityLabel(OptionGist.spokenPoint(point, word: "Con"))
+            }
+        }
+        .frame(height: 12 * OptionCardStyle.lineHeight)
+        .clipped()
+    }
+
+    /// One closed-card part on one row, its sign inline.
+    private func teaserPart(_ mark: String, _ color: Color, _ line: String) -> some View {
+        CSSText(runs: [.init(text: mark, semibold: true, color: color, gapAfter: OptionCardStyle.teaserMarkGap)]
+            + CSSText.inlineRuns(line, color: Theme.Colors.ink2))
+        .fixedSize()
+        .accessibilityElement(children: .ignore)
+    }
+
+    /// Lean ◐ and Rule out × (WAG-301).
+    @ViewBuilder
+    private var discussMarks: some View {
+        if let onLean, let onRuleOut {
+            DiscussIconButton(kind: .lean, isOn: isLeaning, optionTitle: title, action: onLean)
+            DiscussIconButton(kind: .ruleOut, isOn: isRuledOut, optionTitle: title, action: onRuleOut)
+        }
+    }
+
     final class PressState {
         var isPressing = false
         var at: ContinuousClock.Instant?
@@ -451,47 +899,46 @@ struct CompactOptionRow: View {
 
     private func hideTip() { hoverTask?.cancel(); showsTip = false }
 
-    private func chip(_ text: String, _ color: Color, _ fill: Color) -> some View {
+    /// `.rec`: 600 10.5 / 1, padding 3 / 6, radius 5.
+    private func tag(_ text: String, _ color: Color, _ fill: Color) -> some View {
         Text(text)
-            .knockTextStyle(Theme.Typography.tagLabel10_5w500)
+            .knockTextStyle(OptionCardStyle.tag)
             .foregroundColor(color)
             .lineLimit(1)
-            .padding(EdgeInsets(top: 2, leading: 8, bottom: 2, trailing: 8))
+            .cssLine(size: 10.5, lineHeight: 1)
+            .padding(EdgeInsets(top: 3, leading: 6, bottom: 3, trailing: 6))
             .background(fill)
-            .clipShape(Capsule())
-            // The pill gives way before the title does (WAG-306, F11).
-            .layoutPriority(0)
+            .clipShape(RoundedRectangle(cornerRadius: OptionCardStyle.badgeRadius))
             .onHover { inside in if inside, hasTip { hoverTask?.cancel(); showsTip = true } }
     }
+}
 
-    /// An icon and a number, no words and no fill (WAG-303). It has its own tooltip; a rest on it also opens the row tooltip.
-    private func countMark(_ symbol: String, _ count: Int, _ color: Color, _ tip: String) -> some View {
-        HStack(spacing: 3) {
-            Image(systemName: symbol).font(.system(size: 11, weight: .semibold))
-            Text("\(count)").knockTextStyle(Theme.Typography.tagLabel10_5w500).monospacedDigit()
+/// `.x .because`'s top edge: a 1 pt dashed `line2` rule.
+private struct DashedRule: View {
+    var body: some View {
+        GeometryReader { proxy in
+            Path { path in
+                path.move(to: CGPoint(x: 0, y: 0.5))
+                path.addLine(to: CGPoint(x: proxy.size.width, y: 0.5))
+            }
+            .stroke(Theme.Colors.line2, style: StrokeStyle(lineWidth: 1, dash: [3, 3]))
         }
-        .foregroundColor(color)
-        .lineLimit(1)
-        // A count never shows cut ("✓ 2" is never "✓ :"): the title gives way before it does (WAG-311).
-        .fixedSize()
-        .layoutPriority(0)
-        .help(tip)
-        .accessibilityElement(children: .ignore)
-        .accessibilityLabel(tip)
-        .onHover { inside in if inside, hasTip { hoverTask?.cancel(); showsTip = true } }
+        .frame(height: 1)
     }
+}
 
-    private func tag(_ symbol: String, _ text: String, _ color: Color) -> some View {
-        HStack(spacing: 4) {
-            Image(systemName: symbol).font(.system(size: 11)).foregroundColor(color)
-            Text(text).knockTextStyle(Theme.Typography.tagLabel10_5w500).foregroundColor(color).lineLimit(1)
-        }
-        .layoutPriority(0)
+/// The pointing hand over a row that can be picked. A locked row keeps its hover (its tooltip still opens) but
+/// shows the plain arrow.
+private struct PickCursor: ViewModifier {
+    let isOn: Bool
+
+    func body(content: Content) -> some View {
+        if isOn { content.pointerCursor() } else { content }
     }
 }
 
 /// The right half of a disc. The lean icon (WAG-301, WAG-303) is an outline circle with this half filled:
-/// off in ink3, on in `ds`.
+/// off in quiet, on in `ds`.
 struct HalfDiscShape: Shape {
     func path(in rect: CGRect) -> Path {
         var path = Path()
@@ -503,7 +950,7 @@ struct HalfDiscShape: Shape {
     }
 }
 
-/// The two small icon buttons at the end of an option row (WAG-301): lean (half circle) and rule out (×).
+/// The two small icon buttons before the key badge of an option card (WAG-301): lean (half circle) and rule out (×).
 /// Both toggle. Each is focusable with a visible focus ring, and VoiceOver names the action and the option.
 struct DiscussIconButton: View {
     enum Kind { case lean, ruleOut }
@@ -528,22 +975,23 @@ struct DiscussIconButton: View {
             ZStack {
                 switch kind {
                 case .lean:
-                    let color = isOn ? Theme.Colors.ds : Theme.Colors.ink3
+                    let color = isOn ? Theme.Colors.ds : Theme.AskDoc.Colors.quiet
                     ZStack {
                         Circle().stroke(color, lineWidth: 1.2)
                         HalfDiscShape().fill(color)
                     }
-                    .frame(width: 13, height: 13)
+                    .frame(width: 11, height: 11)
                 case .ruleOut:
                     if isOn {
-                        Circle().fill(Theme.AskDoc.Colors.watch).frame(width: 16, height: 16)
-                            .overlay(Image(systemName: "xmark").font(.system(size: 8, weight: .bold)).foregroundColor(Theme.Colors.win))
+                        Circle().fill(Theme.AskDoc.Colors.watch).frame(width: 14, height: 14)
+                            .overlay(Image(systemName: "xmark").font(.system(size: 7, weight: .bold)).foregroundColor(Theme.Colors.win))
                     } else {
-                        Image(systemName: "xmark").font(.system(size: 10, weight: .semibold)).foregroundColor(Theme.Colors.ink3)
+                        Image(systemName: "xmark").font(.system(size: 9, weight: .semibold)).foregroundColor(Theme.AskDoc.Colors.quiet)
                     }
                 }
             }
-            .frame(width: 24, height: 24)
+            // The key badge's height, so the two icons and the key read as one group (no mockup).
+            .frame(width: OptionCardStyle.keyHeight, height: OptionCardStyle.keyHeight)
             .background(hovered && !isOn ? Theme.Colors.hover : Color.clear)
             .clipShape(Circle())
             .overlay(Circle().stroke(Theme.Colors.ds, lineWidth: 2).opacity(isFocused ? 1 : 0))
@@ -566,9 +1014,12 @@ struct OptionTooltipView: View {
     var effects: [String] = []
     var note: String? = nil
     var isRecommended = false
+    /// The option's facts (task 11b), every one of them.
+    var facts: [String] = []
 
     var body: some View {
         VStack(alignment: .leading, spacing: 10) {
+            if !facts.isEmpty { FactChips(facts: facts) }
             if let description { OptionDescriptionView(text: description) }
             GoodWatchOutView(pros: pros, cons: cons, columns: false)
             EffectsView(effects: effects)
@@ -579,7 +1030,7 @@ struct OptionTooltipView: View {
     }
 }
 
-/// One option in the bottom bar of a decision (WAG-281, WAG-293): a compact row.
+/// One option card of a decision (WAG-281, decision 2026-11-10).
 struct CalmOptionRowView: View {
     let option: Option
     let position: Int
@@ -593,6 +1044,8 @@ struct CalmOptionRowView: View {
     var onRuleOut: (() -> Void)? = nil
     var isCheckbox = false
     var isLimitDimmed = false
+    /// The card shows its details in place (`CalmOption.openPosition`).
+    var isOpen = false
     let onSelect: () -> Void
 
     var body: some View {
@@ -601,7 +1054,8 @@ struct CalmOptionRowView: View {
             description: CalmOption.description(of: option, position: position),
             pros: option.pros, cons: option.cons, effects: option.effects,
             note: CalmOption.note(for: option, isRecommended: isRecommended, recommendationWhy: recommendationWhy),
-            isSelected: isSelected, isRecommended: isRecommended, isLocked: isLocked,
+            facts: option.facts, proPoints: option.proPoints, conPoints: option.conPoints,
+            isSelected: isSelected, isRecommended: isRecommended, isLocked: isLocked, isOpen: isOpen,
             isLeaning: isLeaning, isRuledOut: isRuledOut, onLean: onLean, onRuleOut: onRuleOut,
             isCheckbox: isCheckbox, isLimitDimmed: isLimitDimmed, onSelect: onSelect)
     }
@@ -724,5 +1178,140 @@ struct DecisionPickBlockView: View {
         return (
             "RECOMMENDED · " + PromptBarLogic.positionList(picked.map { $0.offset + 1 }),
             picked.map { $0.element.displayTitle }.joined(separator: ", "), reason.isEmpty ? nil : reason)
+    }
+}
+
+/// Wrapped card text laid out as the mockup's browser does (decision 2026-11-10): a fixed CSS line box
+/// (`lineHeight × size`, the glyphs centred in it) and plain greedy wrapping. SwiftUI `Text` moves a word down so the
+/// last line never holds a single word, so "+ The decision is in the first / screen" would break one word early.
+/// The runs are plain text; a mark ("+", "–", "→") is a run with its own color and weight and a trailing gap.
+/// A `code` run draws as the mockup's `code` chip. With `hanging`, the first run is a sign in its own column and every
+/// wrapped line starts under the text (`.hl li`).
+struct CSSText: NSViewRepresentable {
+    struct Run: Equatable {
+        let text: String
+        var semibold = false
+        var color: Color
+        /// Extra room after the run (a CSS `margin-right` on a `::before`).
+        var gapAfter: CGFloat = 0
+        var strikethrough = false
+        /// A `code` chip (mono 11.5 ink on side, 1 pt line border); a path in it shows as a `.path` chip.
+        var code = false
+    }
+
+    let runs: [Run]
+    var size: CGFloat = 12
+    var lineHeight: CGFloat = OptionCardStyle.lineHeight
+    /// The first run is a sign centred in a column; the other runs hang at `OptionGist.Hanging.textInset`.
+    var hanging = false
+
+    /// Splits agent text on backticks: plain runs in `color`, code runs as chips. An unclosed backtick stays as text.
+    static func inlineRuns(_ text: String, color: Color) -> [Run] {
+        let parts = text.components(separatedBy: "`")
+        guard parts.count >= 3 else { return [Run(text: text, color: color)] }
+        var out: [Run] = []
+        for (index, part) in parts.enumerated() where !part.isEmpty {
+            let isLastOdd = index == parts.count - 1 && index % 2 == 1
+            if index % 2 == 1 && !isLastOdd {
+                out.append(Run(text: part, color: Theme.Colors.ink, code: true))
+            } else {
+                out.append(Run(text: isLastOdd ? "`" + part : part, color: color))
+            }
+        }
+        return out
+    }
+
+    var attributed: NSAttributedString {
+        let style = NSMutableParagraphStyle()
+        style.minimumLineHeight = size * lineHeight
+        style.maximumLineHeight = size * lineHeight
+        style.lineBreakMode = .byWordWrapping
+        style.lineBreakStrategy = []
+        let regular = NeedNumbers.tabular(PromptBarLogic.sansFont(size: size))
+        let semibold = NeedNumbers.tabular(PromptBarLogic.sansFont(size: size, weight: .semibold))
+        if hanging, let mark = runs.first {
+            let markWidth = NSAttributedString(string: mark.text, attributes: [.font: mark.semibold ? semibold : regular]).size().width
+            style.firstLineHeadIndent = OptionGist.Hanging.markOffset(markWidth: markWidth)
+            style.headIndent = OptionGist.Hanging.textInset
+            style.tabStops = [NSTextTab(textAlignment: .left, location: OptionGist.Hanging.textInset)]
+            style.defaultTabInterval = OptionGist.Hanging.textInset
+        }
+        // TextKit puts the extra room of a fixed line above the glyphs; CSS splits it (half-leading).
+        let extra = size * lineHeight - (regular.ascender - regular.descender)
+        let out = NSMutableAttributedString()
+        var chips: [(NSRange, TextChipKind)] = []
+        for (index, run) in runs.enumerated() {
+            var attributes: [NSAttributedString.Key: Any] = [
+                .font: run.semibold ? semibold : regular, .foregroundColor: NSColor(run.color), .paragraphStyle: style,
+                .baselineOffset: extra / 2,
+            ]
+            if run.gapAfter > 0 { attributes[.kern] = run.gapAfter }
+            if run.strikethrough {
+                attributes[.strikethroughStyle] = NSUnderlineStyle.single.rawValue
+                attributes[.strikethroughColor] = NSColor(run.color)
+            }
+            let text = hanging && index == 0 ? run.text + "\t" : run.text
+            let start = out.length
+            out.append(NSAttributedString(string: text, attributes: attributes))
+            if run.code { chips.append((NSRange(location: start, length: out.length - start), InlinePaths.isPath(run.text) ? .path : .code)) }
+        }
+        for (range, kind) in chips {
+            ChipPainter.mark(out, range: range, kind: kind, ink: NSColor(Theme.Colors.ink), quiet: NSColor(Theme.AskDoc.Colors.quiet))
+        }
+        return out
+    }
+
+    var plainText: String { runs.map(\.text).joined(separator: hanging ? " " : "") }
+
+    func makeNSView(context: Context) -> CSSTextNSView {
+        let view = CSSTextNSView()
+        view.text = attributed
+        return view
+    }
+
+    func updateNSView(_ view: CSSTextNSView, context: Context) {
+        view.text = attributed
+    }
+
+    func sizeThatFits(_ proposal: ProposedViewSize, nsView: CSSTextNSView, context: Context) -> CGSize? {
+        let text = attributed
+        let width = proposal.width ?? .greatestFiniteMagnitude
+        let rect = text.boundingRect(
+            with: NSSize(width: width.isFinite ? width : 1e6, height: 1e6), options: [.usesLineFragmentOrigin])
+        // The width the lines take, as a CSS flex item's: a title leaves the rest of the row to its tag.
+        return CGSize(width: min(ceil(rect.width), width), height: rect.height)
+    }
+
+    /// The width of one line of this text, for a cut at a whole word.
+    static func lineWidth(_ text: String, size: CGFloat = 12, semibold: Bool = false, color: Color = Theme.Colors.ink) -> CGFloat {
+        let css = CSSText(runs: inlineRuns(text, color: color).map { var r = $0; if !r.code { r.semibold = semibold }; return r }, size: size)
+        return ceil(css.attributed.size().width)
+    }
+}
+
+/// Draws `CSSText`. It takes no clicks (the card under it does) and reads as static text.
+final class CSSTextNSView: NSView {
+    var text = NSAttributedString() {
+        didSet { if text != oldValue { needsDisplay = true; setAccessibilityLabel(text.string.replacingOccurrences(of: "\t", with: " ")) } }
+    }
+
+    override var isFlipped: Bool { true }
+    override func hitTest(_ point: NSPoint) -> NSView? { nil }
+    override func isAccessibilityElement() -> Bool { true }
+    override func accessibilityRole() -> NSAccessibility.Role? { .staticText }
+
+    override func draw(_ dirtyRect: NSRect) {
+        // A frame rounded to the pixel can be a hair under the text's height; the container has room to spare below,
+        // so no line that does not fit whole is dropped.
+        let storage = NSTextStorage(attributedString: text)
+        let layout = NSLayoutManager()
+        let container = NSTextContainer(size: NSSize(width: bounds.width, height: bounds.height + 100))
+        container.lineFragmentPadding = 0
+        storage.addLayoutManager(layout)
+        layout.addTextContainer(container)
+        let glyphs = layout.glyphRange(for: container)
+        ChipPainter.paint(layout: layout, container: container, origin: .zero, glyphRange: glyphs)
+        layout.drawBackground(forGlyphRange: glyphs, at: .zero)
+        layout.drawGlyphs(forGlyphRange: glyphs, at: .zero)
     }
 }

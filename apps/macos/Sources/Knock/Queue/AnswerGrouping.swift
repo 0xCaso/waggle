@@ -193,3 +193,17 @@ enum AnsweredGroupSettings {
         defaults.set(open, forKey: key)
     }
 }
+
+/// Whether the sidebar's Working group is open, remembered across launches (C11, 2026-11-09 request page spec).
+/// Closed by default, in its own key so it never follows the Answered fold.
+enum WorkingGroupSettings {
+    static let key = "queueWorkingGroupOpen"
+
+    static func isOpen(defaults: UserDefaults = .standard) -> Bool {
+        (defaults.object(forKey: key) as? Bool) ?? false
+    }
+
+    static func setOpen(_ open: Bool, defaults: UserDefaults = .standard) {
+        defaults.set(open, forKey: key)
+    }
+}

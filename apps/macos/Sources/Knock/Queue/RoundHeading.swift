@@ -120,14 +120,17 @@ extension Case {
     var rowTitle: String { TitleSplit.make(roundHeading?.title ?? title).title }
 }
 
-/// The "Round 2" mark of a later round: the same in a plan and in an update round (WAG-335).
+/// The "ROUND 2" mark of a later round: the same in a plan and in an update round (WAG-335). It is the eyebrow
+/// over the title, as mockup B's `.ctx`: mono 11.5, quiet, capitals. The project and the session are in the top bar,
+/// so the eyebrow does not repeat them.
 struct RoundTagView: View {
     let text: String
 
     var body: some View {
-        Text(text)
-            .knockTextStyle(Theme.Typography.monoMetaRow10_5w400)
-            .foregroundColor(Theme.Colors.ds)
+        Text(text.uppercased())
+            .knockTextStyle(Theme.AskDoc.Column.eyebrow)
+            .foregroundColor(Theme.AskDoc.Colors.quiet)
+            .accessibilityLabel(text)
     }
 }
 
@@ -136,11 +139,14 @@ struct RoundTagView: View {
 struct RoundHeadingView: View {
     let heading: RoundHeading
     let titleStyle: Theme.TextStyle
+    /// Mockup B: on the page with no artifact the round is in the eyebrow over the page, not here again.
+    @Environment(\.roundTagInEyebrow) private var roundTagInEyebrow
 
     var body: some View {
         let split = TitleSplit.make(heading.title)
         VStack(alignment: .leading, spacing: 4) {
-            RoundTagView(text: heading.tag)
+            // `.ctx`: margin-bottom 10.
+            if !roundTagInEyebrow { RoundTagView(text: heading.tag).padding(.bottom, 6) }
             TitleText(text: split.title, style: titleStyle)
             if let description = split.description {
                 TitleDescriptionView(text: description)

@@ -25,8 +25,8 @@ extension Theme {
         }
 
         enum Radius {
-            /// The need callout. Pen shows 12 on the wireframe; the brief and the prototype say 14.
-            static let need: CGFloat = 14
+            /// The need box (case map mockup `.need`, decision 2026-11-10).
+            static let need: CGFloat = 10
             static let artifactCard: CGFloat = 14
             static let thumb: CGFloat = 10
             static let pointCard: CGFloat = 14
@@ -79,3 +79,97 @@ extension Theme {
         }
     }
 }
+
+// MARK: - The decision column, as the case map mockup draws it (decision 2026-11-10, STYLE-AUDIT.md)
+
+extension Theme.AskDoc {
+    /// Type and metrics of the request page's decision column, from the CSS of
+    /// `design/mockups/2026-11-09-request-page-cases/index.html` (1 CSS px = 1 pt). A `TextStyle`'s `lineHeight`
+    /// here already holds the CSS line height turned into the theme's `size × (lineHeight − 1)` spacing on top of
+    /// the font's own line height (STYLE-AUDIT rule 1), so `knockTextStyle` and `AskTextFace` draw the CSS line box.
+    enum Column {
+        /// A text style that draws CSS `font: <weight> <size>px/<lineHeight>`: the exact bundled face (500 is
+        /// Medium, 600 SemiBold) and the line height of the CSS box.
+        static func css(
+            _ size: CGFloat, _ weight: NSFont.Weight = .regular, lineHeight: CGFloat = cssDefaultLineHeight,
+            tracking: CGFloat? = nil, mono: Bool = false
+        ) -> Theme.TextStyle {
+            let spacing = Theme.Typography.cssLineSpacing(size: size, lineHeight: lineHeight, mono: mono)
+            return Theme.TextStyle(
+                font: font(size, weight, mono: mono), size: size, lineHeight: 1 + spacing / size, letterSpacing: tracking)
+        }
+
+        /// The bundled face itself, so `.semibold` draws InterTight-SemiBold (600), never the bold trait.
+        static func font(_ size: CGFloat, _ weight: NSFont.Weight = .regular, mono: Bool = false) -> Font {
+            if mono { return .custom(Theme.FontFamily.mono, size: size) }
+            return .custom(PromptBarLogic.sansFaceName(for: weight), size: size)
+        }
+
+        /// The CSS line box height of one line: `size × lineHeight`, never under the font's own line.
+        static func lineBox(_ size: CGFloat, lineHeight: CGFloat = cssDefaultLineHeight, mono: Bool = false) -> CGFloat {
+            let natural = mono ? Theme.Typography.monoNaturalLineHeight : Theme.Typography.sansNaturalLineHeight
+            return (size * max(lineHeight, natural)).rounded(.up)
+        }
+
+        /// `html, body { font: 400 13px/1.45 }`: every element without its own line height.
+        static let cssDefaultLineHeight: CGFloat = 1.45
+
+        // Edges (`.tabs` margin 10 14 0, `.cs` padding 14 18 10, `.ans` padding 10 14 12).
+        static let tabsInset = EdgeInsets(top: 10, leading: 14, bottom: 0, trailing: 14)
+        static let scrollInset = EdgeInsets(top: 14, leading: 18, bottom: 10, trailing: 18)
+        static let answerSideInset: CGFloat = 14
+
+        // Tabs (`.tabs`, `.tabs span`, `.tabs .n`).
+        static let tabLabel = css(13, .medium)
+        static let tabCount = css(11, lineHeight: 1, mono: true)
+        static let tabsTrackRadius: CGFloat = 9
+        static let tabSegmentRadius: CGFloat = 7
+        static let tabShadowBlur: CGFloat = 2
+
+        // `.fu`, `.fu b`, `.latest`, `.track`.
+        static let followUp = css(12)
+        static let followUpTitle = css(12, .medium)
+        static let latestWho = css(10.5, lineHeight: 1, mono: true)
+        static let latestText = css(12)
+        static let track = css(11.5)
+        static let trackCurrent = css(11.5, .semibold)
+        static let trackGlyph = css(9, lineHeight: 1)
+
+        // `h1`: 600 19/1.25, −0.02 em.
+        static let title = css(19, .semibold, lineHeight: 1.25, tracking: -0.38)
+        static let titleGap: CGFloat = 10
+
+        // B `.ctx`: the eyebrow over the title (here the round tag).
+        static let eyebrow = css(11.5, lineHeight: 1, mono: true)
+
+        // `.need`, `.need .q`, `.need .why`, `.need .more`.
+        static let need = css(13, lineHeight: 1.5)
+        static let needQuestion = css(13.5, .semibold, lineHeight: 1.5)
+        static let needWhy = css(12)
+        static let needMore = css(12)
+        static let needPadding = EdgeInsets(top: 11, leading: 13, bottom: 11, trailing: 13)
+        static let needParagraphGap: CGFloat = 7
+        static let needGap: CGFloat = 14
+
+        // Tables (case map `table.t` sizes, mockup B's outer border, radius and header fill).
+        static let tableText = css(12)
+        static let tableRadius: CGFloat = 10
+        static let tableCellPadding = EdgeInsets(top: 7, leading: 10, bottom: 7, trailing: 10)
+        static let tableMarginTop: CGFloat = 4
+        static let tableMarginBottom: CGFloat = 12
+
+        // Conversation (`.msg`, `.msg .h`, `.round`).
+        static let message = css(12.5, lineHeight: 1.5)
+        static let messageHead = css(10.5, lineHeight: 1, mono: true)
+        static let messagePadding = EdgeInsets(top: 9, leading: 12, bottom: 9, trailing: 12)
+        static let messageGap: CGFloat = 8
+        static let messageRadius: CGFloat = 10
+        /// `.msg.you .h` (#aaa).
+        static let yourHead = Color(hex: 0xAAAAAA)
+
+        // The status line, in Inter Tight (B: 12.5).
+        static let status = css(12.5, .medium)
+        static let statusFailed = css(12.5, .semibold)
+    }
+}
+

@@ -17,6 +17,8 @@ struct AgentMarkdownText: View {
     var weight: NSFont.Weight = .regular
     @Environment(\.sourcesHub) private var hub
     @Environment(\.askComments) private var askHub
+    @Environment(\.askParagraphGap) private var paragraphGap
+    @Environment(\.askNumberColor) private var numberColor
 
     /// The hub when this text draws pills: the page opted in and the round has sources.
     private var pillHub: SourcesHub? {
@@ -26,7 +28,7 @@ struct AgentMarkdownText: View {
 
     var body: some View {
         let blocks = AgentMarkdown.blocks(text, keepingSources: pillHub != nil)
-        VStack(alignment: .leading, spacing: 8) {
+        VStack(alignment: .leading, spacing: paragraphGap) {
             if let target, let askHub {
                 CommentableAskText(text: text, mode: .blocks, style: style, weight: weight, color: color, target: target, hub: askHub)
             } else {
@@ -68,7 +70,53 @@ struct AgentMarkdownText: View {
             item(marker: "•", level: level, text: text)
         case .numbered(let level, let index, let text):
             item(marker: "\(index).", level: level, text: text)
+        case .table(let headers, let rows):
+            table(headers: headers, rows: rows)
         }
+    }
+
+    /// A pipe table as mockup B's `table.t` at the case map's sizes (the same look as the commentable path,
+    /// `AskTableCellBlock`): one line around it with 10 pt corners, the header row on the side fill in 600 ink, a line
+    /// over each body row, cells 12 pt ink2 with 7/10 padding, number columns right-aligned, a muted cell quiet.
+    private func table(headers: [String], rows: [[String]]) -> some View {
+        let numeric = AskTableRules.numericColumns(headers: headers, rows: rows)
+        return Grid(alignment: .topLeading, horizontalSpacing: 0, verticalSpacing: 0) {
+            GridRow {
+                ForEach(Array(headers.enumerated()), id: \.offset) { column, cell in
+                    tableCell(cell, header: true, numeric: numeric.contains(column))
+                }
+            }
+            .background(Theme.Colors.side)
+            ForEach(Array(rows.enumerated()), id: \.offset) { _, cells in
+                Rectangle().fill(Theme.Colors.line).frame(height: 1).gridCellUnsizedAxes(.horizontal)
+                GridRow {
+                    ForEach(Array(cells.enumerated()), id: \.offset) { column, cell in
+                        tableCell(cell, header: false, numeric: numeric.contains(column))
+                    }
+                }
+            }
+        }
+        .background(Theme.Colors.win)
+        .clipShape(RoundedRectangle(cornerRadius: Theme.AskDoc.Column.tableRadius))
+        .overlay(
+            RoundedRectangle(cornerRadius: Theme.AskDoc.Column.tableRadius)
+                .strokeBorder(Theme.Colors.line, lineWidth: 1)
+        )
+        .padding(.top, Theme.AskDoc.Column.tableMarginTop)
+        .padding(.bottom, max(0, Theme.AskDoc.Column.tableMarginBottom - paragraphGap))
+    }
+
+    private func tableCell(_ text: String, header: Bool, numeric: Bool) -> some View {
+        let style = Theme.AskDoc.Column.tableText
+        let color = header ? Theme.Colors.ink : (AskTableRules.isMuted(text) ? Theme.AskDoc.Colors.quiet : Theme.Colors.ink2)
+        return Text(styled(text, base: Theme.AskDoc.Column.font(style.size, header ? .semibold : .regular), size: style.size))
+            .knockTextStyle(style)
+            .foregroundColor(color)
+            .multilineTextAlignment(numeric ? .trailing : .leading)
+            .lineLimit(numeric ? 1 : nil)
+            .fixedSize(horizontal: numeric, vertical: true)
+            .padding(Theme.AskDoc.Column.tableCellPadding)
+            .frame(maxWidth: .infinity, alignment: numeric ? .trailing : .leading)
     }
 
     private func item(marker: String, level: Int, text: String) -> some View {
@@ -93,19 +141,34 @@ struct AgentMarkdownText: View {
         }
     }
 
-    private func styled(_ text: String, base: Font? = nil) -> AttributedString {
+    private func styled(_ text: String, base: Font? = nil, size: CGFloat? = nil) -> AttributedString {
         var out = AgentMarkdown.inline(text)
         let body = base ?? style.font
+        let size = size ?? style.size
         for run in out.runs {
             let intent = run.inlinePresentationIntent ?? []
             var font = body
             if intent.contains(.code) {
-                font = .custom(Theme.FontFamily.mono, size: max(style.size - 1, 10))
+                font = .custom(Theme.FontFamily.mono, size: max(size - 1, 10))
                 out[run.range].backgroundColor = Theme.Colors.side
             }
             if intent.contains(.stronglyEmphasized) { font = font.weight(.semibold) }
             if intent.contains(.emphasized) { font = font.italic() }
             out[run.range].font = font
+        }
+        // Task 11c: in the need box, key numbers in 600 with tabular digits (mockup `.num`).
+        if let numberColor {
+            let plain = String(out.characters)
+            let codeRanges = out.runs.filter { $0.inlinePresentationIntent?.contains(.code) == true }.map(\.range)
+            for range in NeedNumbers.ranges(in: plain) {
+                let start = plain.distance(from: plain.startIndex, to: range.lowerBound)
+                let length = plain.distance(from: range.lowerBound, to: range.upperBound)
+                let lower = out.characters.index(out.startIndex, offsetBy: start)
+                let upper = out.characters.index(lower, offsetBy: length)
+                guard !codeRanges.contains(where: { $0.contains(lower) }) else { continue }
+                out[lower..<upper].font = Theme.AskDoc.Column.font(size, .semibold).monospacedDigit()
+                out[lower..<upper].foregroundColor = numberColor
+            }
         }
         return out
     }

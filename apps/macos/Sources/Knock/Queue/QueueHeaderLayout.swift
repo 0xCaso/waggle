@@ -6,11 +6,11 @@ import SwiftUI
 /// traffic lights shown the row starts below them; without them (full screen) it keeps the old top.
 enum QueueHeaderLayout {
     /// The list's text inset (the section labels, rows and the header's trailing edge).
-    static let textInset: CGFloat = 18
+    static let textInset: CGFloat = Theme.AskDoc.Chrome.sideInset
     /// The header's top inset when nothing sits above it (full screen).
     static let topWithoutTrafficLights: CGFloat = 16
     /// The header's top inset under the traffic lights: clear of the standard 28 pt title bar row.
-    static let topUnderTrafficLights: CGFloat = 30
+    static let topUnderTrafficLights: CGFloat = Theme.AskDoc.Chrome.headTop
     /// The right edge of the standard traffic lights, used until the window reports the real one.
     static let defaultTrafficLightsMaxX: CGFloat = 68
 

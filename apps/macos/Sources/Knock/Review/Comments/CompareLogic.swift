@@ -31,6 +31,21 @@ enum CompareLayout: Equatable {
     case slider
 }
 
+/// The one Compare control of the full-size toolbar (C9): a segmented switch, Off · Side by side · Slider.
+enum CompareChoice: CaseIterable, Equatable {
+    case off
+    case sideBySide
+    case slider
+
+    var label: String {
+        switch self {
+        case .off: "Off"
+        case .sideBySide: "Side by side"
+        case .slider: "Slider"
+        }
+    }
+}
+
 enum CompareCopy {
     static let switchLabel = "Compare"
     static let noEarlier = "No earlier revision yet"
@@ -123,6 +138,24 @@ final class CompareModel: ObservableObject {
         case "changes": isOn = true; showsChanges = true
         case "side", "stack": isOn = true
         default: break
+        }
+    }
+
+    /// What the segmented switch shows.
+    var choice: CompareChoice {
+        guard isOn else { return .off }
+        return layout == .slider ? .slider : .sideBySide
+    }
+
+    /// A person picked a segment: Off turns Compare off; the other two turn it on in that layout.
+    func choose(_ choice: CompareChoice) {
+        switch choice {
+        case .off:
+            userSet(false)
+        case .sideBySide, .slider:
+            let wanted: CompareLayout = choice == .slider ? .slider : .sideBySide
+            if layout != wanted { setLayout(wanted) }
+            userSet(true)
         }
     }
 

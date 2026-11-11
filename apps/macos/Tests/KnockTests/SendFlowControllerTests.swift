@@ -333,6 +333,47 @@ struct SendFlowControllerTests {
         await client.stop()
     }
 
+    /// App check 2026-11-09 (the evidence hook sent 2 and 4 replies): a real Send, pressed again in the same turn (a
+    /// double click, ↵ right after the button), delivers one reply. The second call is a no-op.
+    @Test func twoSendsInTheSameTurnDeliverOneReply() async throws {
+        let socketPath = makeTempSocketPath()
+        let server = FakeKnockServer(socketPath: socketPath)
+        let submits = SubmitCounter()
+        server.onRequest = { method, id, line in
+            guard method == "reply.submit", let id,
+                  let reply = try? JSONDecoder().decode(SubmitEnvelope.self, from: line).params
+            else { return nil }
+            submits.bump()
+            return jsonRPCOK(
+                id: id,
+                result: #"{"id":"r_1","case_id":"\#(reply.caseId)","idempotency_key":"\#(reply.idempotencyKey)","choice":null,"message":null,"comments":[],"captures":[],"state":"queued","created_at":"2026-09-26T10:00:00Z"}"#
+            )
+        }
+        try server.start()
+        let client = KnockClient(socketPath: socketPath, backoffSchedule: [0.02])
+        await client.start()
+        try await waitForState(client, .connected)
+        defer { server.stop() }
+
+        let coordinator = SendCoordinator(client: client, store: PendingReplyStore(environment: ["KNOCK_HOME": tempHome()]))
+        var sentCount = 0
+        let flow = SendFlowController(
+            knockCase: questionCase(), commentsStore: CommentsSessionStore(), coordinator: coordinator,
+            draftStore: ComposerDraftStore(), onSent: { sentCount += 1 })
+
+        flow.composer.selectOption("sixty")
+        flow.send()
+        flow.send()
+        flow.acceptRecommendation()
+        try await waitForSend { sentCount >= 1 }
+        // Give a second delivery, if one had started, the time to reach the server.
+        try await Task.sleep(for: .milliseconds(300))
+
+        #expect(sentCount == 1)
+        #expect(submits.value == 1)
+        await client.stop()
+    }
+
     /// WAG-285: feedback on a multi-question page goes out as a plain message: no choice, no choices, no answers.
     @Test func feedbackWithNoAnswerGoesOutAsAMessageOnly() async throws {
         let socketPath = makeTempSocketPath()
@@ -1006,5 +1047,22 @@ private final class LockedBox: @unchecked Sendable {
         lock.lock()
         defer { lock.unlock() }
         return storage
+    }
+}
+
+private final class SubmitCounter: @unchecked Sendable {
+    private let lock = NSLock()
+    private var count = 0
+
+    func bump() {
+        lock.lock()
+        count += 1
+        lock.unlock()
+    }
+
+    var value: Int {
+        lock.lock()
+        defer { lock.unlock() }
+        return count
     }
 }
