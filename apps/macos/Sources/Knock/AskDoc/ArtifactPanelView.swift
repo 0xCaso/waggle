@@ -287,7 +287,6 @@ struct ArtifactWindowView: View {
         }
         .frame(minWidth: 480, minHeight: 360)
         .background(Theme.Colors.win)
-        .preferredColorScheme(.light)
         .task {
             viewer.pageFragment = request.fragment
             if let detail = try? await client.casesGet(id: request.caseId) { await viewer.load(detail: detail, revision: request.revision) }

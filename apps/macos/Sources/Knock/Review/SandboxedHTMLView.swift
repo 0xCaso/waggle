@@ -94,6 +94,9 @@ struct SandboxedHTMLView: NSViewRepresentable {
         // The canvas is the viewer's light background wherever the page does
         // not reach (zoomed out). A diagram's page never paints black.
         webView.underPageBackgroundColor = NSColor(Theme.Colors.list)
+        // Agent content keeps its own colours (decision 2026-11-11, Dark Mode): the page always sees the light
+        // look, so a page written for a white canvas reads the same when Waggle is dark.
+        webView.appearance = NSAppearance(named: .aqua)
         if let zoom {
             let coordinator = context.coordinator
             coordinator.pinchToken = PrototypePinchMonitor.install(on: webView, model: zoom)

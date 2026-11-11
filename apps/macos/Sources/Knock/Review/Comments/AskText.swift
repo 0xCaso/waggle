@@ -538,7 +538,7 @@ final class AskTableCellBlock: NSTextTableBlock {
         let shape = AskTableCellShape(
             rect: frameRect, radius: Theme.AskDoc.Column.tableRadius, flipped: flipped,
             top: isFirstRow, bottom: isLastRow, left: isFirstColumn, right: isLastColumn)
-        (isHeader ? NSColor(Theme.Colors.side) : NSColor.white).setFill()
+        (isHeader ? NSColor(Theme.Colors.side) : NSColor(Theme.Colors.win)).setFill()
         shape.fill().fill()
         NSColor(Theme.Colors.line).setStroke()
         let outline = shape.outline(rowLine: !isFirstRow)

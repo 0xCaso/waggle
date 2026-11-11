@@ -64,7 +64,7 @@ struct ProjectPageView: View {
         Text(text)
             .font(.custom(Theme.FontFamily.mono, size: 10.5))
             .tracking(0.6)
-            .foregroundColor(Color(hex: 0x8A8A8A))
+            .foregroundColor(Theme.AskDoc.Colors.quiet)
     }
 
     // MARK: Decision log
@@ -144,7 +144,7 @@ private struct DecisionRecordRow: View {
             HStack(alignment: .top, spacing: 14) {
                 Text(KnockDateFormat.date(from: decision.decidedAt).map { ProjectPageLogic.dateLabel($0, now: now) } ?? "")
                     .font(.custom(Theme.FontFamily.sans, size: 12))
-                    .foregroundColor(Color(hex: 0x8A8A8A))
+                    .foregroundColor(Theme.AskDoc.Colors.quiet)
                     .frame(width: 86, alignment: .leading)
                 VStack(alignment: .leading, spacing: 3) {
                     Text(AgentMarkdown.plainText(decision.question))
@@ -172,7 +172,7 @@ private struct DecisionRecordRow: View {
                 .frame(maxWidth: .infinity, alignment: .leading)
                 Text(ProjectPageLogic.tag(optionCount: decision.optionCount, artifactKind: decision.artifactKind))
                     .font(.custom(Theme.FontFamily.sans, size: 11.5))
-                    .foregroundColor(Color(hex: 0x8A8A8A))
+                    .foregroundColor(Theme.AskDoc.Colors.quiet)
             }
             .padding(EdgeInsets(top: 12, leading: 14, bottom: 12, trailing: 14))
             .background(Theme.Colors.win)
@@ -200,7 +200,7 @@ private struct ThemeCard: View {
             }
             Text(ProjectPageLogic.evidenceLine(count: theme.evidenceCount, quote: theme.quotes.first))
                 .font(.custom(Theme.FontFamily.sans, size: 12))
-                .foregroundColor(Color(hex: 0x8A8A8A))
+                .foregroundColor(Theme.AskDoc.Colors.quiet)
                 .lineLimit(2)
         }
         .padding(EdgeInsets(top: 10, leading: 12, bottom: 10, trailing: 12))
@@ -221,10 +221,10 @@ struct ProjectSwitch: View {
     var body: some View {
         Button { action(!isOn) } label: {
             Capsule()
-                .fill(isOn ? Theme.Colors.ink : Color(hex: 0xD0D0D0))
+                .fill(isOn ? Theme.Colors.ink : Theme.Colors.switchOff)
                 .frame(width: 26, height: 15)
                 .overlay(alignment: isOn ? .trailing : .leading) {
-                    Circle().fill(Color.white).frame(width: 11, height: 11).padding(2)
+                    Circle().fill(isOn ? Theme.Colors.onFill : Theme.Colors.switchOffKnob).frame(width: 11, height: 11).padding(2)
                 }
                 .animation(.easeOut(duration: 0.15), value: isOn)
                 .contentShape(Rectangle())

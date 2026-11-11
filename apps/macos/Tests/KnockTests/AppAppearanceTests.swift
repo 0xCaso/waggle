@@ -3,16 +3,68 @@ import Foundation
 import Testing
 @testable import Knock
 
-/// HAIL-234: the app forces the light (Aqua) appearance so AppKit-backed inputs never go dark.
+/// Dark Mode (decision 2026-11-11): one stored value, `system` by default, applied to the whole app at once.
 @MainActor
 struct AppAppearanceTests {
-    @Test func applySetsAquaOnTheApp() {
+    private func scratchDefaults() -> UserDefaults {
+        let name = "appearance-tests-\(UUID().uuidString)"
+        let defaults = UserDefaults(suiteName: name)!
+        defaults.removePersistentDomain(forName: name)
+        return defaults
+    }
+
+    @Test func theDefaultIsSystem() {
+        let defaults = scratchDefaults()
+        #expect(AppearanceSetting.stored(defaults: defaults) == .system)
+        #expect(AppearanceSetting.current(defaults: defaults, environment: [:]) == .system)
+    }
+
+    @Test func theStoredValueIsReadBack() {
+        let defaults = scratchDefaults()
+        for setting in AppearanceSetting.allCases {
+            AppearanceSetting.store(setting, defaults: defaults)
+            #expect(AppearanceSetting.stored(defaults: defaults) == setting)
+        }
+    }
+
+    @Test func anUnknownStoredValueReadsAsSystem() {
+        let defaults = scratchDefaults()
+        defaults.set("sepia", forKey: "appearance")
+        #expect(AppearanceSetting.stored(defaults: defaults) == .system)
+    }
+
+    @Test func theEnvironmentWinsOverTheStoredValue() {
+        let defaults = scratchDefaults()
+        AppearanceSetting.store(.light, defaults: defaults)
+        #expect(AppearanceSetting.current(defaults: defaults, environment: ["KNOCK_APPEARANCE": "dark"]) == .dark)
+        #expect(AppearanceSetting.current(defaults: defaults, environment: ["KNOCK_APPEARANCE": "nope"]) == .light)
+    }
+
+    @Test func applySetsTheLookOnTheApp() {
         let app = NSApplication.shared
         let before = app.appearance
         defer { app.appearance = before }
-        app.appearance = NSAppearance(named: .darkAqua)
-        AppAppearance.apply(to: app)
+        AppAppearance.apply(.dark, to: app)
+        #expect(app.appearance?.name == .darkAqua)
+        AppAppearance.apply(.light, to: app)
         #expect(app.appearance?.name == .aqua)
+        AppAppearance.apply(.system, to: app)
+        #expect(app.appearance == nil)
+    }
+
+    @Test func choosingStoresAndAppliesAtOnce() {
+        let app = NSApplication.shared
+        let before = app.appearance
+        defer { app.appearance = before }
+        let defaults = scratchDefaults()
+        let model = AppearanceModel(defaults: defaults, app: app)
+        #expect(model.setting == .system)
+        model.choose(.dark)
+        #expect(model.setting == .dark)
+        #expect(AppearanceSetting.stored(defaults: defaults) == .dark)
+        #expect(app.appearance?.name == .darkAqua)
+        model.choose(.system)
+        #expect(app.appearance == nil)
     }
 
     @Test func noViewUsesASystemDarkDependentInputBackground() throws {

@@ -1,16 +1,16 @@
 import AppKit
 import SwiftUI
 
-/// Colours from the WAG-402 design (board "Screenshot to a session"). They are not in `Theme` yet.
+/// Colours from the WAG-402 design (board "Screenshot to a session"), each with a dark value (Dark Mode).
 private enum SC {
-    static let ink = Color(hex: 0x1C1B19)
-    static let mute = Color(hex: 0x8C8A83)
-    static let ink2 = Color(hex: 0x57554F)
-    static let line = Color(hex: 0xE7E5E0)
-    static let working = Color(hex: 0x3B5BDB)
-    static let waiting = Color(hex: 0xE0352B)
-    static let idle = Color(hex: 0xB9B7B0)
-    static let ended = Color(hex: 0xC2410C)
+    static let ink = Color(light: 0x1C1B19, dark: 0xF1F1EF)
+    static let mute = Color(light: 0x8C8A83, dark: 0x9C9EA3)
+    static let ink2 = Color(light: 0x57554F, dark: 0xC5C7CB)
+    static let line = Color(light: 0xE7E5E0, dark: 0x2D3034)
+    static let working = Color(light: 0x3B5BDB, dark: 0x8DA6FF)
+    static let waiting = Theme.Colors.accent
+    static let idle = Color(light: 0xB9B7B0, dark: 0x66686C)
+    static let ended = Color(light: 0xC2410C, dark: 0xFF9A5C)
 
     static func font(_ size: CGFloat, _ weight: Font.Weight = .regular) -> Font {
         .custom(Theme.FontFamily.sans, size: size).weight(weight)
@@ -25,7 +25,7 @@ struct ScreenshotThumbnail: View {
 
     var body: some View {
         ZStack {
-            Color(hex: 0xF3F3F3)
+            Theme.Colors.side
             if let image { Image(nsImage: image).resizable().scaledToFill() }
         }
         .frame(width: size.width, height: size.height)
@@ -73,7 +73,7 @@ struct ScreenshotBadgeView: View {
                 }
             }
             .padding(EdgeInsets(top: 6, leading: 6, bottom: 6, trailing: 14))
-            .background(Capsule().fill(Color.white))
+            .background(Capsule().fill(Theme.Colors.win))
             .overlay(Capsule().strokeBorder(SC.line, lineWidth: 1))
             .shadow(color: .black.opacity(0.12), radius: 8, x: 0, y: 3)
         }
@@ -84,7 +84,6 @@ struct ScreenshotBadgeView: View {
         .opacity(shown ? 1 : 0)
         .animation(.easeOut(duration: 0.2), value: shown)
         .onAppear { shown = true }
-        .preferredColorScheme(.light)
     }
 }
 
@@ -106,12 +105,11 @@ struct ScreenshotPanelView: View {
             }
         }
         .frame(width: ScreenshotGeometry.panelWidth)
-        .background(Color.white)
+        .background(Theme.Colors.win)
         .clipShape(RoundedRectangle(cornerRadius: 14))
         .overlay(RoundedRectangle(cornerRadius: 14).stroke(SC.line, lineWidth: 1))
         .shadow(color: .black.opacity(0.16), radius: 18, x: 0, y: 8)
         .padding(20)
-        .preferredColorScheme(.light)
         .onExitCommand(perform: onClose)
     }
 
@@ -173,7 +171,7 @@ struct ScreenshotPanelView: View {
     private func snipImage(_ shot: ScreenCapture) -> some View {
         ScreenshotFitImage(url: shot.url)
             .frame(maxWidth: .infinity).frame(height: 120)
-            .background(RoundedRectangle(cornerRadius: 8).fill(Color(hex: 0xF6F5F2)))
+            .background(RoundedRectangle(cornerRadius: 8).fill(Theme.Colors.imageWell))
             .clipShape(RoundedRectangle(cornerRadius: 8))
             .overlay(RoundedRectangle(cornerRadius: 8).strokeBorder(SC.line, lineWidth: 1))
     }
@@ -182,8 +180,8 @@ struct ScreenshotPanelView: View {
         let picked = model.newSessionPicked
         return HStack(spacing: 8) {
             ZStack {
-                Circle().fill(Color(hex: 0xF2F1EE))
-                Image(systemName: "plus").font(.system(size: 11, weight: .semibold)).foregroundColor(Color(hex: 0x57554F))
+                Circle().fill(Theme.Colors.hover)
+                Image(systemName: "plus").font(.system(size: 11, weight: .semibold)).foregroundColor(SC.ink2)
             }
             .frame(width: 18, height: 18)
             VStack(alignment: .leading, spacing: 1) {
@@ -198,7 +196,7 @@ struct ScreenshotPanelView: View {
                 .opacity(picked ? 1 : 0)
         }
         .padding(EdgeInsets(top: 8, leading: 12, bottom: 8, trailing: 12))
-        .background(RoundedRectangle(cornerRadius: 10).fill(picked ? Theme.Colors.honeySoft : Color.white))
+        .background(RoundedRectangle(cornerRadius: 10).fill(picked ? Theme.Colors.honeySoft : Theme.Colors.win))
         .overlay(RoundedRectangle(cornerRadius: 10).strokeBorder(picked ? Theme.Colors.honey500 : Color.clear, lineWidth: 1))
         .contentShape(RoundedRectangle(cornerRadius: 10))
         .onTapGesture { model.pickNewSession() }
@@ -226,7 +224,7 @@ struct ScreenshotPanelView: View {
                 Image(systemName: "chevron.down").font(.system(size: 10, weight: .semibold)).foregroundColor(SC.mute)
             }
             .padding(.horizontal, 9).frame(height: 22)
-            .background(Capsule().fill(Color.white))
+            .background(Capsule().fill(Theme.Colors.win))
             .overlay(Capsule().strokeBorder(SC.line, lineWidth: 1))
         }
         .menuStyle(.button).buttonStyle(.plain).menuIndicator(.hidden)
@@ -251,7 +249,7 @@ struct ScreenshotPanelView: View {
                                     if picked {
                                         ZStack {
                                             Circle().fill(Theme.Colors.honey500)
-                                            Image(systemName: "checkmark").font(.system(size: 8, weight: .bold)).foregroundColor(.white)
+                                            Image(systemName: "checkmark").font(.system(size: 8, weight: .bold)).foregroundColor(Theme.Colors.onAccent)
                                         }
                                         .frame(width: 16, height: 16).padding(4)
                                     }
@@ -295,7 +293,7 @@ struct ScreenshotPanelView: View {
                 }
             }
         .padding(EdgeInsets(top: 8, leading: 12, bottom: 8, trailing: 12))
-        .background(RoundedRectangle(cornerRadius: 10).fill(picked ? Theme.Colors.honeySoft : Color.white))
+        .background(RoundedRectangle(cornerRadius: 10).fill(picked ? Theme.Colors.honeySoft : Theme.Colors.win))
         .overlay(RoundedRectangle(cornerRadius: 10).strokeBorder(picked ? Theme.Colors.honey500 : Color.clear, lineWidth: 1))
         .contentShape(RoundedRectangle(cornerRadius: 10))
         return Group {
@@ -325,7 +323,7 @@ struct ScreenshotPanelView: View {
             .focused($noteFocused)
             .onSubmit { Task { await model.send() } }
             .padding(EdgeInsets(top: 9, leading: 12, bottom: 9, trailing: 12))
-            .background(RoundedRectangle(cornerRadius: 12).fill(Color.white))
+            .background(RoundedRectangle(cornerRadius: 12).fill(Theme.Colors.win))
             .overlay(RoundedRectangle(cornerRadius: 12).stroke(SC.line, lineWidth: 1))
             .onAppear { noteFocused = true }
     }
@@ -338,7 +336,7 @@ struct ScreenshotPanelView: View {
             HStack(spacing: 8) {
                 Button { Task { await model.send() } } label: {
                     Text(model.phase == .failed ? ScreenshotCopy.tryAgain : model.sendLabel)
-                        .font(SC.font(13, .semibold)).foregroundColor(.white).lineLimit(1)
+                        .font(SC.font(13, .semibold)).foregroundColor(Theme.Colors.onFill).lineLimit(1)
                         .padding(.horizontal, 16).padding(.vertical, 8)
                         .background(Capsule().fill(Theme.Colors.ink))
                         .opacity(model.canSend || model.phase == .failed ? 1 : 0.4)
@@ -360,7 +358,7 @@ struct ScreenshotPanelView: View {
         HStack(spacing: 10) {
             ZStack {
                 Circle().fill(Theme.Colors.ok)
-                Image(systemName: "checkmark").font(.system(size: 10, weight: .bold)).foregroundColor(.white)
+                Image(systemName: "checkmark").font(.system(size: 10, weight: .bold)).foregroundColor(Theme.Colors.onFill)
             }
             .frame(width: 20, height: 20)
             VStack(alignment: .leading, spacing: 1) {
@@ -398,11 +396,10 @@ struct ScreenshotNoticeView: View {
             .fixedSize(horizontal: false, vertical: true)
             .frame(width: ScreenshotGeometry.panelWidth - 32, alignment: .leading)
             .padding(16)
-            .background(Color.white)
+            .background(Theme.Colors.win)
             .clipShape(RoundedRectangle(cornerRadius: 14))
             .overlay(RoundedRectangle(cornerRadius: 14).stroke(SC.line, lineWidth: 1))
             .shadow(color: .black.opacity(0.16), radius: 18, x: 0, y: 8)
             .padding(20)
-            .preferredColorScheme(.light)
     }
 }

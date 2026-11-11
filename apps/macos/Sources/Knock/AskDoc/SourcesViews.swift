@@ -23,7 +23,7 @@ enum SourcesTheme {
 
     static func pillLook(state: SourceState, selected: Bool) -> PillLook {
         if selected {
-            return PillLook(fill: Theme.Colors.ink, stroke: Theme.Colors.ink, icon: .white, label: .white)
+            return PillLook(fill: Theme.Colors.ink, stroke: Theme.Colors.ink, icon: Theme.Colors.onFill, label: Theme.Colors.onFill)
         }
         switch state {
         case .seen:
@@ -354,7 +354,7 @@ struct SourceCardView: View {
         }
         .padding(14)
         .frame(width: SourcesHub.cardWidth, alignment: .leading)
-        .background(RoundedRectangle(cornerRadius: 12).fill(Color.white))
+        .background(RoundedRectangle(cornerRadius: 12).fill(Theme.Colors.win))
         .overlay(RoundedRectangle(cornerRadius: 12).strokeBorder(SourcesTheme.cardStroke, lineWidth: 1))
         .shadow(color: .black.opacity(0.13), radius: 12, x: 0, y: 8)
         .onHover { hub.pointerMoved(onCard: $0) }
@@ -509,11 +509,11 @@ struct SourcesButton: View {
                                 .font(.system(size: 8))
                                 .foregroundColor(Theme.Colors.ink2)
                                 .frame(width: 14, height: 14)
-                                .background(Circle().fill(Color.white))
+                                .background(Circle().fill(Theme.Colors.win))
                                 .overlay(Circle().strokeBorder(Theme.Colors.ink, lineWidth: 1))
                         }
                     }
-                    Text(hub.book.buttonText).font(SourcesTheme.sans(11.5, .semibold)).foregroundColor(.white)
+                    Text(hub.book.buttonText).font(SourcesTheme.sans(11.5, .semibold)).foregroundColor(Theme.Colors.onFill)
                 }
                 .padding(EdgeInsets(top: 4, leading: 5, bottom: 4, trailing: 10))
                 .background(Capsule().fill(Theme.Colors.ink))
@@ -555,7 +555,7 @@ struct SourcesPanelView: View {
         .padding(EdgeInsets(top: 22, leading: 20, bottom: 22, trailing: 20))
         .frame(width: SourcesHub.panelWidth)
         .frame(maxHeight: .infinity, alignment: .top)
-        .background(Color.white)
+        .background(Theme.Colors.win)
         .overlay(alignment: .leading) { Rectangle().fill(Theme.Colors.line).frame(width: 1) }
         .shadow(color: .black.opacity(0.12), radius: 14, x: -8, y: 0)
         .accessibilityElement(children: .contain)

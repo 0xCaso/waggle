@@ -165,7 +165,7 @@ struct UpdatePromptView: View {
             HStack(spacing: 10) {
                 Image(systemName: "arrow.down.to.line")
                     .font(.system(size: 13, weight: .semibold))
-                    .foregroundColor(Theme.Colors.onFill)
+                    .foregroundColor(Theme.Colors.onAccent)
                     .frame(width: 28, height: 28)
                     .background(Theme.Colors.accent)
                     .cornerRadius(7)

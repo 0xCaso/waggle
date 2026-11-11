@@ -184,7 +184,7 @@ struct DetailPillStyle: ButtonStyle {
 
         private func fill(active: Bool) -> Color {
             if isQuick { return active ? Theme.Colors.honey300.opacity(0.4) : Theme.Colors.honeySoft }
-            return active ? Theme.Colors.hover : Color.white
+            return active ? Theme.Colors.hover : Theme.Colors.win
         }
 
         var body: some View {

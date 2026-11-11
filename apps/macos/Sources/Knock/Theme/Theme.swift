@@ -8,13 +8,13 @@ enum Theme {
     // MARK: - 1.1 Colour variables
 
     enum Colors {
-        static let win = Color(hex: 0xFFFFFF)
+        static let win = Color(light: 0xFFFFFF, dark: 0x1C1E21)
         /// Text and glyphs drawn on a solid accent, ink or dark fill.
-        static let onFill = Color(hex: 0xFFFFFF)
+        static let onFill = Color(light: 0xFFFFFF, dark: 0x16181A)
         /// Text on an ink card (coach marks, the notifications tip): body, counter and quiet action.
-        static let onInkBody = Color(hex: 0xD9D9D9)
-        static let onInkMuted = Color(hex: 0xA9A9A9)
-        static let onInkQuiet = Color(hex: 0xBDBDBD)
+        static let onInkBody = Color(light: 0xD9D9D9, dark: 0x3A3C40)
+        static let onInkMuted = Color(light: 0xA9A9A9, dark: 0x66686C)
+        static let onInkQuiet = Color(light: 0xBDBDBD, dark: 0x55575B)
         /// Base of every drop shadow; callers set the opacity.
         static let shadowBlack = Color(hex: 0x000000)
         /// The plugin band preview card (dark terminal strip) in Settings.
@@ -22,56 +22,65 @@ enum Theme {
         static let bandPreviewText = Color(hex: 0xD8DBE4)
         static let bandPreviewPrompt = Color(hex: 0x7D849A)
         /// Ask reach picker: the border and fill of a reached stop.
-        static let reachBorder = Color(hex: 0xF4C2BE)
-        static let reachFill = Color(hex: 0xFFFAF9)
-        static let side = Color(hex: 0xF3F3F3)
-        static let list = Color(hex: 0xFAFAFA)
-        static let ink = Color(hex: 0x16181A)
-        static let ink2 = Color(hex: 0x4A4C50)
-        static let ink3 = Color(hex: 0x6B6B6B)
-        static let line = Color(hex: 0xE6E6E6)
-        static let line2 = Color(hex: 0xD9D9D9)
+        static let reachBorder = Color(light: 0xF4C2BE, dark: 0x6B2A26)
+        static let reachFill = Color(light: 0xFFFAF9, dark: 0x2A1817)
+        static let side = Color(light: 0xF3F3F3, dark: 0x141517)
+        static let list = Color(light: 0xFAFAFA, dark: 0x18191C)
+        static let ink = Color(light: 0x16181A, dark: 0xF1F1EF)
+        static let ink2 = Color(light: 0x4A4C50, dark: 0xC5C7CB)
+        static let ink3 = Color(light: 0x6B6B6B, dark: 0x9C9EA3)
+        static let line = Color(light: 0xE6E6E6, dark: 0x2D3034)
+        static let line2 = Color(light: 0xD9D9D9, dark: 0x3C3F44)
         /// Hover fill of the prompt bar's icon and text buttons (HAIL-77 prototype `--hover`).
-        static let hover = Color(hex: 0xF0F0F0)
+        static let hover = Color(light: 0xF0F0F0, dark: 0x26292D)
         /// Brand accent. Mirrors the Pen variable `$hail`.
         static let accent = Color(hex: 0xE0352B)
+        /// Text and glyphs on an `accent` fill. White in both looks (`onFill` turns dark with the light `ink`).
+        static let onAccent = Color(hex: 0xFFFFFF)
+        /// Red as text on a window or soft red fill: `accent` is under 4.5:1 on a dark window.
+        static let accentText = Color(light: 0xE0352B, dark: 0xFF8A80)
+        /// The track of a small switch that is off, and the knob on it.
+        static let switchOff = Color(light: 0xD0D0D0, dark: 0x3C3F44)
+        static let switchOffKnob = Color(light: 0xFFFFFF, dark: 0x9C9EA3)
+        /// The backdrop behind an image that does not fill its frame.
+        static let imageWell = Color(light: 0xF6F5F2, dark: 0x26292D)
         /// Honey is only ever a fill (mark, selected queue row, ticked answer
         /// options, notes), never a text colour. Cell W brand (HAIL-171).
         static let honey300 = Color(hex: 0xF9C846)
         static let honey500 = Color(hex: 0xF2B01E)
         static let honey600 = Color(hex: 0xE89A0C)
-        static let honeySoft = Color(hex: 0xFDF4DA)
+        static let honeySoft = Color(light: 0xFDF4DA, dark: 0x3A2F12)
         /// The one place honey is text: the "recommended" tag (AA-ish on honeySoft).
-        static let recommendedTagText = Color(hex: 0xC98A00)
+        static let recommendedTagText = Color(light: 0xC98A00, dark: 0xF2B01E)
 
         // MARK: Request page mockups (decision 2026-11-10, STYLE-AUDIT.md §1)
 
         /// The need box fill (case map `--need-bg`); a touch deeper than `honeySoft`.
-        static let needFill = Color(hex: 0xFBF3D9)
+        static let needFill = Color(light: 0xFBF3D9, dark: 0x2F2812)
         /// The 1 pt line above "Why you" in the need box (case map `.need .why`).
-        static let needDivider = Color(hex: 0xEFE2B8)
+        static let needDivider = Color(light: 0xEFE2B8, dark: 0x4A3F1C)
         /// Links and the "new" dot on the request page (case map `--link`); `ds` is the agent blue elsewhere.
-        static let link = Color(hex: 0x2F5BD8)
+        static let link = Color(light: 0x2F5BD8, dark: 0x8DA6FF)
         /// The picked option card's fill (mockup `.choice.on`).
-        static let pickedFill = Color(hex: 0xFFFDF5)
+        static let pickedFill = Color(light: 0xFFFDF5, dark: 0x27231A)
         /// The latest message's fill in the conversation and the column (mockup `.latest`, `.msg.latestm`).
-        static let latestFill = Color(hex: 0xF4F6FD)
-        static let accentSoft = Color(hex: 0xFDEBE9)
+        static let latestFill = Color(light: 0xF4F6FD, dark: 0x1E2436)
+        static let accentSoft = Color(light: 0xFDEBE9, dark: 0x3B1614)
         /// A failed delivery on the status line (C10): red text and icon on a soft red fill. Darker than `accent`
         /// (4.45:1 on white) so the reason reads at 4.5:1 or more; a dark pair keeps that in a dark appearance.
         static let statusFailedText = Color(nsColor: StatusLineColors.failedText)
         static let statusFailedFill = Color(nsColor: StatusLineColors.failedFill)
         /// Defined but only ever drawn once in M1-M11 (M11 cached-row fill).
-        static let sel = Color(hex: 0xEBEBEB)
-        static let ok = Color(hex: 0x18A058)
-        static let okSoft = Color(hex: 0xE3F5EA)
-        static let ds = Color(hex: 0x2B59F0)
-        static let dsSoft = Color(hex: 0xE8EEFE)
+        static let sel = Color(light: 0xEBEBEB, dark: 0x2A2D31)
+        static let ok = Color(light: 0x18A058, dark: 0x4CC38A)
+        static let okSoft = Color(light: 0xE3F5EA, dark: 0x12301F)
+        static let ds = Color(light: 0x2B59F0, dark: 0x8DA6FF)
+        static let dsSoft = Color(light: 0xE8EEFE, dark: 0x1C2747)
         /// An agent update in the conversation: fill and stroke (Pen `n42ZJ`).
-        static let dsUpdateFill = Color(hex: 0xF2F5FE)
-        static let dsUpdateStroke = Color(hex: 0xDCE4FD)
+        static let dsUpdateFill = Color(light: 0xF2F5FE, dark: 0x1A2136)
+        static let dsUpdateStroke = Color(light: 0xDCE4FD, dark: 0x2B3A66)
         /// The violet of the "writing the detail" status grid (HAIL-66).
-        static let writing = Color(hex: 0x5B4BDB)
+        static let writing = Color(light: 0x5B4BDB, dark: 0xA99CFF)
 
         /// macOS system traffic-light colours drawn on M3/M11 (`aWM03`,
         /// `SyfHH` → "Traffic lights"). Fixed system colours, not tokens.
@@ -91,15 +100,15 @@ enum Theme {
         static let terminalApplying = Color(hex: 0x8FBFA0)
 
         // MARK: HAIL-56 Canvas toolbar additions (frames `ovd06`/`PPM9l`,
-        // node `p4VxgR`/`pmToc` "Canvas tools"). White-on-ink alphas with no
-        // named design variable of their own, read directly off the nodes.
+        // node `p4VxgR`/`pmToc` "Canvas tools"). Alphas of `onFill`, the text colour on the ink
+        // toolbar: white on ink in the light look, ink on a light toolbar in the dark look.
 
         /// Inactive tool's icon/label, e.g. "Interact" while Comment is
-        /// active (`Y8aDW`, white @ 70%).
-        static let toolbarInactiveText = Color.white.opacity(Double(0xB3) / 255.0)
+        /// active (`Y8aDW`, 70%).
+        static let toolbarInactiveText = onFill.opacity(Double(0xB3) / 255.0)
         /// Inactive tool's key hint, e.g. "I" while Comment is active
-        /// (`XMkj6`, white @ 40%).
-        static let toolbarInactiveKey = Color.white.opacity(Double(0x66) / 255.0)
+        /// (`XMkj6`, 40%).
+        static let toolbarInactiveKey = onFill.opacity(Double(0x66) / 255.0)
     }
 
     // MARK: - Font families
@@ -730,6 +739,11 @@ enum Theme {
 }
 
 extension Color {
+    /// A colour with one value for the light look and one for the dark look.
+    init(light: UInt32, dark: UInt32) {
+        self.init(nsColor: StatusLineColors.dynamic(light: light, dark: dark))
+    }
+
     init(hex: UInt32) {
         let r = Double((hex >> 16) & 0xFF) / 255.0
         let g = Double((hex >> 8) & 0xFF) / 255.0

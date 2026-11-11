@@ -35,7 +35,7 @@ struct KnockMarkView: View {
                 if let color, let cgColor = color.cgColor {
                     KnockMark.draw(in: rect, context: cgContext, color: cgColor)
                 } else {
-                    let white = NSColor(Theme.Colors.onFill).cgColor
+                    let white = NSColor(Theme.Colors.onAccent).cgColor
                     KnockMark.draw(in: rect, context: cgContext, fill: .honeyGradient, wColor: white)
                 }
             }

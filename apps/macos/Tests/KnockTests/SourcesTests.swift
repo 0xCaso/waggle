@@ -152,7 +152,7 @@ struct SourcesTests {
         #expect(assumption.stroke == Theme.Colors.honey500)
         #expect(assumption.label == SourcesTheme.assumptionInk)
         #expect(selected.fill == Theme.Colors.ink && selected.stroke == Theme.Colors.ink)
-        #expect(selected.label == .white && selected.icon == .white)
+        #expect(selected.label == Theme.Colors.onFill && selected.icon == Theme.Colors.onFill)
         // An assumption draws the dashed circle, whatever its kind.
         #expect(SourcesTheme.pillSymbol(for: Self.source("a", kind: "web", state: .assumption)) == "circle.dashed")
         #expect(SourcesTheme.pillSymbol(for: Self.source("a", kind: "web", state: .seen)) == SourceKind.web.symbol)

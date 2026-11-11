@@ -389,6 +389,8 @@ final class ArtifactPreviewLoader: ObservableObject {
         entryURL: URL, directoryURL: URL, configuration: WKWebViewConfiguration, size: CGSize
     ) async -> (image: NSImage, isTruncated: Bool)? {
         let webView = WKWebView(frame: NSRect(origin: .zero, size: size), configuration: configuration)
+        // Agent content keeps its own colours: the page always sees the light look.
+        webView.appearance = NSAppearance(named: .aqua)
         HTMLIsolation.load(entry: entryURL, directory: directoryURL, into: webView)
         for _ in 0..<Self.maxLoadAttempts {
             // The outer timeout race (`withTimeout`) cancels the losing side
@@ -429,6 +431,8 @@ final class ArtifactPreviewLoader: ObservableObject {
         entryURL: URL, directoryURL: URL, configuration: WKWebViewConfiguration, size: CGSize
     ) async -> NSImage? {
         let webView = WKWebView(frame: NSRect(origin: .zero, size: size), configuration: configuration)
+        // Agent content keeps its own colours: the page always sees the light look.
+        webView.appearance = NSAppearance(named: .aqua)
         HTMLIsolation.load(entry: entryURL, directory: directoryURL, into: webView)
         for _ in 0..<maxDiagramLoadAttempts {
             if Task.isCancelled {

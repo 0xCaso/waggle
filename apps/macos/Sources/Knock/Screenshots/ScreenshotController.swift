@@ -363,7 +363,6 @@ final class ScreenshotController {
         panel.level = .floating
         panel.collectionBehavior = [.canJoinAllSpaces, .fullScreenAuxiliary, .transient]
         panel.isReleasedWhenClosed = false
-        panel.appearance = NSAppearance(named: .aqua)
         panel.contentView = content
         return panel
     }

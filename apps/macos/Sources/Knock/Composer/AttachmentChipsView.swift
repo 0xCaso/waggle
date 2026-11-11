@@ -86,7 +86,7 @@ struct AttachmentGlyph: View {
         }
         .frame(width: 22, height: 22)
         .clipShape(RoundedRectangle(cornerRadius: 5, style: .continuous))
-        .overlay(RoundedRectangle(cornerRadius: 5, style: .continuous).stroke(Color.black.opacity(0.1), lineWidth: 1))
+        .overlay(RoundedRectangle(cornerRadius: 5, style: .continuous).stroke(Theme.Colors.ink.opacity(0.1), lineWidth: 1))
     }
 }
 

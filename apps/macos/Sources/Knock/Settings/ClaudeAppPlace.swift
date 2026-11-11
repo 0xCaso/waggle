@@ -240,7 +240,6 @@ struct ClaudeAppConfirmSheet: View {
         .frame(width: 480)
         .background(Theme.Colors.win)
         .cornerRadius(12)
-        .preferredColorScheme(.light)
     }
 }
 

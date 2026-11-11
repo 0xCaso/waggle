@@ -6,10 +6,6 @@ import SwiftUI
 /// privacy, Help) and an 820x600 content area, showing only settings and
 /// actions Knock already has - see the story's Contract for the full page
 /// breakdown and its Non-goals for what stays out this release.
-///
-/// Light only (contract: "Non-goals: dark mode"): the window forces
-/// `.preferredColorScheme(.light)`, like the onboarding window's own sheets
-/// already do.
 struct SettingsView: View {
     let client: KnockClient
     let askPreferences: AskPreferencesModel
@@ -29,7 +25,6 @@ struct SettingsView: View {
         }
         .frame(width: 820)
         .background(Theme.Colors.win)
-        .preferredColorScheme(.light)
         .background(SettingsEvidenceShot())
         .onAppear { navigation.reportPage() }
         .task { await navigation.loadSharing { try await client.sharingGet() } }
