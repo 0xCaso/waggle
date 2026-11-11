@@ -412,6 +412,8 @@ export const Message = z.object({
   role: z.enum(["agent", "human"]),
   text: z.string(),
   created_at: z.string(),
+  // true on a progress note (waggle_update with working: true). Absent on every other message.
+  working: z.literal(true).optional(),
 });
 export type Message = z.infer<typeof Message>;
 

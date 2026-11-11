@@ -815,6 +815,9 @@ Progress note (WAG-377, operator decision, case c_840b440d):
   is a progress note and the human has sent no reply since. It is null after any real round (an
   update without `working`, with items or with an artifact), a reply or a dismissal. An old app ignores
   the field.
+- `Message.working` (`true` or absent, additive) marks each stored progress note, not only the newest
+  one, so the Conversation tab can fold back-to-back notes into "Worked: N steps". Other messages omit
+  it. An old app ignores the field.
 - The app shows a pulsing "Working on it" line with the note on the agent side, and folds the earlier
   options (collapsed, not deleted). The human can still type a free reply.
 - The shim's `waggle_update` result for a progress note tells the agent to keep working and not to
