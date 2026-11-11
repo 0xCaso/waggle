@@ -206,6 +206,17 @@ struct RequestStatusTests {
         #expect(!store.isHidden(key))
     }
 
+    @Test func aHiddenFailureShowsAgainWhenTheNextFailureHasTheSameReason() {
+        let store = HiddenStatusStore()
+        let offline = try! #require(line(.init(item: item(replyState: .failed), local: .offline)))
+        let key = HiddenStatusStore.key(caseId: "c_1", line: offline)
+        store.hide(key)
+        store.follow(caseId: "c_1", failing: true)
+        #expect(store.isHidden(key))
+        store.follow(caseId: "c_1", failing: false)
+        #expect(!store.isHidden(key))
+    }
+
     // MARK: - Contrast of the failed line, light and dark (WCAG 2.x, at least 4.5:1)
 
     private func resolved(_ color: NSColor, _ name: NSAppearance.Name) -> NSColor {

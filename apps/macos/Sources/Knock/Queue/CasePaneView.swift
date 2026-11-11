@@ -282,6 +282,9 @@ struct CasePaneDetailView: View {
         .onChange(of: sendFlow.isEditingLockedAnswer) { _, editing in
             if editing { askDoc.doc?.unlock() }
         }
+        .onChange(of: unhiddenStatusLine?.canHide == true) { _, failing in
+            hiddenStatus.follow(caseId: detail.case.id, failing: failing)
+        }
         .onChange(of: detail.case.status) { _, newStatus in
             if newStatus == .needsYou {
                 sendFlow.startNewRound()
@@ -743,6 +746,13 @@ struct CasePaneDetailView: View {
     /// something to do. It replaces the done strip, the agent status strip, the session-closed notice and the
     /// delivery banners; each button calls what the old one did.
     private var statusLine: RequestStatus.Line? {
+        guard let line = unhiddenStatusLine else { return nil }
+        if line.canHide, hiddenStatus.isHidden(HiddenStatusStore.key(caseId: detail.case.id, line: line)) { return nil }
+        return line
+    }
+
+    /// The status line before the person's hidden failures are taken out.
+    private var unhiddenStatusLine: RequestStatus.Line? {
         let delivery = model.deliveryStatusByCaseId[detail.case.id]
         let agent = AgentStatus.forCase(liveCase, deliveryStatus: delivery)
         let line = RequestStatus.line(RequestStatus.Input(
@@ -755,8 +765,6 @@ struct CasePaneDetailView: View {
             since: AgentStatus.timerStart(detail.case, status: agent, deliveryStatus: delivery),
             readAt: Self.readAt(delivery) ?? detail.case.latestReplyDeliveredAtDate,
             wokeAfterNudge: Nudge.wokeUp(item: liveCase, record: model.nudgeRecords[detail.case.id])))
-        guard let line else { return nil }
-        if line.canHide, hiddenStatus.isHidden(HiddenStatusStore.key(caseId: detail.case.id, line: line)) { return nil }
         return line
     }
 

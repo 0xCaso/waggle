@@ -261,7 +261,8 @@ enum RequestStatus {
 }
 
 /// Failures the person hid on the status line (C10), for this run of the app. A hidden failure stays in the
-/// queue row with its Retry; a new failure of the same reply after a Retry shows again.
+/// queue row with its Retry. It is hidden only while it lasts: Retry, or any line that is not a failure
+/// (sending, sent, delivered), shows the case's next failure again, even with the same reason.
 @MainActor
 final class HiddenStatusStore: ObservableObject {
     static let shared = HiddenStatusStore()
@@ -271,6 +272,12 @@ final class HiddenStatusStore: ObservableObject {
 
     func isHidden(_ key: String) -> Bool { keys.contains(key) }
     func hide(_ key: String) { keys.insert(key) }
+    /// Follows the case's status line: when it stops being a failure, the next failure is a new one and shows.
+    func follow(caseId: String, failing: Bool) {
+        if !failing { showAgain(caseId: caseId) }
+    }
+
+    /// Forgets the case's hidden failures: after a Retry, and when its failure ends.
     func showAgain(caseId: String) { keys = keys.filter { !$0.hasPrefix("\(caseId)|") } }
 }
 
