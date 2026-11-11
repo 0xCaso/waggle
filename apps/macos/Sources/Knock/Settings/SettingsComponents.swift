@@ -4,9 +4,10 @@ import SwiftUI
 /// Theme.Colors.list fill, right hairline Theme.Colors.line, padding
 /// 14/10" - vertical/horizontal throughout this file, matching the shorthand
 /// the contract uses for every other padding pair). One row per
-/// `SettingsPage`, plus "Knock <version>" pinned to the bottom.
+/// `SettingsPage`, plus the Appearance switch and "Waggle <version>" pinned to the bottom.
 struct SettingsSidebarView: View {
     @ObservedObject var navigation: SettingsNavigationModel
+    @StateObject private var appearance = AppearanceModel()
 
     var body: some View {
         VStack(alignment: .leading, spacing: 2) {
@@ -14,6 +15,7 @@ struct SettingsSidebarView: View {
                 row(page)
             }
             Spacer(minLength: 0)
+            appearanceSwitch
             Text("Waggle \(Updater.appVersion)")
                 .knockTextStyle(Theme.Typography.monoMeta11w400)
                 .foregroundColor(Theme.Colors.ink3)
@@ -25,6 +27,46 @@ struct SettingsSidebarView: View {
         .frame(maxHeight: .infinity, alignment: .top)
         .background(Theme.Colors.list)
         .overlay(Rectangle().fill(Theme.Colors.line).frame(width: 1), alignment: .trailing)
+    }
+
+    /// One control for the look (decision 2026-11-11): System follows macOS. It sits here, not on a page, so
+    /// the change shows on whatever page is open.
+    private var appearanceSwitch: some View {
+        VStack(alignment: .leading, spacing: 6) {
+            SettingsSectionLabel("Appearance")
+            StageControl.track {
+                ForEach(AppearanceSetting.allCases) { choice in
+                    appearanceSegment(choice)
+                }
+            }
+        }
+        .padding(.horizontal, 10)
+        .padding(.bottom, 12)
+        .accessibilityElement(children: .contain)
+        .accessibilityLabel("Appearance")
+    }
+
+    /// Three equal segments that fill the sidebar width. `StageControl.segment` hugs its label, so it cannot.
+    private func appearanceSegment(_ choice: AppearanceSetting) -> some View {
+        let isActive = appearance.setting == choice
+        return Button(action: { appearance.choose(choice) }) {
+            Text(choice.label)
+                .knockTextStyle(isActive ? Theme.Typography.buttonSm12_5w600 : Theme.Typography.buttonSm12_5w500)
+                .foregroundColor(isActive ? Theme.Colors.ink : Theme.Colors.ink2)
+                .lineLimit(1)
+                .frame(maxWidth: .infinity)
+                .padding(.vertical, 4)
+                .background(isActive ? Theme.Colors.win : Color.clear)
+                .cornerRadius(Theme.Radius.columnTabsSegment)
+                .shadow(
+                    color: isActive ? Theme.Shadow.columnTab.color : .clear,
+                    radius: Theme.Shadow.columnTab.blur / 2,
+                    x: Theme.Shadow.columnTab.offset.width, y: Theme.Shadow.columnTab.offset.height
+                )
+                .contentShape(Rectangle())
+        }
+        .buttonStyle(.plain).pointerCursor()
+        .accessibilityAddTraits(isActive ? [.isButton, .isSelected] : .isButton)
     }
 
     private func row(_ page: SettingsPage) -> some View {

@@ -37,14 +37,15 @@ none
 - Honey and red fills do not change. Green (#4CC38A) and blue (#8DA6FF) are lighter so they read as text.
 - The primary button is light with dark text (`onFill` #16181A). Two new tokens: `onAccent` (white on red, both
   looks) and `accentText` (red as text, #FF8A80 in the dark look).
-- Agent's note: a `KNOCK_APPEARANCE` env value (dark, system) picks the look in a test build until task 2 adds
-  the setting.
+- Agent's note: a `KNOCK_APPEARANCE` env value (system, light, dark) wins over the stored setting, so a test
+  build picks its look without a click.
 
 ## Open questions
 - Closed 2026-11-11: the human approved the dark palette (case c_61023221-f738-4e16-a943-b4a5ab670e53) from
   captures of four real screens in both looks. The values are in Theme/Theme.swift (`Color(light:dark:)`).
-- Where the control lives in Settings. The agent's default: a new "Appearance" row on an existing page, not a
-  tenth page.
+- Closed 2026-11-11 (agent's design call, open to review in the pull request): the control is an "Appearance"
+  switch at the bottom of the Settings sidebar, above the version. No page is about the look, and there the
+  change shows on each page.
 
 ## Sources
 - Case c_a7df3a60-77de-4579-add7-69980736bb63 (the choice).
