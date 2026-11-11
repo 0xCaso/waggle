@@ -289,7 +289,7 @@ struct QueueListView: View {
     private func row(for item: Case, isUrgent: Bool, isDimmed: Bool, isFollowUp: Bool = false) -> some View {
         let time = timeLabel(for: item, isDimmed: isDimmed)
         let deliveryStatus = model.deliveryStatusByCaseId[item.id]
-        return Button { Task { await model.open(caseId: item.id, source: .queue) } } label: { QueueRowView(
+        return QueueRowView(
             item: item,
             now: model.now,
             sessionLabel: item.sessionLabel,
@@ -306,11 +306,9 @@ struct QueueListView: View {
             unreadComments: model.unreadByCaseId[item.id] ?? 0,
             onRetryDelivery: { Task { await model.retryDelivery(caseId: item.id) } },
             onDismiss: { requestDismiss(item) },
-            onGotIt: { Task { await model.dismiss(caseId: item.id) } }
-        ) }
-        .buttonStyle(.hoverRow)
-        .accessibilityLabel(item.title)
-        .accessibilityAddTraits(item.id == model.selectedCaseId ? .isSelected : [])
+            onGotIt: { Task { await model.dismiss(caseId: item.id) } },
+            onOpen: { Task { await model.open(caseId: item.id, source: .queue) } }
+        )
         // `LazyVStack` keeps this row's identity as it moves from
         // `needsYouCases` into this `waitingOnAgentCases` `ForEach` (same
         // `item.id`); without a discriminator here it can go on reusing the

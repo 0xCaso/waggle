@@ -46,6 +46,9 @@ struct QueueRowView: View {
     let onDismiss: () -> Void
     /// The Got it button of a done row (HAIL-152): closes the ask, sends nothing to the agent.
     var onGotIt: () -> Void = {}
+    /// Opens the request. The row's own button sits behind the content (see `body`), so Got it and Retry are
+    /// siblings of it, never inside its label.
+    var onOpen: () -> Void = {}
 
     private var row: RequestRowModel { RequestRowModel(item: item, timeLabel: timeLabel, artifactKind: artifactKind, sessionTitle: sessionTitle) }
 
@@ -138,10 +141,12 @@ struct QueueRowView: View {
                 }
             }
             .opacity(rowOpacity)
-            if unreadComments > 0 { unreadMark }
+            // The row's own button carries the one accessibility label; the text layer is hidden from it.
+            .accessibilityHidden(true)
+            if unreadComments > 0 { unreadMark.accessibilityHidden(true) }
             if item.isDone { gotItButton }
             if row.icon != nil {
-                iconTile.opacity(rowOpacity)
+                iconTile.opacity(rowOpacity).accessibilityHidden(true)
             }
         }
         .padding(EdgeInsets(
@@ -149,11 +154,24 @@ struct QueueRowView: View {
             bottom: Theme.AskDoc.Chrome.rowInset.bottom, trailing: Theme.AskDoc.Chrome.rowInset.trailing))
         .frame(maxWidth: .infinity, alignment: .leading)
         // `.row.sel`: white, a 3 pt honey bar on the left, no line between rows.
-        .background(isOfflineCached ? Theme.Colors.sel : (isSelected ? Theme.AskDoc.Chrome.selectedFill : Color.clear))
+        .background {
+            (isOfflineCached ? Theme.Colors.sel : (isSelected ? Theme.AskDoc.Chrome.selectedFill : Color.clear))
+                .allowsHitTesting(false)
+        }
         .overlay(alignment: .leading) {
             if isSelected {
                 Rectangle().fill(Theme.AskDoc.Chrome.selectedBar).frame(width: Theme.AskDoc.Chrome.selectedBarWidth)
+                    .allowsHitTesting(false)
             }
+        }
+        // The row's own button fills the row behind everything above. It is a sibling layer, not a wrapper:
+        // Got it and Retry sit above it and take their own clicks; a click anywhere else lands here. It is added
+        // last, so it is the back-most layer and the selected fill stays on top of its hover fill.
+        .background {
+            Button(action: onOpen) { Color.clear }
+                .buttonStyle(.hoverRow)
+                .accessibilityLabel(item.title)
+                .accessibilityAddTraits(isSelected ? .isSelected : [])
         }
         .contextMenu {
             Button(item.isDone ? "Got it" : "Dismiss", action: item.isDone ? onGotIt : onDismiss)
