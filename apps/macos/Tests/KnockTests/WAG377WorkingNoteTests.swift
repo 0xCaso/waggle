@@ -3,7 +3,7 @@ import Testing
 @testable import Knock
 
 /// WAG-377: a progress note (waggle_update working: true) shows a "Working on it" line, folds the options and
-/// leaves the free reply open. "vN arrived" never shows together with the stale artifact note.
+/// leaves the free reply open.
 struct WAG377WorkingNoteTests {
     private func make(
         note: String? = "I am drawing a second version now.", status: CaseStatus = .waitingOnAgent, doneAt: String? = nil,
