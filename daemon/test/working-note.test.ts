@@ -97,6 +97,16 @@ describe("Store working update", () => {
     expect(c.messages.at(-1)?.text).toBe(base.message);
   });
 
+  test("each progress note keeps its working flag after the next one, and other messages have none", () => {
+    const { store, caseId } = setup();
+    store.updateCase(caseId, { case_id: caseId, message: "Reading the screens", working: true });
+    store.updateCase(caseId, { case_id: caseId, message: "Running the tests", working: true });
+    store.updateCase(caseId, { case_id: caseId, message: "Done." });
+    const msgs = store.getCase(caseId)!.messages.slice(-3);
+    expect(msgs.map((m) => m.working)).toEqual([true, true, undefined]);
+    expect("working" in msgs[2]!).toBe(false);
+  });
+
   test("a note with no working flag is still a needs_you update", () => {
     const { store, caseId } = setup();
     store.updateCase(caseId, { case_id: caseId, message: "Plain answer." });

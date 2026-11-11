@@ -534,6 +534,7 @@ struct CasePaneDetailView: View {
                     detail.case, allCases: model.needsYouCases + model.waitingOnAgentCases, now: model.now)),
             earlier: earlierAsks,
             onOpenCase: { id in Task { await model.open(caseId: id, source: .queue) } },
+            onSeeInReview: detail.case.hasArtifact ? { openReviewOnPriorRevision() } : nil,
             leadingPadding: columnLeadingInset, trailingPadding: Self.columnTrailingInset)
     }
 
