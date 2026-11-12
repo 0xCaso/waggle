@@ -1,5 +1,6 @@
 import Foundation
 import Testing
+import SwiftUI
 import WebKit
 @testable import Knock
 
@@ -247,5 +248,35 @@ struct EvidenceCompositeTests {
         #expect(rgb(0) == [0, 0, 0])
         // Half covered by black: half of the page.
         #expect(zip(rgb(1), pageColor).allSatisfy { abs($0 - $1 / 2) <= 3 })
+    }
+}
+
+/// The evidence render puts a SwiftUI shadow on the side the screen shows it: `cacheDisplay` alone mirrors it.
+struct EvidenceShadowTests {
+    @MainActor
+    @Test func evidenceRenderKeepsAShadowBelowItsShape() throws {
+        let root = ZStack {
+            Color.white
+            Rectangle().fill(Color.black).frame(width: 40, height: 20)
+                .shadow(color: .black.opacity(0.5), radius: 6, x: 0, y: 12)
+        }
+        .frame(width: 100, height: 100)
+        let host = NSHostingView(rootView: root)
+        host.frame = NSRect(x: 0, y: 0, width: 100, height: 100)
+        let window = NSWindow(contentRect: host.frame, styleMask: [.borderless], backing: .buffered, defer: false)
+        window.contentView = host
+        host.layoutSubtreeIfNeeded()
+        host.displayIfNeeded()
+        let rep = try #require(EvidenceComposite.render(host))
+        // Rows are top-down; the shape spans 40...60.
+        func brightness(_ row: Int) -> CGFloat {
+            rep.colorAt(x: rep.pixelsWide / 2, y: row * rep.pixelsHigh / 100)?.brightnessComponent ?? -1
+        }
+        #expect(brightness(68) < brightness(32))
+        #expect(brightness(32) > 0.95)
+        // The render leaves the live layers as they were.
+        let layer = try #require(host.layer)
+        let shadowed = try #require(EvidenceComposite.flippedShadowLayers(in: layer).first)
+        #expect(shadowed.shadowOffset.height == 12)
     }
 }

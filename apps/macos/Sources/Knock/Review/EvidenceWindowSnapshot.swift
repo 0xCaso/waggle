@@ -42,9 +42,7 @@ enum EvidenceWindowSnapshot {
         let window = NSApp.windows
             .filter { $0.isVisible && $0.contentView != nil }
             .max { $0.frame.width * $0.frame.height < $1.frame.width * $1.frame.height }
-        guard let view = window?.contentView,
-              let rep = view.bitmapImageRepForCachingDisplay(in: view.bounds) else { return }
-        view.cacheDisplay(in: view.bounds, to: rep)
+        guard let view = window?.contentView, let rep = EvidenceComposite.render(view) else { return }
         var pages: [(NSImage, NSRect)] = []
         var shotWebs: [WKWebView] = []
         for web in webViews(in: view) where !web.isHidden && web.bounds.width > 1 {
@@ -94,6 +92,32 @@ enum EvidenceComposite {
     static let keyA = NSColor(srgbRed: 1, green: 0, blue: 1, alpha: 1)
     static let keyB = NSColor(srgbRed: 0, green: 1, blue: 0, alpha: 1)
 
+    /// `view`'s tree as `cacheDisplay` draws it, with each layer shadow on the side the screen shows it.
+    /// `cacheDisplay` ignores a flipped geometry when it offsets a layer's shadow, so a SwiftUI shadow
+    /// (a `CALayer` shadow in the hosting view's top-down space) lands on the wrong side: the canvas
+    /// toolbar's `y: 6` shadow came out above the bar. The offsets are mirrored for the render only.
+    static func render(_ view: NSView) -> NSBitmapImageRep? {
+        guard let rep = view.bitmapImageRepForCachingDisplay(in: view.bounds) else { return nil }
+        let mirrored = view.layer.map { flippedShadowLayers(in: $0) } ?? []
+        func mirror() {
+            CATransaction.begin()
+            CATransaction.setDisableActions(true)
+            mirrored.forEach { $0.shadowOffset.height = -$0.shadowOffset.height }
+            CATransaction.commit()
+        }
+        mirror()
+        defer { mirror() }
+        view.cacheDisplay(in: view.bounds, to: rep)
+        return rep
+    }
+
+    /// The layers under `layer` that cast a shadow inside a flipped geometry.
+    static func flippedShadowLayers(in layer: CALayer, flipped: Bool = false) -> [CALayer] {
+        let own = flipped && layer.shadowOpacity > 0 && layer.shadowOffset.height != 0 ? [layer] : []
+        let inner = flipped != layer.isGeometryFlipped
+        return own + (layer.sublayers ?? []).flatMap { flippedShadowLayers(in: $0, flipped: inner) }
+    }
+
     /// Two renders of `view` with each web view covered by `keyA`, then `keyB`. Nil when there is no web view.
     static func keyedRenders(of view: NSView, covering webs: [WKWebView]) -> (a: NSBitmapImageRep, b: NSBitmapImageRep)? {
         guard !webs.isEmpty else { return nil }
@@ -107,9 +131,7 @@ enum EvidenceComposite {
                 return cover
             }
             defer { covers.forEach { $0.removeFromSuperview() } }
-            guard let rep = view.bitmapImageRepForCachingDisplay(in: view.bounds) else { return nil }
-            view.cacheDisplay(in: view.bounds, to: rep)
-            return rep
+            return Self.render(view)
         }
         guard let a = render(keyA), let b = render(keyB) else { return nil }
         return (a, b)
