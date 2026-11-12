@@ -211,6 +211,80 @@ final class PromptNSTextView: NSTextView {
         super.paste(sender)
     }
 
+    /// A plain-text view turns Paste off when the clipboard holds only an image (a screenshot), so Cmd-V
+    /// never reached `paste(_:)`. Where the field takes files, a file or an image keeps Paste on.
+    override func validateUserInterfaceItem(_ item: NSValidatedUserInterfaceItem) -> Bool {
+        if item.action == #selector(paste(_:)), pastesFiles(from: .general) { return true }
+        return super.validateUserInterfaceItem(item)
+    }
+
+    /// True when Cmd-V attaches what `pasteboard` holds: this field takes files and it holds a file or an image.
+    func pastesFiles(from pasteboard: NSPasteboard) -> Bool {
+        coordinator?.parent.onPaste != nil && ComposerAttachments.canAdd(from: pasteboard)
+    }
+
+    /// `KNOCK_EVIDENCE_PASTE=<png>` (evidence hook): puts that image on the clipboard as a screenshot does,
+    /// then presses Cmd-V through the app's menu, the path a plain-text view had turned off. A capture has no
+    /// keyboard. The clipboard's text comes back after. Never set outside evidence runs.
+    private static var evidencePasted = false
+    private func runEvidencePaste() {
+        guard !Self.evidencePasted, window != nil, coordinator?.parent.onPaste != nil,
+              let path = ProcessInfo.processInfo.environment["KNOCK_EVIDENCE_PASTE"],
+              let png = FileManager.default.contents(atPath: path) else { return }
+        DispatchQueue.main.asyncAfter(deadline: .now() + 2) { [weak self] in
+            // SwiftUI may have swapped this field for a new one by now: only a field still on screen pastes.
+            guard let self, let window = self.window, !Self.evidencePasted else { return }
+            Self.evidencePasted = true
+            NSApp.activate(ignoringOtherApps: true)
+            window.makeKeyAndOrderFront(nil)
+            window.makeFirstResponder(self)
+            let board = NSPasteboard.general
+            let saved = board.string(forType: .string)
+            board.clearContents()
+            board.setData(png, forType: .png)
+            let event = NSEvent.keyEvent(
+                with: .keyDown, location: .zero, modifierFlags: .command, timestamp: ProcessInfo.processInfo.systemUptime,
+                windowNumber: window.windowNumber, context: nil, characters: "v", charactersIgnoringModifiers: "v",
+                isARepeat: false, keyCode: 9)
+            let item = NSMenuItem(title: "Paste", action: #selector(NSText.paste(_:)), keyEquivalent: "v")
+            let enabled = self.validateUserInterfaceItem(item)
+            // A window started from a script may never be key: then the menu has no one to send Paste to,
+            // so send it here, and only when the field enabled it, as the menu does.
+            let handled = window.isKeyWindow
+                ? event.map { NSApp.mainMenu?.performKeyEquivalent(with: $0) ?? false } ?? false
+                : enabled && NSApp.sendAction(#selector(NSText.paste(_:)), to: self, from: item)
+            FileHandle.standardError.write(Data(
+                "evidence paste: key=\(window.isKeyWindow) responder=\(window.firstResponder === self) paste enabled=\(enabled) Paste sent=\(handled)\n".utf8))
+            board.clearContents()
+            if let saved { board.setString(saved, forType: .string) }
+        }
+    }
+
+    // MARK: Dropped files (WAG-345)
+
+    /// Where the field takes files, a file dropped on the text attaches like a paste; the text view
+    /// itself would type the file's path.
+    private func attachesDrop(_ sender: NSDraggingInfo) -> Bool { attachesDrop(of: sender.draggingPasteboard) }
+
+    /// True when this field attaches what is dropped from `pasteboard`: it takes files and the drag holds a file.
+    func attachesDrop(of pasteboard: NSPasteboard) -> Bool {
+        coordinator?.parent.onPaste != nil
+            && pasteboard.canReadObject(forClasses: [NSURL.self], options: [.urlReadingFileURLsOnly: true])
+    }
+
+    override func draggingEntered(_ sender: NSDraggingInfo) -> NSDragOperation {
+        attachesDrop(sender) ? .copy : super.draggingEntered(sender)
+    }
+
+    override func draggingUpdated(_ sender: NSDraggingInfo) -> NSDragOperation {
+        attachesDrop(sender) ? .copy : super.draggingUpdated(sender)
+    }
+
+    override func performDragOperation(_ sender: NSDraggingInfo) -> Bool {
+        if attachesDrop(sender), let onPaste = coordinator?.parent.onPaste { return onPaste(sender.draggingPasteboard) }
+        return super.performDragOperation(sender)
+    }
+
     override func becomeFirstResponder() -> Bool {
         let ok = super.becomeFirstResponder()
         if ok { coordinator?.focusChanged(true) }
@@ -225,6 +299,7 @@ final class PromptNSTextView: NSTextView {
 
     override func viewDidMoveToWindow() {
         super.viewDidMoveToWindow()
+        runEvidencePaste()
         Task { @MainActor [weak self] in
             guard let self else { return }
             self.coordinator?.syncFocus(self)
