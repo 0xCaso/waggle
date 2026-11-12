@@ -213,4 +213,39 @@ struct EvidenceCompositeTests {
         #expect(EvidenceComposite.unflipped(frame, in: flipped) == expected)
         #expect(EvidenceComposite.unflipped(frame, in: plain) == frame)
     }
+
+    /// A 4x1 strip: pixel 0 is under an opaque overlay (both keyed renders black), pixel 1 is half covered by a black
+    /// overlay, pixels 2 and 3 show the page. The page snapshot is yellow; the cached tree is grey everywhere.
+    @MainActor
+    @Test func keyedRendersKeepWhatTheAppDrawsOverThePage() throws {
+        func strip(_ pixels: [[UInt8]]) -> NSBitmapImageRep {
+            let rep = NSBitmapImageRep(
+                bitmapDataPlanes: nil, pixelsWide: pixels.count, pixelsHigh: 1, bitsPerSample: 8, samplesPerPixel: 4,
+                hasAlpha: true, isPlanar: false, colorSpaceName: .deviceRGB, bytesPerRow: 0, bitsPerPixel: 32)!
+            for (i, p) in pixels.enumerated() { for c in 0..<4 { rep.bitmapData![i * 4 + c] = p[c] } }
+            return rep
+        }
+        let content = Plain(frame: NSRect(x: 0, y: 0, width: 4, height: 1))
+        let cached = strip(Array(repeating: [128, 128, 128, 255], count: 4))
+        // The keys as the bitmap's colour space holds them, the way a real render converts them.
+        func key(_ color: NSColor, _ share: Double) -> [UInt8] {
+            let c = color.usingColorSpace(.deviceRGB)!
+            return [c.redComponent, c.greenComponent, c.blueComponent].map { UInt8(($0 * 255 * share).rounded()) } + [255]
+        }
+        let ka = EvidenceComposite.keyA, kb = EvidenceComposite.keyB
+        let a = strip([[0, 0, 0, 255], key(ka, 0.5), key(ka, 1), key(ka, 1)])
+        let b = strip([[0, 0, 0, 255], key(kb, 0.5), key(kb, 1), key(kb, 1)])
+        let page = NSImage(size: NSSize(width: 4, height: 1))
+        page.lockFocus(); NSColor(deviceRed: 1, green: 1, blue: 0, alpha: 1).setFill(); NSRect(x: 0, y: 0, width: 4, height: 1).fill(); page.unlockFocus()
+        let png = try #require(EvidenceComposite.png(content: content, cached: cached, pages: [(page, content.bounds)], keys: (a, b)))
+        let out = try #require(NSBitmapImageRep(data: png))
+        // The stored samples, not `colorAt`: that converts through the PNG's profile, which is not linear.
+        func rgb(_ x: Int) -> [Int] { (0..<3).map { Int(out.bitmapData![x * out.bitsPerPixel / 8 + $0]) } }
+        let pageColor = rgb(3)
+        #expect(pageColor[0] > 240 && pageColor[1] > 240 && pageColor[2] < 10)
+        #expect(rgb(2) == pageColor)
+        #expect(rgb(0) == [0, 0, 0])
+        // Half covered by black: half of the page.
+        #expect(zip(rgb(1), pageColor).allSatisfy { abs($0 - $1 / 2) <= 3 })
+    }
 }
