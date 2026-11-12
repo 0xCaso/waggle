@@ -225,11 +225,14 @@ final class PromptNSTextView: NSTextView {
 
     /// `KNOCK_EVIDENCE_PASTE=<png>` (evidence hook): puts that image on the clipboard as a screenshot does,
     /// then presses Cmd-V through the app's menu, the path a plain-text view had turned off. A capture has no
-    /// keyboard. The clipboard's text comes back after. Never set outside evidence runs.
+    /// keyboard. The clipboard's text comes back after. It replaces the system clipboard, so it works only in a
+    /// process whose `KNOCK_BUNDLE_ID` starts with `dev.limone.knock.evidence`.
     private static var evidencePasted = false
     private func runEvidencePaste() {
+        let environment = ProcessInfo.processInfo.environment
         guard !Self.evidencePasted, window != nil, coordinator?.parent.onPaste != nil,
-              let path = ProcessInfo.processInfo.environment["KNOCK_EVIDENCE_PASTE"],
+              environment["KNOCK_BUNDLE_ID"]?.hasPrefix("dev.limone.knock.evidence") == true,
+              let path = environment["KNOCK_EVIDENCE_PASTE"],
               let png = FileManager.default.contents(atPath: path) else { return }
         DispatchQueue.main.asyncAfter(deadline: .now() + 2) { [weak self] in
             // SwiftUI may have swapped this field for a new one by now: only a field still on screen pastes.
