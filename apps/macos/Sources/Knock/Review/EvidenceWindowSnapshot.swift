@@ -105,6 +105,8 @@ enum EvidenceComposite {
             mirrored.forEach { $0.shadowOffset.height = -$0.shadowOffset.height }
             CATransaction.commit()
         }
+        // Keep this synchronous: no `await` between the two `mirror()` calls, or the screen could
+        // draw a frame with the shadows mirrored.
         mirror()
         defer { mirror() }
         view.cacheDisplay(in: view.bounds, to: rep)
@@ -161,6 +163,12 @@ enum EvidenceComposite {
                 return out.representation(using: .png, properties: [:])
             }
         }
+        if let keys {
+            FileHandle.standardError.write(Data((
+                "evidence-shot: keyed renders unused, overlays other than pins are lost " +
+                "(cached \(Self.layout(cached)), a \(Self.layout(keys.a)), b \(Self.layout(keys.b)))\n"
+            ).utf8))
+        }
         // No keyed renders: the snapshots go over the whole frame, and only the pins come back (WAG-307).
         let out = NSImage(size: size)
         out.lockFocus()
@@ -180,6 +188,10 @@ enum EvidenceComposite {
         rep.bitsPerSample == 8 && rep.samplesPerPixel >= 3 && !rep.isPlanar && rep.bitmapData != nil
             && !rep.bitmapFormat.contains(.alphaFirst) && !rep.bitmapFormat.contains(.floatingPointSamples)
             && !rep.bitmapFormat.contains(.thirtyTwoBitLittleEndian) && !rep.bitmapFormat.contains(.sixteenBitLittleEndian)
+    }
+
+    private static func layout(_ rep: NSBitmapImageRep) -> String {
+        "\(rep.pixelsWide)x\(rep.pixelsHigh) \(rep.bitsPerSample)b/\(rep.samplesPerPixel)s format \(rep.bitmapFormat.rawValue)"
     }
 
     private static func sameShape(_ x: NSBitmapImageRep, _ y: NSBitmapImageRep) -> Bool {
